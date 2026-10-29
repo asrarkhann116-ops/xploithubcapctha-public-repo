@@ -161,8 +161,11 @@ async def redeem_command(interaction: discord.Interaction, tx_hash: str):
     else:
         await interaction.followup.send(f"❌ **Deposit verification failed:** {res.get('error')}", ephemeral=True)
 
-if __name__ == "__main__":
+def start_bot():
     if TOKEN:
         client.run(TOKEN)
     else:
-        print("DISCORD_BOT_TOKEN missing in .env")
+        print("[BOT] DISCORD_BOT_TOKEN missing in environment variables.")
+
+if __name__ == "__main__":
+    start_bot()

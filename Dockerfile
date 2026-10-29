@@ -31,7 +31,7 @@ RUN seleniumbase install chromedriver || true
 
 COPY . .
 
-# Expose default port (Railway overrides via $PORT env var)
-EXPOSE 8000
+# Expose default port (Railway defaults to 8080)
+EXPOSE 8080
 
 CMD ["python", "run_all.py"]
