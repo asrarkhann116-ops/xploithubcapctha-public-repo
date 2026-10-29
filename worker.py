@@ -62,7 +62,7 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None):
             from curl_cffi import requests as cffi_requests
             start = time.time()
             response = cffi_requests.get(
-                url, impersonate="chrome130", timeout=15,
+                url, impersonate="chrome124", timeout=15,
                 headers={
                     "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
                     "Accept-Language": "en-US,en;q=0.9",

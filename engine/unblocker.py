@@ -22,7 +22,7 @@ def unlock_fast_tls(url: str, proxy: Optional[str] = None) -> Dict[str, Any]:
     try:
         response = cffi_requests.get(
             url,
-            impersonate="chrome130",
+            impersonate="chrome124",
             proxies=proxies,
             timeout=15,
             headers={
