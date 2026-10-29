@@ -1,8 +1,15 @@
 import discord
 from discord import app_commands
 import os
+import sys
 import aiohttp
 from dotenv import load_dotenv
+
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 load_dotenv()
 

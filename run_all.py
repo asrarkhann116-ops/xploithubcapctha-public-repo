@@ -1,16 +1,22 @@
 import multiprocessing
 import uvicorn
-import subprocess
 import sys
 import os
 
+# Ensure UTF-8 output encoding on Windows consoles
+if sys.stdout.encoding != 'utf-8':
+    sys.reconfigure(encoding='utf-8')
+
 def run_web():
-    print("🚀 Starting Xploit Unblocker 95 Web & API Server on http://0.0.0.0:8000...")
+    print("[SERVER] Starting Xploit Unblocker Web & API Server on http://0.0.0.0:8000...")
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)
 
 def run_bot():
-    print("🤖 Starting Xploit Unblocker Discord Bot...")
-    import discord_bot
+    print("[BOT] Starting Xploit Unblocker Discord Bot...")
+    try:
+        import discord_bot
+    except Exception as e:
+        print(f"[BOT] Discord bot offline or token unconfigured: {e}")
 
 if __name__ == "__main__":
     p_web = multiprocessing.Process(target=run_web)
