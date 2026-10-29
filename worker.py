@@ -50,19 +50,29 @@ def heartbeat_loop():
 # ── CDP Bypass Engine ─────────────────────────
 def execute_cdp_bypass(url, force_cdp=False, proxy=None):
     """
-    Run the full dual-tier bypass locally.
-    Tier 1: Fast TLS via curl_cffi
-    Tier 2: SeleniumBase CDP stealth mode
+    Run the full dual-tier bypass locally on GitHub runner.
+    Tier 1: Fast TLS via curl_cffi with Chrome 124 fingerprint.
+    Tier 2: SeleniumBase CDP stealth mode with Bezier curve mouse trajectories
+            and slider puzzle drag automation.
     """
     import re
+    import random
+    from engine.proxies import get_next_proxy, report_proxy_result
+    from engine.human import apply_human_mouse_move, human_drag_slider
+
+    resolved_proxy = get_next_proxy(proxy)
 
     # Tier 1: Fast TLS attempt (unless forced CDP)
     if not force_cdp:
         try:
             from curl_cffi import requests as cffi_requests
             start = time.time()
+            proxies = {"http": resolved_proxy, "https": resolved_proxy} if resolved_proxy else None
             response = cffi_requests.get(
-                url, impersonate="chrome124", timeout=15,
+                url,
+                impersonate="chrome124",
+                proxies=proxies,
+                timeout=15,
                 headers={
                     "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
                     "Accept-Language": "en-US,en;q=0.9",
@@ -81,6 +91,7 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None):
             if not is_challenge:
                 title_m = re.search(r"<title>(.*?)</title>", text, re.IGNORECASE)
                 title = title_m.group(1).strip() if title_m else ""
+                report_proxy_result(resolved_proxy, success=True)
                 return {
                     "success": True,
                     "mode": "worker_fast_tls",
@@ -88,34 +99,63 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None):
                     "html": text,
                     "cookies": [],
                     "duration_ms": duration,
+                    "proxy_used": bool(resolved_proxy)
                 }
             print(f"[FAST-TLS] Challenge detected, escalating to CDP...")
         except Exception as e:
-            print(f"[FAST-TLS] Skipped: {e}")
+            report_proxy_result(resolved_proxy, success=False)
+            print(f"[FAST-TLS] Skipped/Failed: {e}")
 
-    # Tier 2: SeleniumBase CDP
+    # Tier 2: SeleniumBase CDP Stealth Mode
     from seleniumbase import SB
     start = time.time()
     try:
-        with SB(uc=True, test=True, headed=False) as sb:
+        with SB(uc=True, test=True, headed=False, proxy=resolved_proxy) as sb:
             sb.activate_cdp_mode()
             sb.open(url)
-            sb.sleep(2)
+            sb.sleep(random.uniform(1.8, 2.5))
+
+            # Simulate human cursor trajectory across screen
+            apply_human_mouse_move(sb, random.uniform(300, 750), random.uniform(250, 500), steps=20)
+
+            # Auto-click Turnstile or reCAPTCHA box
             try:
                 sb.uc_gui_click_captcha()
-                sb.sleep(1.5)
+                sb.sleep(random.uniform(1.2, 1.8))
             except Exception:
                 pass
+
+            # Detect & solve slider challenges (GeeTest / DataDome / Slider)
+            slider_selectors = [
+                ".geetest_slider_button",
+                ".slider-btn",
+                "#nc_1_n1z",
+                "[class*='slider'][class*='btn']",
+                "[class*='captcha_slider']"
+            ]
+            for sel in slider_selectors:
+                try:
+                    if sb.is_element_visible(sel):
+                        print(f"[WORKER] Slider puzzle detected ({sel}), solving via Bezier drag trajectory...")
+                        human_drag_slider(sb, sel, distance_px=random.randint(220, 260))
+                        sb.sleep(1.5)
+                        break
+                except Exception:
+                    pass
+
+            # Wait for challenge resolution
             for _ in range(12):
                 title = sb.get_title()
                 if "Just a moment" not in title and "Attention Required" not in title:
                     break
-                sb.sleep(1.5)
+                sb.sleep(1.2)
 
             html = sb.get_page_source()
             title = sb.get_title()
             cookies = sb.get_cookies()
             duration = int((time.time() - start) * 1000)
+
+            report_proxy_result(resolved_proxy, success=True)
             return {
                 "success": True,
                 "mode": "worker_cdp",
@@ -123,8 +163,10 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None):
                 "html": html,
                 "cookies": cookies,
                 "duration_ms": duration,
+                "proxy_used": bool(resolved_proxy)
             }
     except Exception as e:
+        report_proxy_result(resolved_proxy, success=False)
         duration = int((time.time() - start) * 1000)
         return {
             "success": False,

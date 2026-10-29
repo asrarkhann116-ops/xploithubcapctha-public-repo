@@ -389,6 +389,12 @@ async def get_workers_status():
         ]
     }
 
+@app.get("/api/proxies/status")
+async def get_proxies_status_endpoint():
+    """Returns proxy pool configuration and health stats."""
+    from engine.proxies import get_proxy_stats
+    return get_proxy_stats()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)

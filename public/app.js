@@ -201,6 +201,8 @@ function toggleDepositTab(tab) {
 // ══════════════════════════════════════════════════════════
 async function executeScrape() {
     const url = document.getElementById('target-url').value.trim();
+    const proxyInput = document.getElementById('target-proxy');
+    const proxy = proxyInput ? proxyInput.value.trim() : null;
     const btn = document.getElementById('btn-run');
     const btnText = document.getElementById('btn-run-text');
     const metricStatus = document.getElementById('metric-status');
@@ -227,21 +229,24 @@ async function executeScrape() {
     metricBypass.innerText = 'Pending';
     consoleOutput.innerHTML = `<code>// Connecting to Chrome DevTools Protocol...
 // Injecting stealth anti-detection overrides...
-// Emulating natural cursor trajectories and Turnstile clearance...</code>`;
+// Generating human Bezier cursor trajectories...</code>`;
 
     const startTime = Date.now();
     try {
+        const payload = {
+            url: url,
+            mode: currentMode,
+            force_cdp: currentMode === 'stealth'
+        };
+        if (proxy) payload.proxy = proxy;
+
         const res = await fetch('/v1/unlock', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-API-Key': currentUser.api_key
             },
-            body: JSON.stringify({
-                url: url,
-                mode: currentMode,
-                force_cdp: currentMode === 'stealth'
-            })
+            body: JSON.stringify(payload)
         });
 
         const data = await res.json();
