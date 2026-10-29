@@ -11,6 +11,8 @@ let lastResponseData = null;
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     loadUserProfile();
+    pollFleetStatus();
+    setInterval(pollFleetStatus, 10000); // Poll worker nodes every 10s
 });
 
 // Toast System (Clean, non-intrusive notification replacing alert)
@@ -74,7 +76,7 @@ async function loadUserProfile() {
 `curl -X POST "http://localhost:8000/v1/unlock" \\
   -H "X-API-Key: ${data.api_key}" \\
   -H "Content-Type: application/json" \\
-  -d '{"url": "https://gitlab.com/users/sign_in", "mode": "auto"}'`;
+  -d '{"url": "https://gitlab.com/users/sign_in", "mode": "${currentMode}"}'`;
         }
 
         // Promo status
@@ -93,12 +95,51 @@ async function loadUserProfile() {
     }
 }
 
+// Mode specifications and descriptions
+const MODE_SPECS = {
+    'auto': {
+        name: 'Auto Dual-Tier Mode',
+        desc: '<strong>Auto Dual-Tier Mode:</strong> Tries fast 50ms TLS impersonation first. If Cloudflare Turnstile or 5s challenge is triggered, auto-escalates to GitHub Actions Chrome CDP runner.',
+        toast: 'Engine mode set: Auto Dual-Tier (Fast TLS + CDP Fallback)'
+    },
+    'stealth': {
+        name: 'Pure CDP Stealth Mode',
+        desc: '<strong>Pure CDP Stealth Mode:</strong> Direct dispatch to Chrome DevTools Protocol runners. Emulates human mouse bezier curves, solving Turnstile, DataDome, and slider captchas.',
+        toast: 'Engine mode set: Pure CDP Stealth (Chrome Emulation)'
+    },
+    'fast': {
+        name: 'Fast TLS Impersonation',
+        desc: '<strong>Fast TLS Impersonation (50ms):</strong> Raw HTTP requests with Chrome 130 JA3/JA4 fingerprinting. Maximum throughput for targets without active JS challenges.',
+        toast: 'Engine mode set: Fast TLS (50ms Lightweight)'
+    }
+};
+
 // Mode Selector
 function setMode(mode) {
     currentMode = mode;
     document.querySelectorAll('.seg-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
+
+    const info = MODE_SPECS[mode] || MODE_SPECS['auto'];
+    const descEl = document.getElementById('mode-info-desc');
+    if (descEl) {
+        descEl.innerHTML = info.desc;
+    }
+
+    // Update cURL snippet
+    if (currentUser) {
+        const curlSnippetEl = document.getElementById('curl-snippet');
+        if (curlSnippetEl) {
+            curlSnippetEl.innerText = 
+`curl -X POST "http://localhost:8000/v1/unlock" \\
+  -H "X-API-Key: ${currentUser.api_key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://gitlab.com/users/sign_in", "mode": "${mode}"}'`;
+        }
+    }
+
+    showToast(info.toast, 'info');
 }
 
 // Tab Switcher for Output
@@ -108,6 +149,31 @@ function switchTab(tab) {
         btn.classList.toggle('active', btn.innerText.toLowerCase().includes(tab));
     });
     renderConsoleOutput();
+}
+
+// Poll GitHub Actions Worker Nodes Fleet Status
+async function pollFleetStatus() {
+    try {
+        const res = await fetch('/api/workers/status');
+        const data = await res.json();
+        const count = data.workers_online || 0;
+        
+        const countEl = document.getElementById('fleet-count');
+        const dotEl = document.getElementById('fleet-dot');
+        const pillEl = document.getElementById('fleet-status-pill');
+
+        if (countEl) countEl.innerText = count;
+        if (dotEl) {
+            dotEl.classList.toggle('online', count > 0);
+        }
+        if (pillEl) {
+            pillEl.title = count > 0
+                ? `${count} GitHub Actions runner(s) active & ready for heavy CDP tasks`
+                : 'No external runners online. Requests run on local server engine.';
+        }
+    } catch (e) {
+        // Silent fail on background poll
+    }
 }
 
 // Deposit Tab Switcher (Solana vs Voucher)
@@ -184,7 +250,8 @@ async function executeScrape() {
 
         if (data.success) {
             metricStatus.className = 'cell-val status-ok';
-            metricStatus.innerText = `200 OK (${data.mode})`;
+            const nodeInfo = data.worker_node ? ` @ ${data.worker_node}` : '';
+            metricStatus.innerText = `200 OK (${data.mode}${nodeInfo})`;
             metricLatency.innerText = `${data.duration_ms} ms`;
             metricBypass.innerText = 'SOLVED / CLEARED';
 
@@ -213,16 +280,37 @@ async function executeScrape() {
 
 function renderConsoleOutput() {
     const consoleOutput = document.getElementById('console-output');
-    if (!lastResponseData) return;
+    if (!consoleOutput) return;
+
+    if (!lastResponseData) {
+        if (currentTab === 'html') {
+            consoleOutput.innerHTML = `<code>// [Decoded HTML Buffer - Standby]
+// Enter target URL above and click "Run Bypass".
+// The solver extracts the complete post-clearance DOM and renders it here.</code>`;
+        } else if (currentTab === 'cookies') {
+            consoleOutput.innerHTML = `<code>// [Clearance Cookies Buffer - Standby]
+// Post-challenge clearance cookies (cf_clearance, __cf_bm, session tokens)
+// captured from the browser context will be formatted as JSON here.</code>`;
+        } else if (currentTab === 'headers') {
+            consoleOutput.innerHTML = `<code>// [Response Headers Buffer - Standby]
+// Target host HTTP response headers (Cloudflare Ray-ID, Server, Cache status)
+// returned upon successful bypass will appear here.</code>`;
+        }
+        return;
+    }
 
     if (currentTab === 'html') {
         const preview = lastResponseData.html ? lastResponseData.html.slice(0, 4500) : '// No HTML content captured';
         consoleOutput.innerHTML = `<code>${escapeHtml(preview)}\n\n// [...Truncated display. Total extracted payload: ${lastResponseData.html ? lastResponseData.html.length : 0} characters]</code>`;
     } else if (currentTab === 'cookies') {
-        const cookies = lastResponseData.cookies ? JSON.stringify(lastResponseData.cookies, null, 2) : '// No clearance cookies captured';
+        const cookies = lastResponseData.cookies && lastResponseData.cookies.length > 0
+            ? JSON.stringify(lastResponseData.cookies, null, 2)
+            : '// No clearance cookies captured for this request';
         consoleOutput.innerHTML = `<code>${escapeHtml(cookies)}</code>`;
     } else if (currentTab === 'headers') {
-        const headers = lastResponseData.headers ? JSON.stringify(lastResponseData.headers, null, 2) : '// No headers captured';
+        const headers = lastResponseData.headers && Object.keys(lastResponseData.headers).length > 0
+            ? JSON.stringify(lastResponseData.headers, null, 2)
+            : '// No headers captured for this request';
         consoleOutput.innerHTML = `<code>${escapeHtml(headers)}</code>`;
     }
 }

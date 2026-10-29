@@ -1,1 +1,86 @@
-test
+# ═══════════════════════════════════════════════════════════
+# Xploit Unblocker — Distributed Worker Fleet (GitHub Actions)
+#
+# Architecture:
+#   Railway (24/7) ─── serves API + web UI + SQLite
+#                 └─── task queue (in-memory)
+#   GitHub Actions ─── worker nodes connect to Railway
+#                 └─── execute heavy CDP (Chrome) bypass tasks
+#                 └─── 7GB RAM + 2 vCPU per runner, free compute
+#
+# Schedule: Runs every 5h50m (just under 6h limit) on a rotating
+#           cron so there's always at least 1 worker available.
+#           Also triggerable manually via workflow_dispatch.
+# ═══════════════════════════════════════════════════════════
+
+name: Xploit Worker Fleet
+
+on:
+  # Staggered cron: 2 workers rotate so there's near-zero downtime
+  schedule:
+    - cron: "0 */6 * * *"     # Worker A: every 6 hours at :00
+    - cron: "0 3,9,15,21 * * *"  # Worker B: offset by 3h for overlap
+  workflow_dispatch:
+    inputs:
+      duration_minutes:
+        description: "Worker run duration in minutes (max 350)"
+        required: false
+        default: "350"
+
+# Only 1 worker per cron slot (prevent duplicates if re-triggered)
+concurrency:
+  group: xploit-worker-${{ github.event.schedule || 'manual' }}
+  cancel-in-progress: true
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360   # GitHub Actions hard limit: 6 hours
+
+    steps:
+      # ── 1. Checkout repo ────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Setup Python ────────────────────
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ── 3. Install Chrome (for CDP mode) ───
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq wget gnupg ca-certificates
+          wget -qO /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i /tmp/chrome.deb || sudo apt-get install -f -y -qq
+          google-chrome --version
+
+      # ── 4. Install Python dependencies ─────
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install seleniumbase curl_cffi requests
+
+      # ── 5. Run worker node ─────────────────
+      - name: Start Worker Node
+        env:
+          HUB_URL: ${{ secrets.HUB_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+          WORKER_ID: "gh-${{ github.run_id }}-${{ github.run_number }}"
+          DURATION_MINUTES: ${{ github.event.inputs.duration_minutes || '350' }}
+          DISPLAY: ":99"
+        run: |
+          echo "════════════════════════════════════════"
+          echo "  Worker connecting to: $HUB_URL"
+          echo "  Worker ID: $WORKER_ID"
+          echo "  Duration: ${DURATION_MINUTES}m"
+          echo "════════════════════════════════════════"
+
+          # Start virtual display for headless Chrome
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 1
+
+          python worker.py

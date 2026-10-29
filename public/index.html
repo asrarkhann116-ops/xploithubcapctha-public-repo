@@ -50,6 +50,12 @@
             </div>
 
             <div class="nav-controls">
+                <div class="stat-pill" id="fleet-status-pill" title="GitHub Actions worker nodes status">
+                    <span class="fleet-dot" id="fleet-dot"></span>
+                    <span class="stat-val" id="fleet-count">0</span>
+                    <span class="stat-lbl" id="fleet-label">Runners Online</span>
+                </div>
+
                 <div class="stat-pill" title="Available API execution credits">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -111,6 +117,20 @@
                         <button class="seg-btn active" data-mode="auto" onclick="setMode('auto')">Auto Dual-Tier</button>
                         <button class="seg-btn" data-mode="stealth" onclick="setMode('stealth')">Pure CDP Stealth</button>
                         <button class="seg-btn" data-mode="fast" onclick="setMode('fast')">Fast TLS (50ms)</button>
+                    </div>
+                </div>
+
+                <!-- Mode Explanation Banner -->
+                <div class="mode-info-banner" id="mode-info-banner">
+                    <div class="mode-info-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </div>
+                    <div class="mode-info-text" id="mode-info-desc">
+                        <strong>Auto Dual-Tier Mode:</strong> Tries 50ms TLS impersonation first. If Cloudflare Turnstile or 5s challenge is detected, auto-dispatches to GitHub Actions Chrome CDP runner.
                     </div>
                 </div>
 

@@ -1,7 +1,10 @@
 import os
 import time
+import asyncio
+import uuid
 import aiohttp
 from typing import Optional
+from collections import deque
 from fastapi import FastAPI, Header, Query, HTTPException, Request, Response, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -23,6 +26,17 @@ from core.db import (
 from engine.unblocker import execute_unblock
 from core.promo import verify_user_promo
 from core.solana import verify_solana_deposit, SOLANA_WALLET
+
+# Worker secret key for GitHub Actions runners to authenticate
+WORKER_SECRET = os.getenv("WORKER_SECRET", "xpk-worker-default-secret")
+
+# In-memory task queue: pending tasks waiting for a worker
+task_queue = deque()
+# Completed results keyed by task_id, with asyncio Events for waiting
+task_results = {}
+task_events = {}
+# Active worker nodes registry {worker_id: {last_seen, tasks_completed}}
+active_workers = {}
 
 app = FastAPI(title="Xploit Unblocker API", version="2.0.0")
 
@@ -110,23 +124,73 @@ async def index():
 
 # ════════════════════════════════════════════
 #  2. CORE UNBLOCKER ENDPOINT ($0.001/req)
+#     Hybrid: Dispatches to GitHub worker if
+#     available, else runs locally.
 # ════════════════════════════════════════════
+async def dispatch_to_worker(url: str, mode: str, force_cdp: bool, proxy: str = None, timeout: int = 35):
+    """Push a task onto the queue and wait for a worker to complete it."""
+    task_id = str(uuid.uuid4())[:12]
+    event = asyncio.Event()
+    task_events[task_id] = event
+    task_queue.append({
+        "task_id": task_id,
+        "url": url,
+        "mode": mode,
+        "force_cdp": force_cdp,
+        "proxy": proxy,
+    })
+    try:
+        await asyncio.wait_for(event.wait(), timeout=timeout)
+    except asyncio.TimeoutError:
+        task_events.pop(task_id, None)
+        task_results.pop(task_id, None)
+        return None
+    result = task_results.pop(task_id, None)
+    task_events.pop(task_id, None)
+    return result
+
+def has_active_workers():
+    """Check if any worker node sent a heartbeat in the last 90 seconds."""
+    now = time.time()
+    # Prune stale workers
+    stale = [wid for wid, info in active_workers.items() if now - info["last_seen"] > 90]
+    for wid in stale:
+        active_workers.pop(wid, None)
+    return len(active_workers) > 0
+
 @app.post("/v1/unlock")
 async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_key)):
     start_time = time.time()
-    
-    # Execute dual-tier unblocker
     force_cdp = req.force_cdp or (req.mode == "stealth")
+
+    # If remote workers are online, dispatch heavy CDP tasks to them
+    if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto")):
+        result = await dispatch_to_worker(req.url, req.mode or "auto", force_cdp, req.proxy)
+        if result and result.get("success"):
+            duration_ms = int((time.time() - start_time) * 1000)
+            deduct_credit(user["id"], 1.0)
+            log_request(user["id"], req.url, result.get("mode", "worker"), 200, duration_ms, 0.001)
+            return {
+                "success": True,
+                "url": req.url,
+                "mode": result.get("mode", "worker_cdp"),
+                "status_code": 200,
+                "duration_ms": duration_ms,
+                "title": result.get("title", ""),
+                "credits_remaining": user["credits"] - 1.0,
+                "html": result.get("html", ""),
+                "cookies": result.get("cookies", []),
+                "worker_node": result.get("worker_id", "unknown")
+            }
+
+    # Fallback: execute locally on this server
     result = execute_unblock(req.url, force_cdp=force_cdp, proxy=req.proxy)
     duration_ms = int((time.time() - start_time) * 1000)
-    
     status_code = result.get("status_code", 200)
     
     if result.get("success"):
-        # Deduct 1 credit ($0.001)
         deduct_credit(user["id"], 1.0)
         log_request(user["id"], req.url, result.get("mode", "auto"), status_code, duration_ms, 0.001)
-        
         return {
             "success": True,
             "url": req.url,
@@ -257,6 +321,75 @@ async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request):
     res = redeem_voucher(req.code, user["id"])
     return res
 
+# ════════════════════════════════════════════
+#  6. GITHUB ACTIONS WORKER NODE ENDPOINTS
+#     Workers long-poll for tasks, submit
+#     results, and send heartbeats.
+# ════════════════════════════════════════════
+
+def verify_worker_auth(x_worker_secret: Optional[str] = Header(None)):
+    """Authenticate worker nodes via shared secret."""
+    if not x_worker_secret or x_worker_secret != WORKER_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid worker secret.")
+    return True
+
+@app.post("/api/worker/heartbeat")
+async def worker_heartbeat(request: Request, _auth = Depends(verify_worker_auth)):
+    """Worker sends heartbeat every 30s to stay in the active pool."""
+    body = await request.json()
+    worker_id = body.get("worker_id", "unknown")
+    active_workers[worker_id] = {
+        "last_seen": time.time(),
+        "tasks_completed": body.get("tasks_completed", 0),
+    }
+    return {"status": "ok", "registered": True, "queue_depth": len(task_queue)}
+
+@app.get("/api/worker/poll")
+async def worker_poll_task(_auth = Depends(verify_worker_auth)):
+    """Worker long-polls for a task. Returns a task or empty after 25s."""
+    deadline = time.time() + 25
+    while time.time() < deadline:
+        if task_queue:
+            task = task_queue.popleft()
+            return {"task": task}
+        await asyncio.sleep(0.5)
+    return {"task": None}
+
+class WorkerResultPayload(BaseModel):
+    task_id: str
+    worker_id: Optional[str] = "unknown"
+    success: bool
+    mode: Optional[str] = "worker_cdp"
+    title: Optional[str] = ""
+    html: Optional[str] = ""
+    cookies: Optional[list] = []
+    error: Optional[str] = None
+
+@app.post("/api/worker/result")
+async def worker_submit_result(payload: WorkerResultPayload, _auth = Depends(verify_worker_auth)):
+    """Worker submits completed task result."""
+    task_id = payload.task_id
+    task_results[task_id] = payload.dict()
+    event = task_events.get(task_id)
+    if event:
+        event.set()
+    return {"status": "accepted", "task_id": task_id}
+
+@app.get("/api/workers/status")
+async def get_workers_status():
+    """Public endpoint: shows how many worker nodes are online."""
+    now = time.time()
+    online = {wid: info for wid, info in active_workers.items() if now - info["last_seen"] < 90}
+    return {
+        "workers_online": len(online),
+        "queue_depth": len(task_queue),
+        "nodes": [
+            {"id": wid, "tasks_completed": info["tasks_completed"], "last_seen_ago": int(now - info["last_seen"])}
+            for wid, info in online.items()
+        ]
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+
