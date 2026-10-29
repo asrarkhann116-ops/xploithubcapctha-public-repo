@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xploit Unblocker — Developer Console & Stealth Scraper API</title>
+    <meta name="description" content="High-concurrency anti-bot bypass infrastructure. Automated Cloudflare Turnstile, DataDome, and Akamai bypass with CDP emulation.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top System Telemetry Bar -->
+    <div class="system-bar">
+        <div class="system-container">
+            <div class="sys-item">
+                <span class="pulse-indicator"></span>
+                <span class="sys-label">INFRASTRUCTURE STATUS:</span>
+                <span class="sys-val">80/80 CLUSTERS OPERATIONAL</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">ENGINE:</span>
+                <span class="sys-val">SELENIUMBASE CDP v2.4</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">LATENCY P95:</span>
+                <span class="sys-val" id="telemetry-latency">1,840 ms</span>
+            </div>
+            <div class="sys-item">
+                <span class="sys-label">UNIT COST:</span>
+                <span class="sys-val text-accent">$0.001 / REQ</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div class="brand-meta">
+                    <div class="brand-name">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div>
+                    <div class="brand-subtitle">STEALTH BYPASS API</div>
+                </div>
+            </div>
+
+            <div class="nav-controls">
+                <div class="stat-pill" title="Available API execution credits">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    <span class="stat-val" id="nav-credits">10.0</span>
+                    <span class="stat-lbl">Credits</span>
+                </div>
+
+                <div class="user-control" id="user-control-block">
+                    <div class="user-profile-badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span id="nav-username">Guest Operator</span>
+                    </div>
+
+                    <a href="/api/auth/discord/login" class="btn-connect-discord" id="btn-login" title="Authenticate with Discord for persistent credits">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                        </svg>
+                        <span>OAuth Login</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="page-container">
+
+        <!-- Console Section Header -->
+        <section class="section-hero">
+            <div class="hero-chip">
+                <span class="chip-accent">PROTOCOL SPEC</span>
+                <span>Automated Dual-Tier Evasion (Fast-TLS + Undetected CDP)</span>
+            </div>
+            <h1 class="hero-heading">Cloudflare Turnstile & DataDome Bypass Infrastructure</h1>
+            <p class="hero-lead">
+                Solve anti-bot JavaScript challenges and capture post-clearance HTML and session cookies in 2 to 3 seconds with automated Chrome DevTools Protocol emulation.
+            </p>
+        </section>
+
+        <!-- Primary Layout Grid -->
+        <div class="grid-layout">
+
+            <!-- LEFT MAIN: Interactive Execution Console -->
+            <div class="panel panel-playground">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="4 17 10 11 4 5"></polyline>
+                            <line x1="12" y1="19" x2="20" y2="19"></line>
+                        </svg>
+                        <h2>Execution Console</h2>
+                    </div>
+
+                    <div class="segmented-control" role="group" aria-label="Engine Mode">
+                        <button class="seg-btn active" data-mode="auto" onclick="setMode('auto')">Auto Dual-Tier</button>
+                        <button class="seg-btn" data-mode="stealth" onclick="setMode('stealth')">Pure CDP Stealth</button>
+                        <button class="seg-btn" data-mode="fast" onclick="setMode('fast')">Fast TLS (50ms)</button>
+                    </div>
+                </div>
+
+                <!-- Input Row -->
+                <div class="command-bar">
+                    <div class="method-tag">POST /v1/unlock</div>
+                    <input type="url" id="target-url" value="https://gitlab.com/users/sign_in" placeholder="https://example.com/login" spellcheck="false" autocomplete="off">
+                    <button class="btn-primary" id="btn-run" onclick="executeScrape()">
+                        <svg class="btn-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <span id="btn-run-text">Run Bypass</span>
+                    </button>
+                </div>
+
+                <!-- Metrics Strip -->
+                <div class="telemetry-strip">
+                    <div class="telemetry-cell">
+                        <div class="cell-label">STATUS</div>
+                        <div class="cell-val text-muted" id="metric-status">Idle / Standby</div>
+                    </div>
+                    <div class="telemetry-cell">
+                        <div class="cell-label">EXECUTION TIME</div>
+                        <div class="cell-val" id="metric-latency">-- ms</div>
+                    </div>
+                    <div class="telemetry-cell">
+                        <div class="cell-label">CHALLENGE CLEARANCE</div>
+                        <div class="cell-val" id="metric-bypass">Unexecuted</div>
+                    </div>
+                    <div class="telemetry-cell">
+                        <div class="cell-label">DEBIT</div>
+                        <div class="cell-val text-accent">1.0 Credit ($0.001)</div>
+                    </div>
+                </div>
+
+                <!-- Output Terminal View -->
+                <div class="terminal-container">
+                    <div class="terminal-tabbar">
+                        <div class="terminal-tabs">
+                            <button class="tab-item active" onclick="switchTab('html')">Decoded HTML</button>
+                            <button class="tab-item" onclick="switchTab('cookies')">Clearance Cookies</button>
+                            <button class="tab-item" onclick="switchTab('headers')">Response Headers</button>
+                        </div>
+                        <button class="btn-copy-terminal" onclick="copyConsoleOutput()" title="Copy active tab output">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <span>Copy Buffer</span>
+                        </button>
+                    </div>
+
+                    <div class="terminal-screen">
+                        <pre id="console-output"><code>// Standby mode. Enter a URL above and click "Run Bypass".
+// The solver emulates realistic human bezier mouse motion and solves Cloudflare Turnstile tokens.</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT STACK: API Key, Discord Promo, Solana Billing -->
+            <div class="side-column">
+
+                <!-- PANEL 1: API Key & Quickstart -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="7.5" cy="15.5" r="5.5"></circle>
+                                <path d="m21 2-9.6 9.6"></path>
+                                <path d="m15.5 7.5 3 3"></path>
+                                <path d="m18.5 4.5 3 3"></path>
+                            </svg>
+                            <h2>Authentication Key</h2>
+                        </div>
+                    </div>
+
+                    <p class="panel-caption">Send this key in your HTTP requests via the <code>X-API-Key</code> header.</p>
+
+                    <div class="field-box">
+                        <input type="password" id="api-key-val" value="xpk_fetching_credentials..." readonly>
+                        <div class="field-actions">
+                            <button class="field-btn" onclick="toggleApiKeyVisibility()" id="btn-toggle-key" title="Toggle visibility">
+                                <svg id="svg-eye" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                            <button class="field-btn" onclick="copyApiKey()" title="Copy key">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="code-snippet-box">
+                        <div class="code-snippet-head">
+                            <span>cURL Automation</span>
+                            <button class="code-copy-btn" onclick="copyCurlSnippet()">Copy</button>
+                        </div>
+                        <pre><code id="curl-snippet">curl -X POST "http://localhost:8000/v1/unlock" \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://gitlab.com/users/sign_in"}'</code></pre>
+                    </div>
+                </div>
+
+                <!-- PANEL 2: Discord Promo Engine -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                                <rect x="2" y="7" width="20" height="5"></rect>
+                                <line x1="12" y1="22" x2="12" y2="7"></line>
+                                <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                                <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+                            </svg>
+                            <h2>Discord Community Promotion</h2>
+                        </div>
+                        <span class="status-badge-accent">500 FREE REQS</span>
+                    </div>
+
+                    <p class="panel-caption">
+                        Place our official invite link into your Discord <strong>About Me (Bio)</strong> or <strong>Custom Status</strong>:
+                    </p>
+
+                    <div class="info-block">
+                        <div class="info-label">INVITE LINK</div>
+                        <div class="info-content-row">
+                            <code id="promo-link-text">discord.gg/3fb9Q7ucSN</code>
+                            <button class="field-btn" onclick="copyPromoLink()" title="Copy link">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="notice-box notice-warning">
+                        <svg class="notice-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <div class="notice-text">
+                            <strong>5-Hour Timeout Cooldown:</strong> If the invite link is removed from your profile after claiming, the account enters a mandatory 5-hour cooldown during which no requests can be processed.
+                        </div>
+                    </div>
+
+                    <div id="promo-status-msg" class="promo-status-line">Verification status: Ready</div>
+
+                    <button class="btn-secondary" id="btn-verify-promo" onclick="verifyPromo()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <span id="btn-promo-text">Verify Discord Profile</span>
+                    </button>
+                </div>
+
+                <!-- PANEL 3: Solana Treasury Settlement & Vouchers -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                                <path d="M12 6v2m0 8v2"></path>
+                            </svg>
+                            <h2>Settlement & Balances</h2>
+                        </div>
+                    </div>
+
+                    <!-- Tabs for Solana vs Voucher -->
+                    <div class="sub-tab-bar">
+                        <button class="sub-tab active" id="tab-solana" onclick="toggleDepositTab('solana')">Solana USDT (SPL)</button>
+                        <button class="sub-tab" id="tab-voucher" onclick="toggleDepositTab('voucher')">Redeem Gift Voucher</button>
+                    </div>
+
+                    <!-- SOLANA TAB VIEW -->
+                    <div id="deposit-view-solana">
+                        <p class="panel-caption">Send USDT (SPL) to our official Solana treasury. 1 USDT = 1,000 Requests ($0.001 each):</p>
+
+                        <div class="info-block">
+                            <div class="info-label">SOLANA TREASURY WALLET</div>
+                            <div class="info-content-row">
+                                <code id="solana-wallet-val">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
+                                <button class="field-btn" onclick="copySolanaWallet()" title="Copy wallet address">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="info-block">
+                            <div class="info-label">YOUR UNIQUE DEPOSIT REFERENCE ID</div>
+                            <div class="info-content-row">
+                                <code id="user-deposit-ref" class="text-accent">XPK-REF</code>
+                                <button class="field-btn" onclick="copyDepositRef()" title="Copy reference memo">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="tx-input-group">
+                            <input type="text" id="tx-hash-input" placeholder="Paste Solana Transaction Signature (TX Hash)..." spellcheck="false" autocomplete="off">
+                            <button class="btn-secondary" onclick="verifyDeposit()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Verify On-Chain</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- VOUCHER TAB VIEW -->
+                    <div id="deposit-view-voucher" style="display: none;">
+                        <p class="panel-caption">Redeem a gift code or promotional voucher provided by administrators or boosters:</p>
+                        
+                        <div class="tx-input-group">
+                            <input type="text" id="voucher-code-input" placeholder="e.g. XPK-WELCOME-1000" spellcheck="false" autocomplete="off">
+                            <button class="btn-secondary" onclick="redeemVoucherCode()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Claim Code</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="deposit-msg" class="deposit-result-area"></div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Global Toast Alert Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- Application Footer -->
+    <footer class="app-footer">
+        <div class="footer-container">
+            <div class="footer-left">
+                <span>Enterprise Anti-Bot Clearance Infrastructure</span>
+                <span class="footer-divider">|</span>
+                <span>Dual-Tier Engine: curl_cffi TLS + SeleniumBase CDP</span>
+            </div>
+            <div class="footer-links">
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener">Discord Support</a>
+                <a href="/api/user/me" target="_blank">Health & JSON Specs</a>
+                <a href="https://github.com/asrarkhann116-ops/xploithubcapctha-public-repo" target="_blank" rel="noopener">Public Repository</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

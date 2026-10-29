@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+data/*.db
+*.db
+.env
+.env.local
+latest_logs/
+downloaded_files/
+node_modules/
