@@ -8,8 +8,10 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
 def run_web():
-    print("[SERVER] Starting Xploit Unblocker Web & API Server on http://0.0.0.0:8000...")
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    print(f"[SERVER] Starting Xploit Unblocker Web & API Server on http://{host}:{port}...")
+    uvicorn.run("server:app", host=host, port=port, reload=False)
 
 def run_bot():
     print("[BOT] Starting Xploit Unblocker Discord Bot...")
