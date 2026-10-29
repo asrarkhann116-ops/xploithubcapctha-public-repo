@@ -4,8 +4,8 @@ import sys
 import os
 
 # Ensure UTF-8 output encoding on Windows consoles
-if sys.stdout.encoding != 'utf-8':
-    sys.reconfigure(encoding='utf-8')
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 def run_web():
     print("[SERVER] Starting Xploit Unblocker Web & API Server on http://0.0.0.0:8000...")

@@ -5,9 +5,9 @@ import sys
 import aiohttp
 from dotenv import load_dotenv
 
-if sys.stdout.encoding != 'utf-8':
+if hasattr(sys.stdout, 'reconfigure'):
     try:
-        sys.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8')
     except Exception:
         pass
 
