@@ -597,7 +597,14 @@ async def discord_callback(code: str, response: Response):
     )
 
     redirect = RedirectResponse(url="/", status_code=302)
-    redirect.set_cookie(key="xpk_uid", value=str(user["id"]), max_age=86400 * 30)
+    # Match guest cookie expiry (365 days) so real user session persists properly
+    redirect.set_cookie(
+        key="xpk_uid",
+        value=str(user["id"]),
+        max_age=86400 * 365,
+        httponly=False,
+        samesite="lax"
+    )
     return redirect
 
 # ════════════════════════════════════════════
@@ -709,6 +716,27 @@ async def regenerate_api_key_endpoint(request: Request, response: Response):
         "success": True,
         "api_key": new_key,
         "message": "New API Key generated and committed to database."
+    }
+
+@app.get("/api/user/my-key")
+async def get_my_api_key(request: Request, response: Response):
+    """Returns the real API key for the currently logged-in session user (for debugging key mismatch)."""
+    user = get_or_create_session_user(request, response)
+    is_guest = bool(user.get("is_guest", 0))
+    if is_guest:
+        return {
+            "is_guest": True,
+            "user_id": user["id"],
+            "username": user["username"],
+            "message": "You are on a guest session. Log in with Discord or register to get your permanent API key.",
+            "api_key": None
+        }
+    return {
+        "is_guest": False,
+        "user_id": user["id"],
+        "username": user["username"],
+        "api_key": user["api_key"],
+        "credits": user["credits"]
     }
 
 @app.get("/developer/api-key/guide", response_class=HTMLResponse)
