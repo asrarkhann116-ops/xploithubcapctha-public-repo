@@ -623,6 +623,16 @@ async def developer_api_key_guide_page():
             return f.read()
     return "<h1>Developer API Key Guide</h1><p>Guide file not found.</p>"
 
+@app.get("/plans", response_class=HTMLResponse)
+@app.get("/plans/", response_class=HTMLResponse)
+@app.get("/pricing", response_class=HTMLResponse)
+async def plans_html_page():
+    plans_file = os.path.join(PUBLIC_DIR, "plans.html")
+    if os.path.exists(plans_file):
+        with open(plans_file, "r", encoding="utf-8") as f:
+            return f.read()
+    return RedirectResponse("/")
+
 # ════════════════════════════════════════════
 #  5. PROMO VERIFICATION, SOLANA & VOUCHERS
 # ════════════════════════════════════════════

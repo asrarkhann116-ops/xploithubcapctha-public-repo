@@ -1121,4 +1121,80 @@ body > * {
     line-height: 1.3;
 }
 
+/* ══════════ VIEW PLAN PRICING CTA & FLUID STYLES ══════════ */
+.btn-plans-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+}
+
+.btn-plans-cta:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.35) 0%, rgba(6, 182, 212, 0.35) 100%);
+    border-color: #10b981;
+    color: #ffffff;
+    box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+}
+
+.nav-link-glow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: var(--text-accent);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link-glow:hover {
+    background: rgba(16, 185, 129, 0.22);
+    border-color: #10b981;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+}
+
+/* ══════════ FLUID ANIMATIONS ══════════ */
+@keyframes fluidFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+}
+
+@keyframes glowPulseSubtle {
+    0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
+    50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.25); }
+}
+
+.panel {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.panel:hover {
+    border-color: rgba(6, 182, 212, 0.35);
+}
+
+.pulse-indicator {
+    animation: pulse 1.8s ease-in-out infinite;
+}
+
 

@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plans &amp; Pricing — Xploit Unblocker Stealth API</title>
+    <meta name="description" content="Transparent, high-performance plans for anti-bot challenge bypass. Free, Moderato, and Vince Enterprise tiers with 24/7 always-on dedicated unblocker workers.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ══════════ FLUID ANIMATIONS & TRENDING STYLES ══════════ */
+        @keyframes orbFloat1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(40px, -30px) scale(1.1); }
+        }
+        @keyframes orbFloat2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-35px, 25px) scale(0.95); }
+        }
+        @keyframes neonPulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 25px rgba(16, 185, 129, 0.15), 0 0 50px rgba(6, 182, 212, 0.08), inset 0 0 15px rgba(16, 185, 129, 0.05);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(16, 185, 129, 0.28), 0 0 70px rgba(6, 182, 212, 0.16), inset 0 0 25px rgba(16, 185, 129, 0.1);
+            }
+        }
+        @keyframes vinceGlow {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(245, 158, 11, 0.18), 0 0 60px rgba(16, 185, 129, 0.12);
+            }
+            50% {
+                box-shadow: 0 0 45px rgba(245, 158, 11, 0.32), 0 0 90px rgba(16, 185, 129, 0.22);
+            }
+        }
+
+        .ambient-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .ambient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.35;
+        }
+        .orb-1 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%);
+            top: 10%;
+            left: 15%;
+            animation: orbFloat1 18s ease-in-out infinite;
+        }
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, transparent 70%);
+            top: 40%;
+            right: 10%;
+            animation: orbFloat2 22s ease-in-out infinite;
+        }
+        .orb-3 {
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, transparent 70%);
+            bottom: 5%;
+            left: 30%;
+            animation: orbFloat1 25s ease-in-out infinite reverse;
+        }
+
+        .plans-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 30px 20px 80px 20px;
+        }
+
+        /* Hero Header */
+        .plans-hero {
+            text-align: center;
+            margin-bottom: 44px;
+            padding-top: 10px;
+        }
+        .plans-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: var(--radius-pill);
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-accent);
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(8px);
+        }
+        .plans-title {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            line-height: 1.15;
+            color: var(--text-primary);
+            letter-spacing: -0.8px;
+            margin-bottom: 14px;
+        }
+        .plans-title .gradient-text {
+            background: linear-gradient(135deg, #f8fafc 30%, #10b981 75%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .plans-sub {
+            max-width: 680px;
+            margin: 0 auto 26px auto;
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        /* 3-Card Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 50px;
+            align-items: stretch;
+        }
+
+        .pricing-card {
+            background: rgba(13, 18, 32, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(39, 51, 77, 0.7);
+            border-radius: var(--radius-lg);
+            padding: 32px 26px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+            overflow: hidden;
+        }
+        .pricing-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+        .pricing-card:hover {
+            transform: translateY(-8px) scale(1.01);
+            border-color: rgba(6, 182, 212, 0.45);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(6, 182, 212, 0.15);
+        }
+
+        /* Free Card Specific */
+        .card-free::before {
+            background: linear-gradient(90deg, #06b6d4, transparent);
+        }
+
+        /* Moderato Card Specific (Featured) */
+        .card-moderato {
+            background: rgba(14, 23, 40, 0.85);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            animation: neonPulseGlow 4s ease-in-out infinite;
+            transform: scale(1.02);
+            z-index: 2;
+        }
+        .card-moderato::before {
+            background: linear-gradient(90deg, #10b981, #06b6d4);
+            height: 4px;
+        }
+        .card-moderato:hover {
+            transform: translateY(-10px) scale(1.03);
+            border-color: #10b981;
+        }
+
+        /* Vince Card Specific (Ultimate Enterprise) */
+        .card-vince {
+            background: rgba(18, 20, 36, 0.85);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            animation: vinceGlow 4s ease-in-out infinite;
+        }
+        .card-vince::before {
+            background: linear-gradient(90deg, #f59e0b, #10b981);
+            height: 4px;
+        }
+        .card-vince:hover {
+            transform: translateY(-8px) scale(1.01);
+            border-color: #f59e0b;
+        }
+
+        /* Badges */
+        .card-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        .tag-free { color: var(--text-cyan); }
+        .tag-moderato { color: #10b981; }
+        .tag-vince { color: #f59e0b; }
+
+        .featured-ribbon {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #022c22;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: var(--radius-pill);
+            letter-spacing: 0.8px;
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            min-height: 38px;
+            margin-bottom: 20px;
+        }
+
+        /* Price block */
+        .price-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .price-val {
+            font-size: 38px;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -1px;
+            font-family: var(--font-sans);
+        }
+        .price-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .price-alt {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        /* Features List */
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 28px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-grow: 1;
+        }
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+        .feature-item.highlight {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .feature-icon-ok {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            color: #10b981;
+        }
+        .feature-icon-cyan {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            color: #06b6d4;
+        }
+        .feature-icon-gold {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            color: #f59e0b;
+        }
+        .feature-icon-no {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            color: #64748b;
+            opacity: 0.6;
+        }
+
+        /* Action Buttons */
+        .card-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px 20px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: 1px solid transparent;
+        }
+        .btn-free-card {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border-color: var(--border-subtle);
+        }
+        .btn-free-card:hover {
+            background: rgba(6, 182, 212, 0.15);
+            border-color: var(--border-cyan);
+            color: var(--text-cyan);
+        }
+        .btn-moderato-card {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #022c22;
+            box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+        }
+        .btn-moderato-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(16, 185, 129, 0.55);
+            color: #000;
+        }
+        .btn-vince-card {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #1f1202;
+            box-shadow: 0 4px 18px rgba(245, 158, 11, 0.35);
+        }
+        .btn-vince-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(245, 158, 11, 0.55);
+            color: #000;
+        }
+
+        /* Solana Checkout Drawer / Box */
+        .instant-checkout-card {
+            background: rgba(14, 20, 34, 0.85);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            backdrop-filter: blur(16px);
+            margin-bottom: 50px;
+        }
+        .checkout-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .checkout-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .checkout-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Comparison Table */
+        .matrix-card {
+            background: rgba(13, 18, 32, 0.75);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            backdrop-filter: blur(14px);
+            margin-bottom: 50px;
+            overflow-x: auto;
+        }
+        .matrix-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 18px;
+        }
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .matrix-table th {
+            text-align: left;
+            padding: 14px 16px;
+            background: rgba(6, 8, 16, 0.6);
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.8px;
+            border-bottom: 1px solid var(--border-strong);
+        }
+        .matrix-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+        .matrix-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Toast feedback */
+        .toast-msg {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(16, 185, 129, 0.95);
+            color: #022c22;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @media (max-width: 1024px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .card-moderato {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Ambient Moving Lighting Canvas -->
+    <div class="ambient-canvas">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        <div class="ambient-orb orb-3"></div>
+    </div>
+
+    <!-- System Telemetry Bar -->
+    <div class="system-bar" style="position:relative; z-index:10;">
+        <div class="system-container">
+            <div class="sys-item">
+                <span class="pulse-indicator"></span>
+                <span class="sys-label">INFRASTRUCTURE:</span>
+                <span class="sys-val">ONLINE 24/7 (35+ DEDICATED WORKERS)</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">RATE AT SCALE:</span>
+                <span class="sys-val" style="color:#10b981;">FROM $0.005 / REQ</span>
+            </div>
+            <div class="sys-item">
+                <span class="sys-label">SETTLEMENT:</span>
+                <span class="sys-val text-accent">INSTANT SOLANA USDT</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar" style="position:relative; z-index:10;">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" style="display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit;">
+                    <div class="brand-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <div class="brand-meta">
+                        <div class="brand-name">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div>
+                        <div class="brand-subtitle">STEALTH BYPASS API</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="nav-controls">
+                <a href="/" class="btn-secondary" style="width:auto; padding:6px 14px; text-decoration:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>Developer Console</span>
+                </a>
+
+                <a href="/developer/api-key/guide" class="btn-secondary" style="width:auto; padding:6px 14px; text-decoration:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
+                    <span>API Docs</span>
+                </a>
+
+                <a href="/login" class="btn-primary" style="padding:6px 14px; text-decoration:none; font-size:12px;">
+                    <span>Sign In / Register</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Plans Area -->
+    <main class="plans-wrapper">
+
+        <!-- Hero Header -->
+        <div class="plans-hero">
+            <div class="plans-badge">
+                <span class="pulse-indicator"></span>
+                <span>24/7 ALWAYS ACTIVE UNBLOCKER FLEET</span>
+            </div>
+            <h1 class="plans-title">
+                Uncompromising Stealth.<br>
+                <span class="gradient-text">Predictable Pricing for High-Volume Ops.</span>
+            </h1>
+            <p class="plans-sub">
+                No artificial throttling. No surprise subscriptions. Choose between our everyday Free Tier, our production-grade <strong>Moderato Plan</strong>, or the uncompromising <strong>Vince Enterprise Plan</strong>.
+            </p>
+        </div>
+
+        <!-- 3 Plan Cards -->
+        <div class="cards-grid">
+
+            <!-- PLAN 1: FREE -->
+            <div class="pricing-card card-free">
+                <div class="card-tag tag-free">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+                    <span>DEFAULT TIER</span>
+                </div>
+                <h3 class="card-title">Free Plan</h3>
+                <p class="card-desc">For indie builders, research tests, and low-frequency scraping jobs.</p>
+
+                <div class="price-wrap">
+                    <span class="price-val">$0</span>
+                    <span class="price-sub">/ forever</span>
+                </div>
+                <div class="price-alt">
+                    $5 daily credit refresh • <strong>$0.10 / req</strong>
+                </div>
+
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>$5.00 Daily Credits</strong> (50 requests/day)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Standard Shared Worker Fleet</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Cloudflare Turnstile &amp; basic challenge solver</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>5 Concurrent Request Slots</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span>No credit rollover (resets at 00:00 UTC)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Community Discord Support</span>
+                    </li>
+                </ul>
+
+                <a href="/login" class="card-btn btn-free-card">
+                    <span>Get Started Free</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            </div>
+
+            <!-- PLAN 2: MODERATO (FEATURED) -->
+            <div class="pricing-card card-moderato">
+                <div class="featured-ribbon">24/7 ALWAYS ACTIVE</div>
+                <div class="card-tag tag-moderato">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>MOST POPULAR • HIGH CONCURRENCY</span>
+                </div>
+                <h3 class="card-title">Moderato Plan</h3>
+                <p class="card-desc">24/7 dedicated pipeline for production scrapers, commercial monitors, and data pipelines.</p>
+
+                <div class="price-wrap">
+                    <span class="price-val" style="color:#10b981;">$29</span>
+                    <span class="price-sub">/ month (or Top-Up)</span>
+                </div>
+                <div class="price-alt">
+                    <strong>10x Cheaper: $0.01 / req</strong> • Unlimited Accumulation
+                </div>
+
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>+$15 Daily Bonus Credits</strong> ($450/mo value)</span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>$0.01 Per Request</strong> (10x cheaper rate)</span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>24/7 Always Active Runners:</strong> Zero queue wait</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>Unlimited Rollover:</strong> Credits NEVER expire</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>35 Concurrent Workers</strong> with automated load-balancing</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Stealth CDP: DataDome, Kasada, Akamai &amp; Turnstile</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>VIP Discord &amp; Priority Ticket Channel</span>
+                    </li>
+                </ul>
+
+                <button class="card-btn btn-moderato-card" onclick="scrollToCheckout('Moderato')">
+                    <span>Activate Moderato Tier</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+
+            <!-- PLAN 3: VINCE (ENTERPRISE) -->
+            <div class="pricing-card card-vince">
+                <div class="featured-ribbon" style="background:linear-gradient(135deg, #f59e0b, #b45309); color:#180b02;">ULTIMATE ENTERPRISE</div>
+                <div class="card-tag tag-vince">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                    <span>DEDICATED CLUSTER • ZERO LIMITS</span>
+                </div>
+                <h3 class="card-title">Vince Plan</h3>
+                <p class="card-desc">For large-scale data syndicates, automated crawling farms, and high-frequency real-time ops.</p>
+
+                <div class="price-wrap">
+                    <span class="price-val" style="color:#f59e0b;">$99</span>
+                    <span class="price-sub">/ month</span>
+                </div>
+                <div class="price-alt">
+                    <strong>Lowest Rate: $0.005 / req</strong> • Custom Residential Proxies
+                </div>
+
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>24/7 Dedicated Isolated Cluster</strong> (Dedicated IP nodes)</span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>+$50 Daily Bonus Credits</strong> ($1,500/mo value)</span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>$0.005 Per Request:</strong> Unmatched wholesale rate</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>Unlimited Concurrency:</strong> 100+ parallel workers</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>Premium Residential Proxy Pools</strong> (US, EU, ASIA rotation)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>Custom Chrome CDP Fingerprints</strong> (Hardware canvas spoofing)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Async Webhook Queues + 99.99% SLA Guarantee</span>
+                    </li>
+                </ul>
+
+                <button class="card-btn btn-vince-card" onclick="scrollToCheckout('Vince')">
+                    <span>Deploy Vince Enterprise</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- INSTANT SETTLEMENT CARD: SOLANA TREASURY -->
+        <div class="instant-checkout-card" id="checkout-section">
+            <div class="checkout-header">
+                <div class="checkout-title-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                        <path d="M12 6v2m0 8v2"></path>
+                    </svg>
+                    <div>
+                        <h2 class="checkout-title">Instant On-Chain Upgrade (Solana USDT / SPL)</h2>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            Zero KYC. No Stripe holds. Send USDT on Solana Mainnet — instantly verified in under 15 seconds.
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="status-badge-accent">RPC VERIFIED</span>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:20px;">
+                <div class="info-block">
+                    <div class="info-label">SOLANA TREASURY WALLET (USDT SPL)</div>
+                    <div class="info-content-row">
+                        <code id="plans-solana-wallet" style="font-size:12px; color:var(--text-accent);">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
+                        <button class="field-btn" onclick="copyText('6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u', 'Solana Wallet Address')" title="Copy Wallet">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="info-block">
+                    <div class="info-label">SUGGESTED DEPOSITS</div>
+                    <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
+                        <span class="status-badge-accent" style="cursor:pointer;" onclick="setDepositAmount('1 USDT (100 reqs)')">1 USDT</span>
+                        <span class="status-badge-accent" style="cursor:pointer;" onclick="setDepositAmount('10 USDT (1,000 reqs)')">10 USDT</span>
+                        <span class="status-badge-accent" style="cursor:pointer; background:rgba(16,185,129,0.2); border-color:#10b981;" onclick="setDepositAmount('29 USDT (Moderato Month)')">29 USDT (Moderato)</span>
+                        <span class="status-badge-accent" style="cursor:pointer; background:rgba(245,158,11,0.2); border-color:#f59e0b; color:#f59e0b;" onclick="setDepositAmount('99 USDT (Vince Enterprise)')">99 USDT (Vince)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TX Hash Verification Input -->
+            <div class="tx-input-group">
+                <input type="text" id="plans-tx-hash" placeholder="Paste Solana Transaction Signature / TX Hash to claim instantly..." spellcheck="false" autocomplete="off">
+                <button class="btn-primary" onclick="verifyPlansDeposit()" style="white-space:nowrap;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>Confirm &amp; Unlock Tier</span>
+                </button>
+            </div>
+            <div id="plans-deposit-feedback" style="margin-top:12px; font-family:var(--font-mono); font-size:12px; display:none;"></div>
+        </div>
+
+        <!-- FULL FEATURE MATRIX TABLE -->
+        <div class="matrix-card">
+            <h2 class="matrix-title">Full Technical Feature Comparison</h2>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th style="width:36%;">CAPABILITY / SPEC</th>
+                        <th style="color:var(--text-cyan); width:21%;">FREE PLAN</th>
+                        <th style="color:#10b981; width:21%;">MODERATO (24/7)</th>
+                        <th style="color:#f59e0b; width:22%;">VINCE ENTERPRISE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>24/7 Always Active Runners</strong></td>
+                        <td>Shared (Queue-based)</td>
+                        <td><span style="color:#10b981; font-weight:700;">Guaranteed 24/7 Pool</span></td>
+                        <td><span style="color:#f59e0b; font-weight:700;">Dedicated Isolated Cluster</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Per-Request Cost</strong></td>
+                        <td>$0.10 / req</td>
+                        <td><code style="color:#10b981; font-weight:700;">$0.01 / req (10x)</code></td>
+                        <td><code style="color:#f59e0b; font-weight:700;">$0.005 / req (20x)</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Daily Bonus Credit Allocation</strong></td>
+                        <td>$5.00 / day</td>
+                        <td><strong style="color:#10b981;">+$15.00 / day</strong></td>
+                        <td><strong style="color:#f59e0b;">+$50.00 / day</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Credit Expiration / Rollover</strong></td>
+                        <td>Daily Reset (No Rollover)</td>
+                        <td><span style="color:#10b981; font-weight:700;">Never Expires (Unlimited)</span></td>
+                        <td><span style="color:#f59e0b; font-weight:700;">Never Expires (Unlimited)</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Concurrency Capacity</strong></td>
+                        <td>5 concurrent</td>
+                        <td>35 concurrent</td>
+                        <td>100+ concurrent (Unlimited)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Anti-Bot Clearance Engines</strong></td>
+                        <td>Turnstile, fast TLS</td>
+                        <td>DataDome, Akamai, Turnstile, Kasada</td>
+                        <td>Full Engine Matrix + Custom Bypass rules</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Proxy Pool Architecture</strong></td>
+                        <td>Shared Datacenter IPs</td>
+                        <td>Auto-rotating Clean Datacenter &amp; Semi-Res</td>
+                        <td>Dedicated Elite Residential Proxies (Geo-targeted)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Browser Emulation CDP</strong></td>
+                        <td>Standard SeleniumBase</td>
+                        <td>Undetected Chrome CDP</td>
+                        <td>Dynamic Fingerprint Injection (Audio/WebGL/Canvas)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Asynchronous Webhook Queue</strong></td>
+                        <td>Polling only</td>
+                        <td>Standard Webhook</td>
+                        <td>High-priority Webhook with automated retries</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SLA &amp; Support Level</strong></td>
+                        <td>Community Discord</td>
+                        <td>Priority VIP Support</td>
+                        <td>99.99% Uptime SLA + Dedicated Engineer</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- FAQ SECTION -->
+        <div class="guide-card" style="margin-bottom:40px;">
+            <h3 style="font-size:20px; font-weight:800; color:var(--text-primary); margin-bottom:16px;">Frequently Asked Questions</h3>
+            
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div style="background:rgba(6,8,16,0.4); padding:16px; border-radius:8px; border:1px solid var(--border-subtle);">
+                    <div style="font-weight:700; color:var(--text-primary); margin-bottom:6px;">What does "24/7 Always Active" mean for Moderato and Vince?</div>
+                    <div style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
+                        Standard accounts rely on on-demand worker provisioning which can have brief warm-up times. Moderato and Vince tiers route your requests through pre-warmed, always-online GitHub Actions and dedicated cluster runner fleets, guaranteeing immediate clearance with zero cold starts.
+                    </div>
+                </div>
+
+                <div style="background:rgba(6,8,16,0.4); padding:16px; border-radius:8px; border:1px solid var(--border-subtle);">
+                    <div style="font-weight:700; color:var(--text-primary); margin-bottom:6px;">How do credits work between daily resets and deposits?</div>
+                    <div style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
+                        Free tier users receive 50 credits ($5) refreshed every midnight UTC, resetting unused balance. As soon as you deposit any USDT or upgrade, your account is permanently flagged as Paid Tier: you receive $15+ daily bonus added on top, and your credits never expire or reset.
+                    </div>
+                </div>
+
+                <div style="background:rgba(6,8,16,0.4); padding:16px; border-radius:8px; border:1px solid var(--border-subtle);">
+                    <div style="font-weight:700; color:var(--text-primary); margin-bottom:6px;">Can I pay with cryptocurrencies other than Solana USDT?</div>
+                    <div style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
+                        Solana USDT (SPL) is natively integrated for instant RPC settlement with negligible gas fees (<$0.001). If you require custom invoicing (BTC, ETH, Monero, or Bank Wire for Vince Enterprise), reach out to our admin on Discord.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Application Footer -->
+    <footer class="app-footer" style="position:relative; z-index:10;">
+        <div class="footer-container">
+            <div class="footer-left">
+                <span>Xploit Unblocker Cloud Pricing Infrastructure</span>
+                <span class="footer-divider">|</span>
+                <span>24/7 Ultra-Stealth Reverse Engineering Engine</span>
+            </div>
+            <div class="footer-links">
+                <a href="/">Console</a>
+                <a href="/plans/">Plans &amp; Pricing</a>
+                <a href="/developer/api-key/guide">API Docs</a>
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener">Discord VIP</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="plans-toast" class="toast-msg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span id="plans-toast-text">Copied to clipboard</span>
+    </div>
+
+    <script>
+        function showToast(msg) {
+            const t = document.getElementById('plans-toast');
+            const txt = document.getElementById('plans-toast-text');
+            if (!t || !txt) return;
+            txt.innerText = msg;
+            t.style.display = 'inline-flex';
+            setTimeout(() => { t.style.display = 'none'; }, 2500);
+        }
+
+        function copyText(str, label) {
+            navigator.clipboard.writeText(str).then(() => {
+                showToast(`Copied ${label}!`);
+            }).catch(() => {
+                showToast(`Copied!`);
+            });
+        }
+
+        function scrollToCheckout(tierName) {
+            const el = document.getElementById('checkout-section');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+                showToast(`Selected ${tierName} Tier — send USDT & paste TX hash below.`);
+            }
+        }
+
+        function setDepositAmount(text) {
+            showToast(`Target: ${text}`);
+        }
+
+        async function verifyPlansDeposit() {
+            const hashInput = document.getElementById('plans-tx-hash');
+            const feedback = document.getElementById('plans-deposit-feedback');
+            if (!hashInput || !hashInput.value.trim()) {
+                alert('Please enter your Solana transaction hash (signature).');
+                return;
+            }
+
+            feedback.style.display = 'block';
+            feedback.style.color = 'var(--text-cyan)';
+            feedback.innerText = 'Connecting to Solana Mainnet RPC node to verify transaction...';
+
+            try {
+                const res = await fetch('/api/deposit/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tx_hash: hashInput.value.trim() })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    feedback.style.color = '#10b981';
+                    feedback.innerHTML = `<strong>Verification Successful!</strong> ${data.message} • Credits added: +${data.credits_added}`;
+                    setTimeout(() => { window.location.href = '/'; }, 2200);
+                } else {
+                    feedback.style.color = '#ef4444';
+                    feedback.innerText = `Verification Error: ${data.message || data.detail || 'Transaction failed validation.'}`;
+                }
+            } catch (err) {
+                feedback.style.color = '#ef4444';
+                feedback.innerText = `Network error contacting server: ${err.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
