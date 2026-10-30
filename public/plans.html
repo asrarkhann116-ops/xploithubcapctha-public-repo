@@ -1200,15 +1200,15 @@
                     <div style="margin-top:6px;">
                         <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px;">MONTHLY (30 DAYS):</div>
                         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-                            <span class="target-preset-chip active" id="chip-starter-mo" onclick="selectCheckoutTarget('Starter Monthly', 9, '5,000 solves', '30 Days', 'starter')">9 USDT (Starter)</span>
-                            <span class="target-preset-chip" id="chip-moderato-mo" onclick="selectCheckoutTarget('Moderato Monthly', 29, '30,000 solves', '30 Days', 'moderato')">29 USDT (Moderato)</span>
-                            <span class="target-preset-chip gold" id="chip-vince-mo" onclick="selectCheckoutTarget('Vince Monthly', 99, '150,000 solves', '30 Days', 'vince')">99 USDT (Vince)</span>
+                            <span class="target-preset-chip active" id="chip-starter-mo" data-target-key="starter" data-amount="9" onclick="selectCheckoutTarget('Starter Monthly', 9, '5,000 solves', '30 Days', 'starter')">9 USDT (Starter)</span>
+                            <span class="target-preset-chip" id="chip-moderato-mo" data-target-key="moderato" data-amount="29" onclick="selectCheckoutTarget('Moderato Monthly', 29, '30,000 solves', '30 Days', 'moderato')">29 USDT (Moderato)</span>
+                            <span class="target-preset-chip gold" id="chip-vince-mo" data-target-key="vince" data-amount="99" onclick="selectCheckoutTarget('Vince Monthly', 99, '150,000 solves', '30 Days', 'vince')">99 USDT (Vince)</span>
                         </div>
                         <div style="font-size:10px; color:var(--text-accent); font-family:var(--font-mono); margin-bottom:4px;">ANNUAL (2 MONTHS FREE • 365 DAYS):</div>
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                            <span class="target-preset-chip" id="chip-starter-yr" onclick="selectCheckoutTarget('Starter Annual', 89, '60,000 solves', '365 Days', 'starter_annual')">89 USDT (Starter)</span>
-                            <span class="target-preset-chip" id="chip-moderato-yr" onclick="selectCheckoutTarget('Moderato Annual', 279, '360,000 solves', '365 Days', 'moderato_annual')">279 USDT (Moderato)</span>
-                            <span class="target-preset-chip gold" id="chip-vince-yr" onclick="selectCheckoutTarget('Vince Annual', 949, '1.8M solves', '365 Days', 'vince_annual')">949 USDT (Vince)</span>
+                            <span class="target-preset-chip" id="chip-starter-yr" data-target-key="starter_annual" data-amount="89" onclick="selectCheckoutTarget('Starter Annual', 89, '60,000 solves', '365 Days', 'starter_annual')">89 USDT (Starter)</span>
+                            <span class="target-preset-chip" id="chip-moderato-yr" data-target-key="moderato_annual" data-amount="279" onclick="selectCheckoutTarget('Moderato Annual', 279, '360,000 solves', '365 Days', 'moderato_annual')">279 USDT (Moderato)</span>
+                            <span class="target-preset-chip gold" id="chip-vince-yr" data-target-key="vince_annual" data-amount="949" onclick="selectCheckoutTarget('Vince Annual', 949, '1.8M solves', '365 Days', 'vince_annual')">949 USDT (Vince)</span>
                         </div>
                     </div>
                 </div>
@@ -1219,11 +1219,11 @@
                     <div style="margin-top:6px;">
                         <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px;">POPULAR AMOUNTS ($0.0020 / SOLVE):</div>
                         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-                            <span class="target-preset-chip" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 5, '2,500 solves', 'Never Expires', 'pay_as_you_go')">5 USDT (2.5k solves)</span>
-                            <span class="target-preset-chip" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 10, '5,000 solves', 'Never Expires', 'pay_as_you_go')">10 USDT (5k solves)</span>
-                            <span class="target-preset-chip active" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 25, '12,500 solves', 'Never Expires', 'pay_as_you_go')">25 USDT (12.5k solves)</span>
-                            <span class="target-preset-chip" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 50, '25,000 solves', 'Never Expires', 'pay_as_you_go')">50 USDT (25k solves)</span>
-                            <span class="target-preset-chip gold" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 100, '50,000 solves', 'Never Expires', 'pay_as_you_go')">100 USDT (50k solves)</span>
+                            <span class="target-preset-chip" data-target-key="pay_as_you_go" data-amount="5" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 5, '2,500 solves', 'Never Expires', 'pay_as_you_go')">5 USDT (2.5k solves)</span>
+                            <span class="target-preset-chip" data-target-key="pay_as_you_go" data-amount="10" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 10, '5,000 solves', 'Never Expires', 'pay_as_you_go')">10 USDT (5k solves)</span>
+                            <span class="target-preset-chip" data-target-key="pay_as_you_go" data-amount="25" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 25, '12,500 solves', 'Never Expires', 'pay_as_you_go')">25 USDT (12.5k solves)</span>
+                            <span class="target-preset-chip" data-target-key="pay_as_you_go" data-amount="50" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 50, '25,000 solves', 'Never Expires', 'pay_as_you_go')">50 USDT (25k solves)</span>
+                            <span class="target-preset-chip gold" data-target-key="pay_as_you_go" data-amount="100" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 100, '50,000 solves', 'Never Expires', 'pay_as_you_go')">100 USDT (50k solves)</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
                             <span style="font-size:11px; color:var(--text-muted);">Custom USDT:</span>
@@ -1430,10 +1430,24 @@
             if (summaryExpiry) summaryExpiry.innerText = expiryDesc;
             if (summaryAmount) summaryAmount.innerText = `${amount} USDT`;
 
-            // Highlight chip if matching
+            if (planTypeKey === 'pay_as_you_go') {
+                const input = document.getElementById('payg-custom-amount');
+                if (input && parseFloat(input.value) !== parseFloat(amount)) {
+                    input.value = amount;
+                }
+                const yieldEl = document.getElementById('payg-calc-yield');
+                if (yieldEl) {
+                    const solves = Math.round(parseFloat(amount) / 0.0020);
+                    yieldEl.innerText = `Yields ${solves.toLocaleString()} Solves (Never Expire)`;
+                }
+            }
+
+            // Highlight chip if matching exact target key and amount
             document.querySelectorAll('.target-preset-chip').forEach(chip => {
-                const text = chip.innerText || '';
-                chip.classList.toggle('active', text.includes(`${amount} USDT`));
+                const chipKey = chip.dataset.targetKey;
+                const chipAmount = parseFloat(chip.dataset.amount);
+                const isMatch = (chipKey === planTypeKey) && (chipAmount === parseFloat(amount));
+                chip.classList.toggle('active', Boolean(isMatch));
             });
         }
 
