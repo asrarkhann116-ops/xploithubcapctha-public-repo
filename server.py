@@ -93,6 +93,7 @@ class PromoVerifyRequest(BaseModel):
 
 class DepositVerifyRequest(BaseModel):
     tx_hash: str
+    plan_type: Optional[str] = None
 
 class VoucherRedeemRequest(BaseModel):
     code: str
@@ -777,7 +778,7 @@ async def verify_deposit(req: DepositVerifyRequest, request: Request, response: 
     user = get_or_create_session_user(request, response)
     if bool(user.get("is_guest", 0)):
         raise HTTPException(status_code=403, detail="Please sign in or register an account to verify deposits.")
-    res = await verify_solana_deposit(req.tx_hash, user["id"])
+    res = await verify_solana_deposit(req.tx_hash, user["id"], plan_type=req.plan_type)
     return res
 
 @app.post("/api/voucher/redeem")
