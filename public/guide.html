@@ -385,7 +385,9 @@ data = response.json()
 
 if data.get("success"):
     print("Page Title:", data["title"])
-    print("Cookies Captured:", data["cookies"])
+    print("Captcha Detected & Solved:", data.get("captcha_detected"))
+    print("Cloudflare Clearance Token:", data.get("cf_clearance"))
+    print("Cookies Captured:", len(data["cookies"]))
     print("Execution Duration:", data["duration_ms"], "ms")
     print("Credits Remaining:", data["credits_remaining"])
 else:
@@ -513,6 +515,100 @@ else:
                     <span>View Plan Pricing &amp; Comparison Matrix</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </a>
+            </div>
+        </div>
+
+        <!-- SECTION 6: Undetectable Automation & Multi-CAPTCHA Engine (5th Edition) -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">6</span>
+                Undetectable Automation Engine (5th Edition CDP Architecture)
+            </h3>
+            <p>
+                Xploit Unblocker is engineered on the breakthroughs of modern stealth automation — bypassing Cloudflare WAF, Turnstile, hCaptcha, reCAPTCHA, DataDome, and Friendly Captcha using raw Chrome DevTools Protocol (CDP) commands.
+            </p>
+
+            <!-- Feature 1: Why CDP vs JavaScript -->
+            <div style="background:rgba(6,182,212,0.05); border:1px solid rgba(6,182,212,0.25); border-radius:8px; padding:16px; margin:16px 0;">
+                <h4 style="margin:0 0 8px 0; color:var(--text-cyan); font-size:14px; font-weight:700;">
+                    1. Why CDP Mode Beats Standard JavaScript Injection
+                </h4>
+                <p style="margin:0; font-size:12.5px; line-height:1.6; color:var(--text-secondary);">
+                    Legacy scrapers (standard Puppeteer, Selenium WebDriver, vanilla Playwright) inject custom JavaScript shims into the DOM to mask <code>navigator.webdriver</code> or dispatch fake click events. Modern bot detectors (Cloudflare, DataDome, Kasada) inspect JavaScript execution contexts, prototype pollution, and event origin flags (<code>isTrusted: false</code>). In contrast, <strong>CDP Mode controls Chromium directly at the browser protocol socket</strong> — firing hardware-level dispatch events with genuine OS mouse coordinates and zero JavaScript footprint.
+                </p>
+            </div>
+
+            <!-- Feature 2: Universal Multi-CAPTCHA Matrix -->
+            <h4 style="margin:20px 0 10px 0; font-size:13px; color:var(--text-primary); text-transform:uppercase; letter-spacing:0.5px;">
+                Supported Anti-Bot &amp; Challenge Solvers
+            </h4>
+            <table class="guide-table" style="margin-bottom:16px;">
+                <thead>
+                    <tr>
+                        <th>Challenge / Bot Protection</th>
+                        <th>Bypass Method</th>
+                        <th>Stealth Mechanism</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Cloudflare Turnstile &amp; 5s Shield</strong></td>
+                        <td><code>sb.solve_captcha()</code> / CDP native click</td>
+                        <td>Hardware-level coordinate targeting, no synthetic event trigger.</td>
+                    </tr>
+                    <tr>
+                        <td><strong style="color:#06b6d4;">hCaptcha (Checkbox &amp; Challenges)</strong></td>
+                        <td><code>sb.solve_captcha()</code> (5th Edition)</td>
+                        <td>Direct iframe context traversal with native checkbox activation.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Google reCAPTCHA v2 / v3</strong></td>
+                        <td>Universal CDP solver pipeline</td>
+                        <td>Genuine desktop fingerprint, natural audio/canvas token generation.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DataDome &amp; GeeTest Sliders</strong></td>
+                        <td>Bezier Curve Trajectory Engine</td>
+                        <td>Human physiological acceleration, deceleration, and micro-tremor drag.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Friendly Captcha</strong></td>
+                        <td>Automatic Proof-of-Work runner</td>
+                        <td>Hardware-accelerated cryptographic PoW solver dispatch.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Feature 3: Reusable cf_clearance Security Token -->
+            <div style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:16px; margin-top:16px;">
+                <h4 style="margin:0 0 8px 0; color:#10b981; font-size:14px; font-weight:700;">
+                    3. High-Speed Token Reuse: The <code>cf_clearance</code> Shortcut (50x Faster)
+                </h4>
+                <p style="margin:0 0 12px 0; font-size:12.5px; line-height:1.6; color:var(--text-secondary);">
+                    When Xploit Unblocker solves a Cloudflare challenge, it extracts the issued <code>cf_clearance</code> cookie and matching <code>User-Agent</code> into top-level response fields. You can cache and pass this clearance token into lightweight HTTP clients (such as <code>requests</code> or <code>curl</code>) to scrape thousands of pages at wire speed without re-triggering browser automation!
+                </p>
+                <div class="code-snippet-box" style="margin:0;">
+                    <div class="code-snippet-head">
+                        <span>Python Example: Reusing cf_clearance Token</span>
+                    </div>
+                    <pre><code>import requests
+
+# 1. Fetch unblocked clearance token from Xploit API once
+unblock_res = requests.post("https://xploithubcapctha.up.railway.app/v1/unlock", headers={
+    "X-API-Key": "xpk_your_api_key_here"
+}, json={"url": "https://target-site.com/protected-page", "mode": "stealth"}).json()
+
+cf_token = unblock_res.get("cf_clearance")
+user_agent = unblock_res.get("user_agent")
+
+# 2. Reuse clearance cookie directly in subsequent high-speed requests (50ms response)
+session = requests.Session()
+session.headers.update({"User-Agent": user_agent})
+session.cookies.set("cf_clearance", cf_token, domain="target-site.com")
+
+fast_page = session.get("https://target-site.com/api/data")
+print("High-speed response status:", fast_page.status_code)</code></pre>
+                </div>
             </div>
         </div>
     </div>

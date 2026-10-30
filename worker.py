@@ -122,24 +122,122 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None, method="GET", headers=N
             report_proxy_result(resolved_proxy, success=False)
             print(f"[FAST-TLS] Skipped/Failed: {e}")
 
-    # Tier 2: SeleniumBase CDP Stealth Mode
+    # Tier 2: SeleniumBase CDP Stealth Mode (5th Edition Undetectable Automation)
     from seleniumbase import SB
     start = time.time()
     try:
         with SB(uc=True, test=True, headed=False, proxy=resolved_proxy) as sb:
             sb.activate_cdp_mode()
+
+            # Set custom headers & User-Agent emulation if provided
+            if headers and isinstance(headers, dict):
+                try:
+                    sb.cdp.send("Network.setExtraHTTPHeaders", {"headers": headers})
+                except Exception:
+                    pass
+                if "User-Agent" in headers:
+                    try:
+                        sb.cdp.send("Network.setUserAgentOverride", {"userAgent": headers["User-Agent"]})
+                    except Exception:
+                        pass
+
             sb.open(url)
-            sb.sleep(random.uniform(1.8, 2.5))
+
+            # Strategic human observation delay (jitter between 1.8s - 2.8s)
+            sb.sleep(random.uniform(1.8, 2.8))
 
             # Simulate human cursor trajectory across screen
             apply_human_mouse_move(sb, random.uniform(300, 750), random.uniform(250, 500), steps=20)
 
-            # Auto-click Turnstile or reCAPTCHA box
+            # Detect specific CAPTCHA types before solving
+            detected_captcha = None
+
+            # 1. Check for hCaptcha
+            hcaptcha_selectors = [
+                "iframe[src*='hcaptcha.com']",
+                "iframe[title*='hCaptcha']",
+                "div.h-captcha",
+                "[data-hcaptcha-widget-id]",
+                "[data-sitekey][class*='h-captcha']"
+            ]
+            for sel in hcaptcha_selectors:
+                try:
+                    if sb.is_element_visible(sel):
+                        detected_captcha = "hCaptcha"
+                        break
+                except Exception:
+                    pass
+
+            # 2. Check for Cloudflare Turnstile / Challenge
+            if not detected_captcha:
+                turnstile_selectors = [
+                    "iframe[src*='challenges.cloudflare.com']",
+                    "div.cf-turnstile",
+                    "#turnstile-wrapper",
+                    "[data-turnstile-sitekey]"
+                ]
+                for sel in turnstile_selectors:
+                    try:
+                        if sb.is_element_visible(sel):
+                            detected_captcha = "Cloudflare Turnstile"
+                            break
+                    except Exception:
+                        pass
+
+            # 3. Check for Google reCAPTCHA
+            if not detected_captcha:
+                recaptcha_selectors = [
+                    "iframe[src*='recaptcha']",
+                    "iframe[src*='google.com/recaptcha']",
+                    ".g-recaptcha"
+                ]
+                for sel in recaptcha_selectors:
+                    try:
+                        if sb.is_element_visible(sel):
+                            detected_captcha = "reCAPTCHA"
+                            break
+                    except Exception:
+                        pass
+
+            # 4. Check for Friendly Captcha
+            friendly_selectors = [
+                ".frc-captcha",
+                "#frc-captcha",
+                ".frc-button"
+            ]
+            for sel in friendly_selectors:
+                try:
+                    if sb.is_element_visible(sel):
+                        detected_captcha = "Friendly Captcha"
+                        break
+                except Exception:
+                    pass
+
+            # Universal solve using SeleniumBase 5th Edition CDP engine (sb.solve_captcha)
             try:
-                sb.uc_gui_click_captcha()
-                sb.sleep(random.uniform(1.2, 1.8))
-            except Exception:
-                pass
+                if hasattr(sb, "solve_captcha"):
+                    print(f"[WORKER-CDP] Calling sb.solve_captcha() (Detected: {detected_captcha or 'Auto'})...")
+                    sb.solve_captcha()
+                else:
+                    sb.uc_gui_click_captcha()
+                sb.sleep(random.uniform(1.4, 2.2))
+            except Exception as e:
+                # Secondary fallback to uc_gui_click_captcha
+                try:
+                    sb.uc_gui_click_captcha()
+                    sb.sleep(random.uniform(1.2, 1.8))
+                except Exception:
+                    pass
+
+            # Friendly Captcha trigger button if present
+            for f_sel in [".frc-button", "button.frc-button", "[class*='frc-button']"]:
+                try:
+                    if sb.is_element_visible(f_sel):
+                        sb.click(f_sel)
+                        sb.sleep(2.0)
+                        break
+                except Exception:
+                    pass
 
             # Detect & solve slider challenges (GeeTest / DataDome / Slider)
             slider_selectors = [
@@ -147,29 +245,54 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None, method="GET", headers=N
                 ".slider-btn",
                 "#nc_1_n1z",
                 "[class*='slider'][class*='btn']",
-                "[class*='captcha_slider']"
+                "[class*='captcha_slider']",
+                "#sec-cpt-content",
+                "iframe[src*='geo.captcha-delivery.com']",
+                "div.slider"
             ]
             for sel in slider_selectors:
                 try:
                     if sb.is_element_visible(sel):
+                        detected_captcha = detected_captcha or "DataDome/GeeTest Slider"
                         print(f"[WORKER] Slider puzzle detected ({sel}), solving via Bezier drag trajectory...")
-                        human_drag_slider(sb, sel, distance_px=random.randint(220, 260))
-                        sb.sleep(1.5)
+                        human_drag_slider(sb, sel, distance_px=random.randint(220, 265))
+                        sb.sleep(random.uniform(1.4, 2.0))
                         break
                 except Exception:
                     pass
 
-            # Wait for challenge resolution
-            for _ in range(12):
+            # Wait for challenge resolution with periodic re-solve checks
+            for _ in range(14):
                 title = sb.get_title()
                 if "Just a moment" not in title and "Attention Required" not in title:
                     break
+                try:
+                    if hasattr(sb, "solve_captcha"):
+                        sb.solve_captcha()
+                except Exception:
+                    pass
                 sb.sleep(1.2)
 
             html = sb.get_page_source()
             title = sb.get_title()
             cookies = sb.get_cookies()
             duration = int((time.time() - start) * 1000)
+
+            # Extract cf_clearance security token for reusable high-speed scraping
+            cf_clearance = None
+            cf_bm = None
+            if cookies:
+                for c in cookies:
+                    if c.get("name") == "cf_clearance":
+                        cf_clearance = c.get("value")
+                    elif c.get("name") == "__cf_bm":
+                        cf_bm = c.get("value")
+
+            user_agent = None
+            try:
+                user_agent = sb.get_user_agent()
+            except Exception:
+                pass
 
             report_proxy_result(resolved_proxy, success=True)
             return {
@@ -178,6 +301,10 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None, method="GET", headers=N
                 "title": title,
                 "html": html,
                 "cookies": cookies,
+                "cf_clearance": cf_clearance,
+                "cf_bm": cf_bm,
+                "user_agent": user_agent,
+                "captcha_detected": detected_captcha,
                 "duration_ms": duration,
                 "proxy_used": bool(resolved_proxy)
             }

@@ -65,8 +65,16 @@ def unlock_fast_tls(
         duration_ms = int((time.time() - start) * 1000)
 
         text = response.text
-        # Check if Cloudflare or bot challenge page is returned
-        if "cf-turnstile" in text or "Just a moment..." in text or ("ray ID" in text.lower() and response.status_code == 403):
+        # Check if Cloudflare, hCaptcha, or bot challenge page is returned
+        text_lower = text.lower()
+        if (
+            "cf-turnstile" in text_lower or
+            "just a moment..." in text_lower or
+            "hcaptcha.com" in text_lower or
+            "data-sitekey" in text_lower or
+            "g-recaptcha" in text_lower or
+            ("ray id" in text_lower and response.status_code in (403, 503))
+        ):
             return {
                 "success": False,
                 "needs_cdp": True,
@@ -77,6 +85,10 @@ def unlock_fast_tls(
         title_m = re.search(r"<title>(.*?)</title>", text, re.IGNORECASE)
         title = title_m.group(1).strip() if title_m else ""
 
+        cookies_list = [{"name": k, "value": v} for k, v in response.cookies.items()]
+        cf_clearance = response.cookies.get("cf_clearance")
+        cf_bm = response.cookies.get("__cf_bm")
+
         report_proxy_result(resolved_proxy, success=True)
         return {
             "success": True,
@@ -86,7 +98,9 @@ def unlock_fast_tls(
             "title": title,
             "html": text,
             "headers": dict(response.headers),
-            "cookies": [{"name": k, "value": v} for k, v in response.cookies.items()],
+            "cookies": cookies_list,
+            "cf_clearance": cf_clearance,
+            "cf_bm": cf_bm,
             "proxy_used": bool(resolved_proxy)
         }
     except Exception as e:
@@ -107,9 +121,10 @@ def unlock_cdp(
     body: Optional[Any] = None
 ) -> Dict[str, Any]:
     """
-    Tier 2: Pure CDP Mode (Chrome DevTools Protocol) using SeleniumBase
-    with Bezier mouse trajectories and natural human slider interactions.
-    Supports extra HTTP headers and dynamic API requests.
+    Tier 2: Pure CDP Mode (Chrome DevTools Protocol) using SeleniumBase 5th Edition.
+    Bypasses Cloudflare Turnstile, hCaptcha, reCAPTCHA, Friendly Captcha, and DataDome sliders
+    using sb.solve_captcha(), Bezier mouse trajectories, and strategic human pacing.
+    Captures and returns the cf_clearance security token for reusable high-speed scraping.
     """
     from seleniumbase import SB
 
@@ -119,57 +134,171 @@ def unlock_cdp(
         with SB(uc=True, test=True, proxy=resolved_proxy) as sb:
             sb.activate_cdp_mode()
 
-            # Set custom headers if provided
+            # Set custom headers & User-Agent emulation if provided
             if headers and isinstance(headers, dict):
                 try:
                     sb.cdp.send("Network.setExtraHTTPHeaders", {"headers": headers})
                 except Exception:
                     pass
+                if "User-Agent" in headers:
+                    try:
+                        sb.cdp.send("Network.setUserAgentOverride", {"userAgent": headers["User-Agent"]})
+                    except Exception:
+                        pass
 
             sb.open(url)
 
-            # Natural human observation pause
-            sb.sleep(random.uniform(1.8, 2.5))
+            # Strategic human observation delay (jitter between 1.8s - 2.8s)
+            sb.sleep(random.uniform(1.8, 2.8))
 
-            # Simulate human cursor entry onto page
+            # Simulate natural human cursor entry onto page with Bezier curve
             apply_human_mouse_move(sb, random.uniform(300, 700), random.uniform(250, 450), steps=20)
 
-            # Auto-click Turnstile or reCAPTCHA with human-like motion
-            try:
-                sb.uc_gui_click_captcha()
-                sb.sleep(random.uniform(1.2, 1.8))
-            except Exception:
-                pass
+            # Detect specific CAPTCHA types before solving
+            detected_captcha = None
 
-            # Detect & solve horizontal slider puzzles (GeeTest / DataDome) if present
+            # 1. Check for hCaptcha
+            hcaptcha_selectors = [
+                "iframe[src*='hcaptcha.com']",
+                "iframe[title*='hCaptcha']",
+                "div.h-captcha",
+                "[data-hcaptcha-widget-id]",
+                "[data-sitekey][class*='h-captcha']"
+            ]
+            for sel in hcaptcha_selectors:
+                try:
+                    if sb.is_element_visible(sel):
+                        detected_captcha = "hCaptcha"
+                        break
+                except Exception:
+                    pass
+
+            # 2. Check for Cloudflare Turnstile / Challenge
+            if not detected_captcha:
+                turnstile_selectors = [
+                    "iframe[src*='challenges.cloudflare.com']",
+                    "div.cf-turnstile",
+                    "#turnstile-wrapper",
+                    "[data-turnstile-sitekey]"
+                ]
+                for sel in turnstile_selectors:
+                    try:
+                        if sb.is_element_visible(sel):
+                            detected_captcha = "Cloudflare Turnstile"
+                            break
+                    except Exception:
+                        pass
+
+            # 3. Check for Google reCAPTCHA
+            if not detected_captcha:
+                recaptcha_selectors = [
+                    "iframe[src*='recaptcha']",
+                    "iframe[src*='google.com/recaptcha']",
+                    ".g-recaptcha"
+                ]
+                for sel in recaptcha_selectors:
+                    try:
+                        if sb.is_element_visible(sel):
+                            detected_captcha = "reCAPTCHA"
+                            break
+                    except Exception:
+                        pass
+
+            # 4. Check for Friendly Captcha
+            friendly_selectors = [
+                ".frc-captcha",
+                "#frc-captcha",
+                ".frc-button"
+            ]
+            for sel in friendly_selectors:
+                try:
+                    if sb.is_element_visible(sel):
+                        detected_captcha = "Friendly Captcha"
+                        break
+                except Exception:
+                    pass
+
+            # Universal solve using SeleniumBase 5th Edition CDP engine (sb.solve_captcha)
+            try:
+                if hasattr(sb, "solve_captcha"):
+                    print(f"[CDP] Calling sb.solve_captcha() (Detected: {detected_captcha or 'Auto'})...")
+                    sb.solve_captcha()
+                else:
+                    sb.uc_gui_click_captcha()
+                sb.sleep(random.uniform(1.4, 2.2))
+            except Exception as e:
+                # Secondary fallback to uc_gui_click_captcha
+                try:
+                    sb.uc_gui_click_captcha()
+                    sb.sleep(random.uniform(1.2, 1.8))
+                except Exception:
+                    pass
+
+            # Friendly Captcha trigger button if present
+            for f_sel in [".frc-button", "button.frc-button", "[class*='frc-button']"]:
+                try:
+                    if sb.is_element_visible(f_sel):
+                        sb.click(f_sel)
+                        sb.sleep(2.0)
+                        break
+                except Exception:
+                    pass
+
+            # Detect & solve horizontal slider puzzles (GeeTest / DataDome / Slider)
             slider_selectors = [
                 ".geetest_slider_button",
                 ".slider-btn",
                 "#nc_1_n1z",
                 "[class*='slider'][class*='btn']",
-                "[class*='captcha_slider']"
+                "[class*='captcha_slider']",
+                "#sec-cpt-content",
+                "iframe[src*='geo.captcha-delivery.com']",
+                "div.slider"
             ]
             for sel in slider_selectors:
                 try:
                     if sb.is_element_visible(sel):
+                        detected_captcha = detected_captcha or "DataDome/GeeTest Slider"
                         print(f"[CDP] Slider puzzle detected ({sel}), applying human trajectory drag...")
-                        human_drag_slider(sb, sel, distance_px=random.randint(220, 260))
-                        sb.sleep(1.5)
+                        human_drag_slider(sb, sel, distance_px=random.randint(220, 265))
+                        sb.sleep(random.uniform(1.4, 2.0))
                         break
                 except Exception:
                     pass
 
-            # Wait for clearance
+            # Wait for clearance with periodic re-solve checks
             for _ in range(timeout // 2):
                 title = sb.get_title()
                 if "Just a moment..." not in title and "Attention Required" not in title:
                     break
+                # Re-attempt solve if challenge persists
+                try:
+                    if hasattr(sb, "solve_captcha"):
+                        sb.solve_captcha()
+                except Exception:
+                    pass
                 sb.sleep(1.2)
 
             html = sb.get_page_source()
             title = sb.get_title()
             cookies = sb.get_cookies()
             duration_ms = int((time.time() - start) * 1000)
+
+            # Extract cf_clearance security token for reusable high-speed scraping
+            cf_clearance = None
+            cf_bm = None
+            if cookies:
+                for c in cookies:
+                    if c.get("name") == "cf_clearance":
+                        cf_clearance = c.get("value")
+                    elif c.get("name") == "__cf_bm":
+                        cf_bm = c.get("value")
+
+            user_agent = None
+            try:
+                user_agent = sb.get_user_agent()
+            except Exception:
+                pass
 
             report_proxy_result(resolved_proxy, success=True)
             return {
@@ -180,6 +309,10 @@ def unlock_cdp(
                 "title": title,
                 "html": html,
                 "cookies": cookies,
+                "cf_clearance": cf_clearance,
+                "cf_bm": cf_bm,
+                "user_agent": user_agent,
+                "captcha_detected": detected_captcha,
                 "proxy_used": bool(resolved_proxy)
             }
     except Exception as e:
