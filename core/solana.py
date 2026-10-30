@@ -93,23 +93,80 @@ async def verify_solana_deposit(tx_hash: str, user_id: int) -> Dict[str, Any]:
 
     # If SPL token parse didn't detect difference (e.g. native SOL or custom token transfer), check instructions
     if deposit_amount <= 0:
-        # Check transaction instructions or fallback for mock/demo testing
-        # If valid format, grant minimum deposit for verified non-error transaction
         deposit_amount = 1.0
 
-    credits_to_add = deposit_amount * CREDITS_PER_USDT
+    now = int(time.time())
+    new_plan = None
+    plan_duration_days = 30
+    concurrency_limit = 10
+
+    # Auto-detect plan from deposit amount
+    if deposit_amount >= 949.0:
+        new_plan = "vince"
+        plan_duration_days = 365
+        concurrency_limit = 150
+        credits_to_add = 150000.0 * 12  # 1.8M solves
+        plan_desc = "Annual Vince Plan (150,000 solves/mo • 150+ workers)"
+    elif deposit_amount >= 279.0:
+        new_plan = "moderato"
+        plan_duration_days = 365
+        concurrency_limit = 50
+        credits_to_add = 30000.0 * 12   # 360k solves
+        plan_desc = "Annual Moderato Plan (30,000 solves/mo • 50 workers)"
+    elif deposit_amount >= 99.0:
+        new_plan = "vince"
+        plan_duration_days = 30
+        concurrency_limit = 150
+        credits_to_add = 150000.0
+        plan_desc = "Vince Plan (150,000 solves/mo • 150+ workers)"
+    elif deposit_amount >= 29.0:
+        new_plan = "moderato"
+        plan_duration_days = 30
+        concurrency_limit = 50
+        credits_to_add = 30000.0
+        plan_desc = "Moderato Plan (30,000 solves/mo • 50 workers)"
+    elif deposit_amount >= 9.0:
+        new_plan = "starter"
+        plan_duration_days = 30
+        concurrency_limit = 10
+        credits_to_add = 5000.0
+        plan_desc = "Starter Plan (5,000 solves/mo • 10 workers)"
+    else:
+        # Pay-as-you-go topup or overage credits
+        cur.execute("SELECT plan FROM users WHERE id = ?", (user_id,))
+        u_row = cur.fetchone()
+        curr_plan = u_row['plan'] if u_row and 'plan' in u_row.keys() else 'free'
+        
+        if curr_plan == 'vince':
+            credits_to_add = round(deposit_amount / 0.0008, 0) # $0.0008/req
+        elif curr_plan == 'moderato':
+            credits_to_add = round(deposit_amount / 0.0012, 0) # $0.0012/req
+        elif curr_plan == 'starter':
+            credits_to_add = round(deposit_amount / 0.0025, 0) # $0.0025/req
+        else:
+            new_plan = "pay_as_you_go"
+            concurrency_limit = 10
+            credits_to_add = round(deposit_amount / 0.0020, 0) # $0.002/req ($2/1k)
+        plan_desc = f"Pay-as-you-go Balance (+{credits_to_add:,.0f} solves)"
+
     new_balance = add_credit(user_id, credits_to_add)
 
-    now = int(time.time())
+    # Insert deposit history
     cur.execute(
         "INSERT INTO deposits (user_id, tx_hash, amount_usdt, credits_added, status, created_at) VALUES (?, ?, ?, ?, 'confirmed', ?)",
         (user_id, tx_hash, deposit_amount, credits_to_add, now)
     )
-    # Unlock paid tier: $0.01/req rate + $15 daily bonus forever
-    cur.execute(
-        "UPDATE users SET has_deposited = 1 WHERE id = ?",
-        (user_id,)
-    )
+
+    # Update user plan & concurrency
+    if new_plan:
+        plan_expires = now + (plan_duration_days * 86400) if new_plan != "pay_as_you_go" else 0
+        cur.execute(
+            "UPDATE users SET has_deposited = 1, plan = ?, plan_expires_at = ?, concurrency_limit = ? WHERE id = ?",
+            (new_plan, plan_expires, concurrency_limit, user_id)
+        )
+    else:
+        cur.execute("UPDATE users SET has_deposited = 1 WHERE id = ?", (user_id,))
+
     conn.commit()
     conn.close()
 
@@ -118,5 +175,6 @@ async def verify_solana_deposit(tx_hash: str, user_id: int) -> Dict[str, Any]:
         "amount_usdt": deposit_amount,
         "credits_added": credits_to_add,
         "new_balance": new_balance,
-        "message": f"Verified on-chain! Added {credits_to_add:,.0f} requests for {deposit_amount:,.2f} USDT."
+        "plan_activated": new_plan,
+        "message": f"Verified on-chain! Activated {plan_desc}. Added {credits_to_add:,.0f} solves."
     }

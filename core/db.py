@@ -79,7 +79,10 @@ def init_db():
         "ALTER TABLE users ADD COLUMN password_hash TEXT",
         "ALTER TABLE users ADD COLUMN is_guest INTEGER DEFAULT 0",
         "ALTER TABLE users ADD COLUMN has_deposited INTEGER DEFAULT 0",
-        "ALTER TABLE users ADD COLUMN last_daily_credit_at INTEGER DEFAULT 0"
+        "ALTER TABLE users ADD COLUMN last_daily_credit_at INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN plan TEXT DEFAULT 'free'",
+        "ALTER TABLE users ADD COLUMN plan_expires_at INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN concurrency_limit INTEGER DEFAULT 3"
     ]:
         try:
             cur.execute(col_def)
@@ -103,26 +106,121 @@ def init_db():
 
 import hashlib
 
-# ─── TIER CONSTANTS ──────────────────────────────────────────
-# Free users  : daily cap = 50 credits ($5 at $0.1/req), no rollover
-# Paid users  : daily bonus = 150 credits ($15 at $0.01/req), unlimited
-FREE_DAILY_CAP       = 50.0    # credits (= $5 @ $0.1/req)
-PAID_DAILY_BONUS     = 1500.0  # credits (= $15 @ $0.01/req: 1000 + 500)
-FREE_COST_PER_REQ    = 0.1     # credits deducted per request (free tier)
-PAID_COST_PER_REQ    = 0.01    # credits deducted per request (paid tier)
+# ─── 2026 PRICING & TIER ARCHITECTURE ────────────────────────
+# Bill ONLY for successful solves. 0 cost on failed requests.
+#
+# Free           : $0 forever | 75 reqs/day (resets UTC midnight, no rollover) | 3 slots
+# Starter        : $9/mo     | 5,000 solves/mo | $0.0025 overage | 10 workers
+# Moderato       : $29/mo    | 30,000 solves/mo | $0.0012 overage | 50 workers ($279/yr)
+# Vince          : $99/mo    | 150,000 solves/mo | $0.0008 overage | 150+ workers ($949/yr)
+# Enterprise     : $499+/mo  | Custom pool | Custom overage | Dedicated private nodes
+# Pay-as-you-go  : No sub    | $0.0020/solve ($2.00/1k) | Never expires | 10 workers
+
+FREE_DAILY_REQUESTS = 75.0
+
+PLANS = {
+    "free": {
+        "id": "free",
+        "name": "Free",
+        "price_monthly": 0,
+        "price_annual": 0,
+        "included_credits": 75,
+        "daily_refresh": 75,
+        "overage_rate": 0.0,
+        "effective_per_1k": 0.0,
+        "concurrency": 3,
+        "rollover": False,
+        "description": "Lets developers test integration without risk."
+    },
+    "starter": {
+        "id": "starter",
+        "name": "Starter",
+        "price_monthly": 9,
+        "price_annual": 99,
+        "included_credits": 5000,
+        "overage_rate": 0.0025,
+        "effective_per_1k": 1.80,
+        "concurrency": 10,
+        "rollover": True,
+        "description": "Low-risk first paid step for hobby projects."
+    },
+    "moderato": {
+        "id": "moderato",
+        "name": "Moderato",
+        "badge": "Most Popular",
+        "price_monthly": 29,
+        "price_annual": 279,
+        "included_credits": 30000,
+        "overage_rate": 0.0012,
+        "effective_per_1k": 0.97,
+        "concurrency": 50,
+        "rollover": True,
+        "description": "Feels like a major upgrade: 6x Starter credits for 3.2x price."
+    },
+    "vince": {
+        "id": "vince",
+        "name": "Vince",
+        "badge": "Best Value",
+        "price_monthly": 99,
+        "price_annual": 949,
+        "included_credits": 150000,
+        "overage_rate": 0.0008,
+        "effective_per_1k": 0.66,
+        "concurrency": 150,
+        "rollover": True,
+        "description": "Dedicated isolated cluster, residential proxies, custom CDP fingerprints."
+    },
+    "enterprise": {
+        "id": "enterprise",
+        "name": "Enterprise",
+        "price_monthly": 499,
+        "price_annual": 4990,
+        "included_credits": 1000000,
+        "overage_rate": 0.0005,
+        "effective_per_1k": 0.50,
+        "concurrency": 500,
+        "rollover": True,
+        "description": "Private infrastructure, dedicated account manager, custom targets, SLA."
+    },
+    "pay_as_you_go": {
+        "id": "pay_as_you_go",
+        "name": "Pay-as-you-go",
+        "price_monthly": 0,
+        "price_annual": 0,
+        "included_credits": 0,
+        "overage_rate": 0.002,
+        "effective_per_1k": 2.00,
+        "concurrency": 10,
+        "rollover": True,
+        "description": "Buy credits anytime. Credits never expire. $0.002 per request."
+    }
+}
+
+def get_user_plan_meta(user: dict) -> dict:
+    """Return plan details and active configuration for given user."""
+    plan_key = user.get("plan", "free") or "free"
+    # Check if subscription has expired
+    now = int(time.time())
+    expires_at = user.get("plan_expires_at", 0) or 0
+    if plan_key not in ("free", "pay_as_you_go") and expires_at > 0 and now > expires_at:
+        # Plan expired: preserve credits, fallback to pay_as_you_go or free
+        plan_key = "pay_as_you_go" if bool(user.get("has_deposited", 0)) else "free"
+    
+    meta = dict(PLANS.get(plan_key, PLANS["free"]))
+    return meta
 
 def get_request_cost(user: dict) -> float:
-    """Return per-request credit cost based on user tier."""
-    return PAID_COST_PER_REQ if bool(user.get('has_deposited', 0)) else FREE_COST_PER_REQ
+    """
+    Every successful solve deducts exactly 1.0 solve credit from the user's balance.
+    Failed requests cost 0.0 credits (billed only for successful solves).
+    """
+    return 1.0
 
 def apply_daily_credits(user_id: int) -> dict:
     """
-    Applies daily credit refresh. Called on every /api/user/me load.
-
-    FREE tier  : balance hard-reset to 50.0 each day (= $5 at $0.1/req).
-                 No rollover — unused credits are NOT carried to next day.
-    PAID tier  : +1500 credits added daily (= $15 at $0.01/req).
-                 Unlimited accumulation, credits never expire.
+    Refreshes credits according to plan:
+    - FREE tier  : hard reset to 75.0 solves every UTC midnight (no rollover).
+    - PAID plans : credits roll over! Expired subscriptions retain accumulated credits.
     """
     conn = get_db()
     cur = conn.cursor()
@@ -134,32 +232,44 @@ def apply_daily_credits(user_id: int) -> dict:
     user = dict(row)
 
     now = int(time.time())
-    # Compute start of today in UTC (midnight)
     today_start = now - (now % 86400)
     last_credited = user.get('last_daily_credit_at', 0) or 0
 
+    plan_key = user.get("plan", "free") or "free"
+    expires_at = user.get("plan_expires_at", 0) or 0
+
+    # Auto-demote expired plans to pay_as_you_go
+    if plan_key not in ("free", "pay_as_you_go") and expires_at > 0 and now > expires_at:
+        fallback = "pay_as_you_go" if bool(user.get("has_deposited", 0)) else "free"
+        concurrency = 10 if fallback == "pay_as_you_go" else 3
+        cur.execute("UPDATE users SET plan = ?, concurrency_limit = ? WHERE id = ?", (fallback, concurrency, user_id))
+        user["plan"] = fallback
+        user["concurrency_limit"] = concurrency
+        plan_key = fallback
+
     if last_credited >= today_start:
-        # Already credited today — return current user state unchanged
         conn.close()
         return user
 
-    is_paid = bool(user.get('has_deposited', 0))
     current_credits = float(user.get('credits', 0) or 0)
 
-    if is_paid:
-        # Paid: add daily bonus (unlimited accumulation)
-        new_credits = current_credits + PAID_DAILY_BONUS
+    if plan_key == "free" and not bool(user.get('has_deposited', 0)):
+        # Free users: 75 solves/day, resets every UTC midnight, no rollover
+        new_credits = FREE_DAILY_REQUESTS
+        cur.execute(
+            "UPDATE users SET credits = ?, last_daily_credit_at = ? WHERE id = ?",
+            (new_credits, now, user_id)
+        )
+        user['credits'] = new_credits
     else:
-        # Free: hard-reset to daily cap (no rollover)
-        new_credits = FREE_DAILY_CAP
+        # Paid subscribers & Pay-as-you-go: maintain rollover, update timestamp
+        cur.execute(
+            "UPDATE users SET last_daily_credit_at = ? WHERE id = ?",
+            (now, user_id)
+        )
 
-    cur.execute(
-        "UPDATE users SET credits = ?, last_daily_credit_at = ? WHERE id = ?",
-        (new_credits, now, user_id)
-    )
-    conn.commit()
-    user['credits'] = new_credits
     user['last_daily_credit_at'] = now
+    conn.commit()
     conn.close()
     return user
 

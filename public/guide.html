@@ -228,57 +228,70 @@
         <div class="guide-card">
             <h3>
                 <span class="step-num">2</span>
-                Pricing Tiers &amp; Daily Credit System
+                Pricing Tiers &amp; Solve Credit Economy
             </h3>
             <p>
-                Xploit Unblocker uses a two-tier credit model. Every registered account gets a daily free allocation. Depositing any amount of USDT permanently unlocks the <strong>Paid Tier</strong> with a 10x cheaper rate and a larger daily bonus.
+                Xploit Unblocker bills <strong>strictly for successful solves</strong>. If a target challenge fails or times out, <strong>0 credits</strong> are debited. Every registered account receives 75 free requests refreshed daily. Upgrading unlocks high-concurrency pools, lower overage rates, and credit rollovers.
             </p>
 
             <!-- Tier Comparison Table -->
             <table class="guide-table" style="margin-bottom:20px;">
                 <thead>
                     <tr>
-                        <th>Feature</th>
-                        <th style="color:var(--text-cyan);">FREE Tier</th>
-                        <th style="color:#10b981;">PAID Tier</th>
+                        <th>Plan</th>
+                        <th>Price</th>
+                        <th>Included Solves</th>
+                        <th>Overage Rate</th>
+                        <th>Price / 1k Solves</th>
+                        <th>Concurrency</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Activation</td>
-                        <td>Automatic on Sign Up</td>
-                        <td>Any Solana USDT Deposit</td>
+                        <td><strong>Free</strong></td>
+                        <td>$0 forever</td>
+                        <td>75 requests / day (no rollover)</td>
+                        <td>—</td>
+                        <td>$0</td>
+                        <td>3 slots</td>
                     </tr>
                     <tr>
-                        <td>Per-Request Cost</td>
-                        <td><code>$0.10 / req</code> (1 credit)</td>
-                        <td><code style="color:#10b981;">$0.01 / req</code> (0.1 credit) <strong>10x cheaper</strong></td>
+                        <td><strong>Starter</strong></td>
+                        <td>$9 / month</td>
+                        <td>5,000 solves / month</td>
+                        <td>$0.0025 / req</td>
+                        <td>$1.80–$2.50</td>
+                        <td>10 workers</td>
+                    </tr>
+                    <tr style="background:rgba(16,185,129,0.06);">
+                        <td><strong style="color:#10b981;">Moderato (Most Popular)</strong></td>
+                        <td><strong>$29 / mo ($279/yr)</strong></td>
+                        <td><strong>30,000 solves / month</strong></td>
+                        <td><code style="color:#10b981;">$0.0012 / req</code></td>
+                        <td><strong>$0.97–$1.20</strong></td>
+                        <td>50 workers (24/7)</td>
+                    </tr>
+                    <tr style="background:rgba(245,158,11,0.06);">
+                        <td><strong style="color:#f59e0b;">Vince (Best Value)</strong></td>
+                        <td><strong>$99 / mo ($949/yr)</strong></td>
+                        <td><strong>150,000 solves / month</strong></td>
+                        <td><code style="color:#f59e0b;">$0.0008 / req</code></td>
+                        <td><strong>$0.66–$0.80</strong></td>
+                        <td>Unlimited (150+)</td>
                     </tr>
                     <tr>
-                        <td>Daily Credits</td>
-                        <td>50 credits ($5) — resets at UTC midnight</td>
-                        <td>+1500 credits ($15) — added daily, never expire</td>
-                    </tr>
-                    <tr>
-                        <td>Balance Rollover</td>
-                        <td><span style="color:#f59e0b;">No rollover</span> — unused credits lost at reset</td>
-                        <td><span style="color:#10b981;">Unlimited</span> — credits accumulate forever</td>
-                    </tr>
-                    <tr>
-                        <td>Requests / Day (free alloc)</td>
-                        <td>50 requests</td>
-                        <td>1,500 requests + unlimited from topup balance</td>
-                    </tr>
-                    <tr>
-                        <td>Concurrent Workers</td>
-                        <td>50 workers</td>
-                        <td>Unlimited runner pool</td>
+                        <td><strong>Pay-as-you-go</strong></td>
+                        <td>No subscription</td>
+                        <td>Buy credits anytime</td>
+                        <td>$0.0020 / req</td>
+                        <td>$2.00</td>
+                        <td>10 workers</td>
                     </tr>
                 </tbody>
             </table>
 
             <!-- Deposit → Credits table -->
-            <h3 style="font-size:13px; margin-bottom:10px; color:var(--text-secondary); font-weight:600;">DEPOSIT → CREDIT CONVERSION (PAID TIER)</h3>
+            <h3 style="font-size:13px; margin-bottom:10px; color:var(--text-secondary); font-weight:600;">INSTANT ON-CHAIN UPGRADE (SOLANA USDT SPL)</h3>
             <div class="info-block" style="margin-bottom: 14px;">
                 <div class="info-label">OFFICIAL TREASURY WALLET (SOLANA SPL)</div>
                 <div class="info-content-row">
@@ -289,35 +302,47 @@
                 <thead>
                     <tr>
                         <th>Deposit (USDT)</th>
-                        <th>Credits Added</th>
-                        <th>Requests Available</th>
-                        <th>Effective Cost</th>
+                        <th>Plan Activated</th>
+                        <th>Included Solves</th>
+                        <th>Effective Rate</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>1.00 USDT</td>
-                        <td>+10 credits</td>
-                        <td>100 requests</td>
-                        <td>$0.01 / req</td>
+                        <td>9.00 USDT</td>
+                        <td><strong style="color:var(--text-cyan);">Starter (30 Days)</strong></td>
+                        <td>5,000 solves</td>
+                        <td>$0.0025 / req</td>
                     </tr>
                     <tr>
-                        <td>5.00 USDT</td>
-                        <td>+50 credits</td>
-                        <td>500 requests</td>
-                        <td>$0.01 / req</td>
+                        <td>29.00 USDT</td>
+                        <td><strong style="color:#10b981;">Moderato (30 Days)</strong></td>
+                        <td>30,000 solves</td>
+                        <td>$0.0012 / req</td>
                     </tr>
                     <tr>
-                        <td>10.00 USDT</td>
-                        <td>+100 credits</td>
-                        <td>1,000 requests</td>
-                        <td>$0.01 / req</td>
+                        <td>99.00 USDT</td>
+                        <td><strong style="color:#f59e0b;">Vince Enterprise (30 Days)</strong></td>
+                        <td>150,000 solves</td>
+                        <td>$0.0008 / req</td>
                     </tr>
                     <tr>
-                        <td>50.00 USDT</td>
-                        <td>+500 credits</td>
-                        <td>5,000 requests</td>
-                        <td>$0.01 / req</td>
+                        <td>279.00 USDT</td>
+                        <td><strong style="color:#10b981;">Annual Moderato (365 Days)</strong></td>
+                        <td>360,000 solves</td>
+                        <td>$0.0012 / req (2 mos free)</td>
+                    </tr>
+                    <tr>
+                        <td>949.00 USDT</td>
+                        <td><strong style="color:#f59e0b;">Annual Vince (365 Days)</strong></td>
+                        <td>1,800,000 solves</td>
+                        <td>$0.0008 / req (2 mos free)</td>
+                    </tr>
+                    <tr>
+                        <td>Custom (&lt; $9)</td>
+                        <td><strong>Pay-as-you-go</strong></td>
+                        <td>500 solves / $1 USDT</td>
+                        <td>$0.0020 / req ($2/1k)</td>
                     </tr>
                 </tbody>
             </table>
@@ -429,43 +454,55 @@ else:
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </a>
             </div>
-            <p>Three distinct tiers designed for every operational scale: <strong>Free</strong> for indie developers, <strong>Moderato</strong> for 24/7 production scrapers, and <strong>Vince</strong> for massive enterprise syndicates.</p>
+            <p>Bill only for successful solves. Comprehensive plan lineup from free integration testing to dedicated enterprise clusters:</p>
 
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-top:14px;">
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-top:14px;">
                 <!-- FREE Plan -->
-                <div style="background:rgba(6,182,212,0.06); border:1px solid rgba(6,182,212,0.25); border-radius:8px; padding:18px;">
-                    <div style="font-family:var(--font-mono); font-size:10px; letter-spacing:1px; color:var(--text-cyan); font-weight:700; margin-bottom:8px;">FREE TIER</div>
-                    <div style="font-size:22px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">$0 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ forever</span></div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">$5/day refresh. No rollover.</div>
-                    <ul style="list-style:none; padding:0; margin:0; font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:6px;">
-                        <li>• $0.10 per request</li>
-                        <li>• 50 requests / day</li>
-                        <li>• 5 concurrent workers</li>
+                <div style="background:rgba(100,116,139,0.06); border:1px solid rgba(100,116,139,0.25); border-radius:8px; padding:16px;">
+                    <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">FREE</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:2px;">$0 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">/ forever</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">75 reqs/day • 3 slots</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+                        <li>• Turnstile + basic CAPTCHA</li>
+                        <li>• Shared worker queue</li>
+                        <li>• Resets UTC midnight</li>
+                    </ul>
+                </div>
+
+                <!-- STARTER Plan -->
+                <div style="background:rgba(6,182,212,0.06); border:1px solid rgba(6,182,212,0.3); border-radius:8px; padding:16px;">
+                    <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-cyan); font-weight:700; margin-bottom:6px;">STARTER</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:2px;">$9 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">/ month</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">5,000 solves/mo • 10 workers</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+                        <li>• $0.0025 overage rate</li>
+                        <li>• $1.80–$2.50 / 1k solves</li>
+                        <li>• 30-day credit rollover</li>
                     </ul>
                 </div>
 
                 <!-- MODERATO Plan -->
-                <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.35); border-radius:8px; padding:18px; position:relative;">
-                    <div style="position:absolute;top:-10px;right:10px;background:#10b981;color:#000;font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;">24/7 ACTIVE</div>
-                    <div style="font-family:var(--font-mono); font-size:10px; letter-spacing:1px; color:#10b981; font-weight:700; margin-bottom:8px;">MODERATO</div>
-                    <div style="font-size:22px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">$29 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ month or Topup</span></div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">+$15 daily bonus. Unlimited rollover.</div>
-                    <ul style="list-style:none; padding:0; margin:0; font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:6px;">
-                        <li>• <strong style="color:#10b981;">$0.01 per request (10x cheaper)</strong></li>
-                        <li>• 35 concurrent workers</li>
-                        <li>• Turnstile, DataDome &amp; Akamai bypass</li>
+                <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.4); border-radius:8px; padding:16px; position:relative;">
+                    <div style="position:absolute;top:-8px;right:8px;background:#10b981;color:#000;font-size:8px;font-weight:800;padding:2px 6px;border-radius:4px;">POPULAR</div>
+                    <div style="font-family:var(--font-mono); font-size:10px; color:#10b981; font-weight:700; margin-bottom:6px;">MODERATO</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:2px;">$29 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">/ mo ($279/yr)</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">30,000 solves/mo • 50 workers</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+                        <li>• <strong style="color:#10b981;">$0.0012 overage rate</strong></li>
+                        <li>• 24/7 Dedicated Runners</li>
+                        <li>• Unlimited credit rollover</li>
                     </ul>
                 </div>
 
                 <!-- VINCE Plan -->
-                <div style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.35); border-radius:8px; padding:18px;">
-                    <div style="font-family:var(--font-mono); font-size:10px; letter-spacing:1px; color:#f59e0b; font-weight:700; margin-bottom:8px;">VINCE ENTERPRISE</div>
-                    <div style="font-size:22px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">$99 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ month</span></div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">+$50 daily bonus. Dedicated cluster.</div>
-                    <ul style="list-style:none; padding:0; margin:0; font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:6px;">
-                        <li>• <strong style="color:#f59e0b;">$0.005 per request</strong></li>
-                        <li>• 100+ concurrency (Unlimited)</li>
-                        <li>• Dedicated Residential Proxies &amp; SLA</li>
+                <div style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.4); border-radius:8px; padding:16px;">
+                    <div style="font-family:var(--font-mono); font-size:10px; color:#f59e0b; font-weight:700; margin-bottom:6px;">VINCE</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:2px;">$99 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">/ mo ($949/yr)</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">150,000 solves/mo • 150+ workers</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+                        <li>• <strong style="color:#f59e0b;">$0.0008 overage rate</strong></li>
+                        <li>• Dedicated Isolated Cluster</li>
+                        <li>• Premium Residential Proxies</li>
                     </ul>
                 </div>
             </div>

@@ -29,10 +29,9 @@ from core.db import (
     get_db,
     apply_daily_credits,
     get_request_cost,
-    FREE_DAILY_CAP,
-    PAID_DAILY_BONUS,
-    FREE_COST_PER_REQ,
-    PAID_COST_PER_REQ
+    get_user_plan_meta,
+    PLANS,
+    FREE_DAILY_REQUESTS
 )
 from engine.unblocker import execute_unblock
 from core.promo import verify_user_promo
@@ -48,6 +47,8 @@ task_results = {}
 task_events = {}
 # Active worker nodes registry {worker_id: {last_seen, tasks_completed}}
 active_workers = {}
+# Concurrency tracking per user {user_id: active_count}
+active_user_concurrency = {}
 
 app = FastAPI(title="Xploit Unblocker API", version="2.0.0")
 
@@ -240,78 +241,99 @@ def has_active_workers():
 
 @app.post("/v1/unlock")
 async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_key)):
+    user_id = user["id"]
+    if float(user.get("credits", 0) or 0) < 1.0:
+        raise HTTPException(
+            status_code=402,
+            detail="Insufficient solve credits. Your plan allocation is exhausted. Please upgrade or top up to continue unlocking."
+        )
+
+    plan_meta = get_user_plan_meta(user)
+    concurrency_limit = int(user.get("concurrency_limit") or plan_meta.get("concurrency", 3))
+    current_active = active_user_concurrency.get(user_id, 0)
+    if current_active >= concurrency_limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Concurrency limit reached ({current_active}/{concurrency_limit} active slots for {plan_meta['name']} plan). Please wait for active jobs to finish or upgrade plan."
+        )
+
+    active_user_concurrency[user_id] = current_active + 1
     start_time = time.time()
     force_cdp = req.force_cdp or (req.mode == "stealth")
 
-    # If remote workers are online, dispatch heavy CDP tasks to them
-    if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto")):
-        result = await dispatch_to_worker(
+    try:
+        # If remote workers are online, dispatch heavy CDP tasks to them
+        if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto")):
+            result = await dispatch_to_worker(
+                url=req.url,
+                mode=req.mode or "auto",
+                force_cdp=force_cdp,
+                proxy=req.proxy,
+                method=req.method or "GET",
+                headers=req.headers,
+                body=req.body
+            )
+            if result and result.get("success"):
+                duration_ms = int((time.time() - start_time) * 1000)
+                cost = get_request_cost(user)
+                deduct_credit(user_id, cost)
+                log_request(user_id, req.url, result.get("mode", "worker"), 200, duration_ms, cost)
+                return {
+                    "success": True,
+                    "url": req.url,
+                    "mode": result.get("mode", "worker_cdp"),
+                    "status_code": 200,
+                    "duration_ms": duration_ms,
+                    "title": result.get("title", ""),
+                    "credits_remaining": user["credits"] - cost,
+                    "html": result.get("html", ""),
+                    "cookies": result.get("cookies", []),
+                    "headers": result.get("headers", {}),
+                    "worker_node": result.get("worker_id", "unknown")
+                }
+
+        # Fallback: execute locally on this server
+        result = execute_unblock(
             url=req.url,
-            mode=req.mode or "auto",
             force_cdp=force_cdp,
             proxy=req.proxy,
             method=req.method or "GET",
             headers=req.headers,
             body=req.body
         )
-        if result and result.get("success"):
-            duration_ms = int((time.time() - start_time) * 1000)
+        duration_ms = int((time.time() - start_time) * 1000)
+        status_code = result.get("status_code", 200)
+        
+        if result.get("success"):
             cost = get_request_cost(user)
-            deduct_credit(user["id"], cost)
-            log_request(user["id"], req.url, result.get("mode", "worker"), 200, duration_ms, cost)
+            deduct_credit(user_id, cost)
+            log_request(user_id, req.url, result.get("mode", "auto"), status_code, duration_ms, cost)
             return {
                 "success": True,
                 "url": req.url,
-                "mode": result.get("mode", "worker_cdp"),
-                "status_code": 200,
+                "mode": result.get("mode"),
+                "status_code": status_code,
                 "duration_ms": duration_ms,
                 "title": result.get("title", ""),
                 "credits_remaining": user["credits"] - cost,
                 "html": result.get("html", ""),
                 "cookies": result.get("cookies", []),
-                "headers": result.get("headers", {}),
-                "worker_node": result.get("worker_id", "unknown")
+                "headers": result.get("headers", {})
             }
-
-    # Fallback: execute locally on this server
-    result = execute_unblock(
-        url=req.url,
-        force_cdp=force_cdp,
-        proxy=req.proxy,
-        method=req.method or "GET",
-        headers=req.headers,
-        body=req.body
-    )
-    duration_ms = int((time.time() - start_time) * 1000)
-    status_code = result.get("status_code", 200)
-    
-    if result.get("success"):
-        cost = get_request_cost(user)
-        deduct_credit(user["id"], cost)
-        log_request(user["id"], req.url, result.get("mode", "auto"), status_code, duration_ms, cost)
-        return {
-            "success": True,
-            "url": req.url,
-            "mode": result.get("mode"),
-            "status_code": status_code,
-            "duration_ms": duration_ms,
-            "title": result.get("title", ""),
-            "credits_remaining": user["credits"] - cost,
-            "html": result.get("html", ""),
-            "cookies": result.get("cookies", []),
-            "headers": result.get("headers", {})
-        }
-    else:
-        log_request(user["id"], req.url, result.get("mode", "failed"), status_code, duration_ms, 0.0)
-        return JSONResponse(
-            status_code=400,
-            content={
-                "success": False,
-                "url": req.url,
-                "error": result.get("error", "Failed to bypass target challenge"),
-                "duration_ms": duration_ms
-            }
-        )
+        else:
+            # Bill ONLY for successful solves (0.0 cost on failed requests)
+            log_request(user_id, req.url, result.get("mode", "failed"), status_code, duration_ms, 0.0)
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "url": req.url,
+                    "error": result.get("error", "Failed to bypass target challenge"),
+                    "duration_ms": duration_ms
+                }
+            )
+    finally:
+        active_user_concurrency[user_id] = max(0, active_user_concurrency.get(user_id, 1) - 1)
 
 # ── Background Task Runner for Async Scrapes ───────────
 async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int):
@@ -522,7 +544,9 @@ async def get_current_user_profile(request: Request, response: Response):
     now = int(time.time())
     timeout_remaining = max(0, (user.get("timeout_until", 0) - now) // 60)
     is_guest = bool(user.get("is_guest", 0))
-    is_paid  = bool(user.get("has_deposited", 0))
+    plan_meta = get_user_plan_meta(user)
+    plan_key = "guest" if is_guest else plan_meta["id"]
+    concurrency_limit = 1 if is_guest else (user.get("concurrency_limit") or plan_meta.get("concurrency", 3))
 
     # Seconds until next UTC midnight
     next_reset_in = 86400 - (now % 86400)
@@ -533,7 +557,12 @@ async def get_current_user_profile(request: Request, response: Response):
         "username": user["username"],
         "email": user.get("email"),
         "is_guest": is_guest,
-        "tier": "guest" if is_guest else ("paid" if is_paid else "free"),
+        "tier": plan_key,
+        "plan_name": plan_meta["name"],
+        "concurrency_limit": concurrency_limit,
+        "overage_rate": plan_meta.get("overage_rate", 0.0),
+        "included_credits": plan_meta.get("included_credits", 75),
+        "plan_expires_at": user.get("plan_expires_at", 0),
         # GUEST PROTECTION: Never reveal key until registered
         "api_key": "" if is_guest else user["api_key"],
         "deposit_ref": "" if is_guest else user.get("deposit_ref", "XPK-REF"),
@@ -542,9 +571,8 @@ async def get_current_user_profile(request: Request, response: Response):
         "timeout_active": timeout_remaining > 0,
         "timeout_minutes": timeout_remaining,
         "solana_wallet": SOLANA_WALLET,
-        "cost_per_request": PAID_COST_PER_REQ if is_paid else FREE_COST_PER_REQ,
-        "daily_cap": None if is_paid else FREE_DAILY_CAP,
-        "daily_bonus": PAID_DAILY_BONUS if is_paid else FREE_DAILY_CAP,
+        "cost_per_request": 1.0,
+        "daily_refresh": FREE_DAILY_REQUESTS if plan_key == "free" else 0,
         "next_reset_in_seconds": next_reset_in,
     }
 

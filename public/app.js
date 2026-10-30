@@ -95,42 +95,56 @@ async function loadUserProfile() {
             if (authBtnText) authBtnText.innerText = 'Sign Out';
         }
 
-        // ── Tier Badge & Daily Info ──────────────────────────────
+        // ── Plan Badge & Concurrency Info ──────────────────────────
         const tierBadge = document.getElementById('tier-badge');
         const tierLabel = document.getElementById('tier-label');
         const costEl = document.getElementById('cost-per-req');
         const dailyInfoEl = document.getElementById('daily-info');
         const resetTimerEl = document.getElementById('reset-timer');
 
-        const tier = data.tier || (data.is_guest ? 'guest' : 'free');
-        const isPaid = (tier === 'paid');
+        const planKey = data.tier || (data.is_guest ? 'guest' : 'free');
+        const planName = data.plan_name || planKey.toUpperCase();
+        const concurrency = data.concurrency_limit || (planKey === 'free' ? 3 : 10);
 
         if (tierBadge) {
-            tierBadge.className = 'tier-badge tier-' + tier;
-            tierBadge.textContent = tier.toUpperCase();
+            tierBadge.className = 'tier-badge tier-' + planKey;
+            tierBadge.textContent = planName.toUpperCase();
         }
         if (tierLabel) {
-            if (isPaid) {
-                tierLabel.textContent = 'PRO — $15/day bonus, unlimited accumulation';
-            } else if (tier === 'guest') {
+            if (planKey === 'moderato') {
+                tierLabel.textContent = 'MODERATO — 30,000 solves/mo • 50 workers concurrency';
+            } else if (planKey === 'vince') {
+                tierLabel.textContent = 'VINCE — 150,000 solves/mo • 150+ workers • Dedicated cluster';
+            } else if (planKey === 'starter') {
+                tierLabel.textContent = 'STARTER — 5,000 solves/mo • 10 workers concurrency';
+            } else if (planKey === 'pay_as_you_go') {
+                tierLabel.textContent = 'PAY-AS-YOU-GO — $0.002/req ($2/1k) • Never expires';
+            } else if (planKey === 'guest') {
                 tierLabel.textContent = 'GUEST — 5 test requests only';
             } else {
-                tierLabel.textContent = 'FREE — $5/day, resets daily (no rollover)';
+                tierLabel.textContent = 'FREE — 75 requests/day • 3 slots • Resets daily (no rollover)';
             }
         }
         if (costEl) {
-            const cost = data.cost_per_request || (isPaid ? 0.01 : 0.1);
-            costEl.textContent = '$' + cost.toFixed(2) + ' / req';
-            costEl.style.color = isPaid ? '#10b981' : '#06b6d4';
+            if (planKey === 'vince') {
+                costEl.textContent = '$0.0008 / solve';
+                costEl.style.color = '#f59e0b';
+            } else if (planKey === 'moderato') {
+                costEl.textContent = '$0.0012 / solve';
+                costEl.style.color = '#10b981';
+            } else if (planKey === 'starter') {
+                costEl.textContent = '$0.0025 / solve';
+                costEl.style.color = '#06b6d4';
+            } else if (planKey === 'pay_as_you_go') {
+                costEl.textContent = '$0.0020 / solve';
+                costEl.style.color = '#10b981';
+            } else {
+                costEl.textContent = '1.0 solve credit';
+                costEl.style.color = '#06b6d4';
+            }
         }
         if (dailyInfoEl) {
-            if (isPaid) {
-                dailyInfoEl.textContent = '+1500 credits ($15) credited daily';
-            } else if (!data.is_guest) {
-                dailyInfoEl.textContent = '50 credits ($5) refreshed daily — no rollover';
-            } else {
-                dailyInfoEl.textContent = '5 test requests for guest session';
-            }
+            dailyInfoEl.textContent = `${concurrency} concurrent worker slots`;
         }
 
         // Countdown to next UTC midnight reset
