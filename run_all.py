@@ -93,6 +93,21 @@ def run_bot():
         print(f"[BOT] Discord bot offline or token unconfigured: {e}")
 
 if __name__ == "__main__":
+    # ── Step 1: Restore DB from Discord DM backup (before server/bot start) ──
+    import asyncio as _asyncio
+    from core.db_backup import restore_db_from_discord as _restore
+
+    print("[STARTUP] Attempting DB restore from Discord DM...")
+    try:
+        restored = _asyncio.run(_restore())
+        if restored:
+            print("[STARTUP] ✅ DB restored from Discord DM backup.")
+        else:
+            print("[STARTUP] No backup found — starting fresh (DB will be initialised by server).")
+    except Exception as _e:
+        print(f"[STARTUP] DB restore skipped (error): {_e}")
+
+    # ── Step 2: Start web server and Discord bot in parallel ──────────────────
     p_web = multiprocessing.Process(target=run_web)
     p_bot = multiprocessing.Process(target=run_bot)
 
@@ -106,3 +121,4 @@ if __name__ == "__main__":
         print("\nStopping all services...")
         p_web.terminate()
         p_bot.terminate()
+

@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord import app_commands
 import os
@@ -14,6 +15,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 load_dotenv()
 
 from core.db import get_or_create_user, get_user_by_discord_id, deduct_credit
+from core.db_backup import backup_loop
 from engine.unblocker import execute_unblock
 from core.promo import verify_user_promo
 from core.solana import verify_solana_deposit, SOLANA_WALLET
@@ -37,6 +39,9 @@ client = UnblockerBot()
 @client.event
 async def on_ready():
     print(f"🤖 Xploit Unblocker Bot online as: {client.user} (ID: {client.user.id})")
+    # Start periodic DB backup to Discord DM (runs as background asyncio task)
+    asyncio.create_task(backup_loop())
+    print("[BACKUP] DB backup loop scheduled.")
 
 # ═════════════════════════════════════════════════
 #  COMMAND 1: /unblock <url>
