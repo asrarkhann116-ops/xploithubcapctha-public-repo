@@ -53,13 +53,13 @@ async function loadUserProfile() {
         // Navbar & Profile Info
         const usernameEl = document.getElementById('nav-username');
         if (usernameEl) {
-            usernameEl.innerText = data.is_guest 
+            usernameEl.innerText = data.is_guest
                 ? (data.username + ' (Guest Tester)')
                 : data.username;
         }
 
         const creditsEl = document.getElementById('nav-credits');
-        if (creditsEl) creditsEl.innerText = Number(data.credits).toFixed(1);
+        if (creditsEl) creditsEl.innerText = Number(data.credits).toFixed(2);
 
         const apiKeyEl = document.getElementById('api-key-val');
         const apiKeyActions = document.getElementById('api-key-actions');
@@ -71,7 +71,7 @@ async function loadUserProfile() {
             // Guest tester: hide API key & show sign-up banner
             if (apiKeyEl) {
                 apiKeyEl.type = 'text';
-                apiKeyEl.value = '🔒 Hidden for Guests (Sign Up to Unlock)';
+                apiKeyEl.value = 'Hidden for Guests — Sign Up to Unlock';
             }
             if (apiKeyActions) apiKeyActions.style.display = 'none';
             if (guestBanner) guestBanner.style.display = 'flex';
@@ -95,6 +95,50 @@ async function loadUserProfile() {
             if (authBtnText) authBtnText.innerText = 'Sign Out';
         }
 
+        // ── Tier Badge & Daily Info ──────────────────────────────
+        const tierBadge = document.getElementById('tier-badge');
+        const tierLabel = document.getElementById('tier-label');
+        const costEl = document.getElementById('cost-per-req');
+        const dailyInfoEl = document.getElementById('daily-info');
+        const resetTimerEl = document.getElementById('reset-timer');
+
+        const tier = data.tier || (data.is_guest ? 'guest' : 'free');
+        const isPaid = (tier === 'paid');
+
+        if (tierBadge) {
+            tierBadge.className = 'tier-badge tier-' + tier;
+            tierBadge.textContent = tier.toUpperCase();
+        }
+        if (tierLabel) {
+            if (isPaid) {
+                tierLabel.textContent = 'PRO — $15/day bonus, unlimited accumulation';
+            } else if (tier === 'guest') {
+                tierLabel.textContent = 'GUEST — 5 test requests only';
+            } else {
+                tierLabel.textContent = 'FREE — $5/day, resets daily (no rollover)';
+            }
+        }
+        if (costEl) {
+            const cost = data.cost_per_request || (isPaid ? 0.01 : 0.1);
+            costEl.textContent = '$' + cost.toFixed(2) + ' / req';
+            costEl.style.color = isPaid ? '#10b981' : '#06b6d4';
+        }
+        if (dailyInfoEl) {
+            if (isPaid) {
+                dailyInfoEl.textContent = '+1500 credits ($15) credited daily';
+            } else if (!data.is_guest) {
+                dailyInfoEl.textContent = '50 credits ($5) refreshed daily — no rollover';
+            } else {
+                dailyInfoEl.textContent = '5 test requests for guest session';
+            }
+        }
+
+        // Countdown to next UTC midnight reset
+        if (resetTimerEl && data.next_reset_in_seconds != null) {
+            startResetCountdown(data.next_reset_in_seconds, resetTimerEl);
+        }
+        // ────────────────────────────────────────────────────────
+
         const solanaWalletEl = document.getElementById('solana-wallet-val');
         if (solanaWalletEl && data.solana_wallet) {
             solanaWalletEl.innerText = data.solana_wallet;
@@ -104,7 +148,7 @@ async function loadUserProfile() {
         if (depositRefEl) {
             depositRefEl.innerText = data.is_guest ? 'REGISTER_FOR_REF' : (data.deposit_ref || 'XPK-REF');
         }
-        
+
         // Update code snippet box
         updateSnippetDisplay();
 
@@ -123,6 +167,31 @@ async function loadUserProfile() {
         console.error('Failed to load user profile:', err);
     }
 }
+
+// Countdown to next daily credit reset (UTC midnight)
+function startResetCountdown(initialSeconds, el) {
+    let remaining = initialSeconds;
+    el.textContent = formatCountdown(remaining);
+    const interval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(interval);
+            el.textContent = 'Refreshing...';
+            setTimeout(loadUserProfile, 1500); // Auto-reload after reset
+            return;
+        }
+        el.textContent = formatCountdown(remaining);
+    }, 1000);
+}
+
+function formatCountdown(secs) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+
 
 async function logoutUser() {
     try {

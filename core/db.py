@@ -77,7 +77,9 @@ def init_db():
         "ALTER TABLE users ADD COLUMN deposit_ref TEXT",
         "ALTER TABLE users ADD COLUMN email TEXT",
         "ALTER TABLE users ADD COLUMN password_hash TEXT",
-        "ALTER TABLE users ADD COLUMN is_guest INTEGER DEFAULT 0"
+        "ALTER TABLE users ADD COLUMN is_guest INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN has_deposited INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN last_daily_credit_at INTEGER DEFAULT 0"
     ]:
         try:
             cur.execute(col_def)
@@ -100,6 +102,66 @@ def init_db():
     conn.close()
 
 import hashlib
+
+# ─── TIER CONSTANTS ──────────────────────────────────────────
+# Free users  : daily cap = 50 credits ($5 at $0.1/req), no rollover
+# Paid users  : daily bonus = 150 credits ($15 at $0.01/req), unlimited
+FREE_DAILY_CAP       = 50.0    # credits (= $5 @ $0.1/req)
+PAID_DAILY_BONUS     = 1500.0  # credits (= $15 @ $0.01/req: 1000 + 500)
+FREE_COST_PER_REQ    = 0.1     # credits deducted per request (free tier)
+PAID_COST_PER_REQ    = 0.01    # credits deducted per request (paid tier)
+
+def get_request_cost(user: dict) -> float:
+    """Return per-request credit cost based on user tier."""
+    return PAID_COST_PER_REQ if bool(user.get('has_deposited', 0)) else FREE_COST_PER_REQ
+
+def apply_daily_credits(user_id: int) -> dict:
+    """
+    Applies daily credit refresh. Called on every /api/user/me load.
+
+    FREE tier  : balance hard-reset to 50.0 each day (= $5 at $0.1/req).
+                 No rollover — unused credits are NOT carried to next day.
+    PAID tier  : +1500 credits added daily (= $15 at $0.01/req).
+                 Unlimited accumulation, credits never expire.
+    """
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return {}
+    user = dict(row)
+
+    now = int(time.time())
+    # Compute start of today in UTC (midnight)
+    today_start = now - (now % 86400)
+    last_credited = user.get('last_daily_credit_at', 0) or 0
+
+    if last_credited >= today_start:
+        # Already credited today — return current user state unchanged
+        conn.close()
+        return user
+
+    is_paid = bool(user.get('has_deposited', 0))
+    current_credits = float(user.get('credits', 0) or 0)
+
+    if is_paid:
+        # Paid: add daily bonus (unlimited accumulation)
+        new_credits = current_credits + PAID_DAILY_BONUS
+    else:
+        # Free: hard-reset to daily cap (no rollover)
+        new_credits = FREE_DAILY_CAP
+
+    cur.execute(
+        "UPDATE users SET credits = ?, last_daily_credit_at = ? WHERE id = ?",
+        (new_credits, now, user_id)
+    )
+    conn.commit()
+    user['credits'] = new_credits
+    user['last_daily_credit_at'] = now
+    conn.close()
+    return user
 
 def hash_password(password: str) -> str:
     salt = os.urandom(16)

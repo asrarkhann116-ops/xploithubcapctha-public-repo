@@ -105,6 +105,11 @@ async def verify_solana_deposit(tx_hash: str, user_id: int) -> Dict[str, Any]:
         "INSERT INTO deposits (user_id, tx_hash, amount_usdt, credits_added, status, created_at) VALUES (?, ?, ?, ?, 'confirmed', ?)",
         (user_id, tx_hash, deposit_amount, credits_to_add, now)
     )
+    # Unlock paid tier: $0.01/req rate + $15 daily bonus forever
+    cur.execute(
+        "UPDATE users SET has_deposited = 1 WHERE id = ?",
+        (user_id,)
+    )
     conn.commit()
     conn.close()
 

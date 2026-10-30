@@ -26,7 +26,13 @@ from core.db import (
     deduct_credit,
     log_request,
     redeem_voucher,
-    get_db
+    get_db,
+    apply_daily_credits,
+    get_request_cost,
+    FREE_DAILY_CAP,
+    PAID_DAILY_BONUS,
+    FREE_COST_PER_REQ,
+    PAID_COST_PER_REQ
 )
 from engine.unblocker import execute_unblock
 from core.promo import verify_user_promo
@@ -131,9 +137,15 @@ def authenticate_api_key(
                 status_code=402,
                 detail="Guest trial credits exhausted (5/5 used). Please Sign Up or Log In to get 10 free credits and permanent API access!"
             )
+        is_paid = bool(user.get("has_deposited", 0))
+        if is_paid:
+            raise HTTPException(
+                status_code=402,
+                detail="Insufficient credits! Your daily $15 bonus has been applied. Top up via Solana USDT for more credits (charged at $0.01/req)."
+            )
         raise HTTPException(
             status_code=402,
-            detail="Insufficient credits! $0.1 (1 credit) required per request. Top up via Solana USDT or claim free credits with Discord promo."
+            detail="Insufficient credits! Free tier: $5 refreshes daily. Top up via Solana USDT to unlock $0.01/req rate and $15 daily bonus."
         )
 
     return user
@@ -244,8 +256,9 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
         )
         if result and result.get("success"):
             duration_ms = int((time.time() - start_time) * 1000)
-            deduct_credit(user["id"], 1.0)
-            log_request(user["id"], req.url, result.get("mode", "worker"), 200, duration_ms, 0.1)
+            cost = get_request_cost(user)
+            deduct_credit(user["id"], cost)
+            log_request(user["id"], req.url, result.get("mode", "worker"), 200, duration_ms, cost)
             return {
                 "success": True,
                 "url": req.url,
@@ -253,7 +266,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 "status_code": 200,
                 "duration_ms": duration_ms,
                 "title": result.get("title", ""),
-                "credits_remaining": user["credits"] - 1.0,
+                "credits_remaining": user["credits"] - cost,
                 "html": result.get("html", ""),
                 "cookies": result.get("cookies", []),
                 "headers": result.get("headers", {}),
@@ -273,8 +286,9 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
     status_code = result.get("status_code", 200)
     
     if result.get("success"):
-        deduct_credit(user["id"], 1.0)
-        log_request(user["id"], req.url, result.get("mode", "auto"), status_code, duration_ms, 0.1)
+        cost = get_request_cost(user)
+        deduct_credit(user["id"], cost)
+        log_request(user["id"], req.url, result.get("mode", "auto"), status_code, duration_ms, cost)
         return {
             "success": True,
             "url": req.url,
@@ -282,7 +296,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
             "status_code": status_code,
             "duration_ms": duration_ms,
             "title": result.get("title", ""),
-            "credits_remaining": user["credits"] - 1.0,
+            "credits_remaining": user["credits"] - cost,
             "html": result.get("html", ""),
             "cookies": result.get("cookies", []),
             "headers": result.get("headers", {})
@@ -335,8 +349,17 @@ async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int
 
         duration_ms = int((time.time() - start_time) * 1000)
         if result and result.get("success"):
-            deduct_credit(user_id, 1.0)
-            log_request(user_id, req.url, result.get("mode", "async"), 200, duration_ms, 0.1)
+            # For async tasks, look up user to determine their tier cost
+            from core.db import get_db as _gdb
+            _conn = _gdb()
+            _cur = _conn.cursor()
+            _cur.execute("SELECT has_deposited FROM users WHERE id = ?", (user_id,))
+            _row = _cur.fetchone()
+            _conn.close()
+            _user_partial = {"has_deposited": (_row["has_deposited"] if _row else 0)}
+            cost = get_request_cost(_user_partial)
+            deduct_credit(user_id, cost)
+            log_request(user_id, req.url, result.get("mode", "async"), 200, duration_ms, cost)
             async_tasks[task_id].update({
                 "status": "completed",
                 "completed_at": int(time.time()),
@@ -493,17 +516,25 @@ async def discord_callback(code: str, response: Response):
 @app.get("/api/user/me")
 async def get_current_user_profile(request: Request, response: Response):
     user = get_or_create_session_user(request, response)
+    # Apply daily credit refresh (idempotent — only fires once per UTC day)
+    if not bool(user.get("is_guest", 0)):
+        user = apply_daily_credits(user["id"]) or user
     now = int(time.time())
     timeout_remaining = max(0, (user.get("timeout_until", 0) - now) // 60)
     is_guest = bool(user.get("is_guest", 0))
-    
+    is_paid  = bool(user.get("has_deposited", 0))
+
+    # Seconds until next UTC midnight
+    next_reset_in = 86400 - (now % 86400)
+
     return {
         "id": user["id"],
         "discord_id": user.get("discord_id"),
         "username": user["username"],
         "email": user.get("email"),
         "is_guest": is_guest,
-        # GUEST PROTECTION: Guests are for testing only. NEVER reveal API key until registered!
+        "tier": "guest" if is_guest else ("paid" if is_paid else "free"),
+        # GUEST PROTECTION: Never reveal key until registered
         "api_key": "" if is_guest else user["api_key"],
         "deposit_ref": "" if is_guest else user.get("deposit_ref", "XPK-REF"),
         "credits": user["credits"],
@@ -511,7 +542,10 @@ async def get_current_user_profile(request: Request, response: Response):
         "timeout_active": timeout_remaining > 0,
         "timeout_minutes": timeout_remaining,
         "solana_wallet": SOLANA_WALLET,
-        "cost_per_request": 0.1
+        "cost_per_request": PAID_COST_PER_REQ if is_paid else FREE_COST_PER_REQ,
+        "daily_cap": None if is_paid else FREE_DAILY_CAP,
+        "daily_bonus": PAID_DAILY_BONUS if is_paid else FREE_DAILY_CAP,
+        "next_reset_in_seconds": next_reset_in,
     }
 
 @app.post("/api/auth/register")
