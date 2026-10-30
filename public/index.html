@@ -133,12 +133,15 @@
                         <strong>Auto Dual-Tier Mode:</strong> Tries 50ms TLS impersonation first. If Cloudflare Turnstile or 5s challenge is detected, auto-dispatches to GitHub Actions Chrome CDP runner.
                     </div>
                 </div>
-
                 <!-- Input Row -->
                 <div class="command-bar">
-                    <div class="method-tag">POST /v1/unlock</div>
-                    <input type="url" id="target-url" value="https://gitlab.com/users/sign_in" placeholder="https://example.com/login" spellcheck="false" autocomplete="off">
-                    <input type="text" id="target-proxy" placeholder="Proxy (Optional)" spellcheck="false" autocomplete="off" style="max-width: 175px; border-left: 1px solid var(--border-subtle); padding-left: 10px; font-size: 11px;">
+                    <select id="target-method" class="method-selector" title="HTTP Method" onchange="updateSnippetDisplay()">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                    </select>
+                    <input type="url" id="target-url" value="https://gitlab.com/users/sign_in" placeholder="https://example.com/login" spellcheck="false" autocomplete="off" oninput="updateSnippetDisplay()">
+                    <input type="text" id="target-proxy" placeholder="Proxy (Optional)" spellcheck="false" autocomplete="off" style="max-width: 175px; border-left: 1px solid var(--border-subtle); padding-left: 10px; font-size: 11px;" oninput="updateSnippetDisplay()">
                     <button class="btn-primary" id="btn-run" onclick="executeScrape()">
                         <svg class="btn-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -175,13 +178,23 @@
                             <button class="tab-item" onclick="switchTab('cookies')">Clearance Cookies</button>
                             <button class="tab-item" onclick="switchTab('headers')">Response Headers</button>
                         </div>
-                        <button class="btn-copy-terminal" onclick="copyConsoleOutput()" title="Copy active tab output">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            <span>Copy Buffer</span>
-                        </button>
+                        <div class="terminal-actions" style="display: flex; gap: 8px;">
+                            <button class="btn-copy-terminal" id="btn-export-netscape" onclick="exportNetscapeCookies()" title="Download Netscape formatted cookies.txt for curl, wget, yt-dlp, Playwright" style="display: none;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                <span>Export Netscape .txt</span>
+                            </button>
+                            <button class="btn-copy-terminal" onclick="copyConsoleOutput()" title="Copy active tab output">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span>Copy Buffer</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="terminal-screen">
@@ -194,7 +207,7 @@
             <!-- RIGHT STACK: API Key, Discord Promo, Solana Billing -->
             <div class="side-column">
 
-                <!-- PANEL 1: API Key & Quickstart -->
+                <!-- PANEL 1: API Key & Multi-Language Quickstart -->
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title-wrap">
@@ -215,7 +228,7 @@
                         <div class="field-actions">
                             <button class="field-btn" onclick="toggleApiKeyVisibility()" id="btn-toggle-key" title="Toggle visibility">
                                 <svg id="svg-eye" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <path d="M12 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
                                 </svg>
                             </button>
@@ -230,13 +243,14 @@
 
                     <div class="code-snippet-box">
                         <div class="code-snippet-head">
-                            <span>cURL Automation</span>
-                            <button class="code-copy-btn" onclick="copyCurlSnippet()">Copy</button>
+                            <div class="snippet-lang-tabs">
+                                <button class="snippet-lang-btn active" data-lang="curl" onclick="setSnippetLang('curl')">cURL</button>
+                                <button class="snippet-lang-btn" data-lang="python" onclick="setSnippetLang('python')">Python</button>
+                                <button class="snippet-lang-btn" data-lang="node" onclick="setSnippetLang('node')">Node.js</button>
+                            </div>
+                            <button class="code-copy-btn" onclick="copySnippetCode()">Copy</button>
                         </div>
-                        <pre><code id="curl-snippet">curl -X POST "http://localhost:8000/v1/unlock" \
-  -H "X-API-Key: YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://gitlab.com/users/sign_in"}'</code></pre>
+                        <pre><code id="snippet-code-display">// Loading integration code snippet...</code></pre>
                     </div>
                 </div>
 

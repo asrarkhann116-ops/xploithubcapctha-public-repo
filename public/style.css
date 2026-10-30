@@ -974,6 +974,57 @@ body {
     color: var(--text-accent);
 }
 
+/* Method selector in command bar */
+.method-selector {
+    background: #060911;
+    color: var(--text-accent);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    border: none;
+    border-right: 1px solid var(--border-subtle);
+    padding: 0 12px;
+    height: 100%;
+    outline: none;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+}
+
+.method-selector option {
+    background: #0e1320;
+    color: var(--text-primary);
+}
+
+/* Multi-language code snippet tabs */
+.snippet-lang-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.snippet-lang-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    transition: all 0.12s;
+}
+
+.snippet-lang-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.snippet-lang-btn.active {
+    color: var(--text-accent);
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
 /* Utility classes */
 .text-accent { color: var(--text-accent); }
 .text-cyan { color: var(--text-cyan); }
@@ -984,3 +1035,4 @@ body {
         display: none;
     }
 }
+

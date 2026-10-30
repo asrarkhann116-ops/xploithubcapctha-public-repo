@@ -6,6 +6,7 @@
 let currentUser = null;
 let currentMode = 'auto';
 let currentTab = 'html';
+let currentSnippetLang = 'curl';
 let lastResponseData = null;
 
 // Initialize when DOM is ready
@@ -69,15 +70,8 @@ async function loadUserProfile() {
             depositRefEl.innerText = data.deposit_ref;
         }
         
-        // Update cURL snippet
-        const curlSnippetEl = document.getElementById('curl-snippet');
-        if (curlSnippetEl) {
-            curlSnippetEl.innerText = 
-`curl -X POST "http://localhost:8000/v1/unlock" \\
-  -H "X-API-Key: ${data.api_key}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"url": "https://gitlab.com/users/sign_in", "mode": "${currentMode}"}'`;
-        }
+        // Update code snippet box
+        updateSnippetDisplay();
 
         // Promo status
         const promoMsg = document.getElementById('promo-status-msg');
@@ -109,7 +103,7 @@ const MODE_SPECS = {
     },
     'fast': {
         name: 'Fast TLS Impersonation',
-        desc: '<strong>Fast TLS Impersonation (50ms):</strong> Raw HTTP requests with Chrome 130 JA3/JA4 fingerprinting. Maximum throughput for targets without active JS challenges.',
+        desc: '<strong>Fast TLS Impersonation (50ms):</strong> Raw HTTP requests with Chrome 124 JA3/JA4 fingerprinting. Maximum throughput for targets without active JS challenges.',
         toast: 'Engine mode set: Fast TLS (50ms Lightweight)'
     }
 };
@@ -127,19 +121,94 @@ function setMode(mode) {
         descEl.innerHTML = info.desc;
     }
 
-    // Update cURL snippet
-    if (currentUser) {
-        const curlSnippetEl = document.getElementById('curl-snippet');
-        if (curlSnippetEl) {
-            curlSnippetEl.innerText = 
-`curl -X POST "http://localhost:8000/v1/unlock" \\
-  -H "X-API-Key: ${currentUser.api_key}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"url": "https://gitlab.com/users/sign_in", "mode": "${mode}"}'`;
-        }
-    }
-
+    updateSnippetDisplay();
     showToast(info.toast, 'info');
+}
+
+// Multi-Language Snippet Generator (cURL, Python, Node.js)
+function setSnippetLang(lang) {
+    currentSnippetLang = lang;
+    document.querySelectorAll('.snippet-lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+    updateSnippetDisplay();
+}
+
+function updateSnippetDisplay() {
+    const displayEl = document.getElementById('snippet-code-display');
+    if (!displayEl) return;
+
+    const apiKey = currentUser ? currentUser.api_key : 'YOUR_API_KEY';
+    const targetUrl = (document.getElementById('target-url')?.value.trim()) || 'https://gitlab.com/users/sign_in';
+    const method = (document.getElementById('target-method')?.value) || 'GET';
+    const proxy = (document.getElementById('target-proxy')?.value.trim()) || '';
+    const host = window.location.origin || 'http://localhost:8000';
+
+    if (currentSnippetLang === 'curl') {
+        const proxyField = proxy ? `,\n    "proxy": "${proxy}"` : '';
+        displayEl.innerText = 
+`curl -X POST "${host}/v1/unlock" \\
+  -H "X-API-Key: ${apiKey}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "url": "${targetUrl}",
+    "mode": "${currentMode}",
+    "method": "${method}"${proxyField}
+  }'`;
+    } else if (currentSnippetLang === 'python') {
+        const proxyParam = proxy ? `, "proxy": "${proxy}"` : '';
+        displayEl.innerText = 
+`import requests
+
+url = "${host}/v1/unlock"
+headers = {
+    "X-API-Key": "${apiKey}",
+    "Content-Type": "application/json"
+}
+payload = {
+    "url": "${targetUrl}",
+    "mode": "${currentMode}",
+    "method": "${method}"${proxyParam}
+}
+
+response = requests.post(url, headers=headers, json=payload)
+data = response.json()
+print("Success:", data.get("success"), "| Mode:", data.get("mode"))
+print("Cookies:", len(data.get("cookies", [])))
+print("Page Title:", data.get("title"))`;
+    } else if (currentSnippetLang === 'node') {
+        const proxyParam = proxy ? `,\n    proxy: '${proxy}'` : '';
+        displayEl.innerText = 
+`const fetch = require('node-fetch'); // or native fetch in Node 18+
+
+async function unlockTarget() {
+  const response = await fetch('${host}/v1/unlock', {
+    method: 'POST',
+    headers: {
+      'X-API-Key': '${apiKey}',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      url: '${targetUrl}',
+      mode: '${currentMode}',
+      method: '${method}'${proxyParam}
+    })
+  });
+
+  const data = await response.json();
+  console.log('Cleared:', data.success, 'Duration:', data.duration_ms + 'ms');
+  console.log('Captured Cookies:', data.cookies);
+}
+
+unlockTarget();`;
+    }
+}
+
+function copySnippetCode() {
+    const displayEl = document.getElementById('snippet-code-display');
+    if (!displayEl) return;
+    navigator.clipboard.writeText(displayEl.innerText);
+    showToast(`${currentSnippetLang.toUpperCase()} snippet copied to clipboard.`, 'info');
 }
 
 // Tab Switcher for Output
@@ -148,8 +217,56 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-item').forEach(btn => {
         btn.classList.toggle('active', btn.innerText.toLowerCase().includes(tab));
     });
+
+    // Toggle Netscape Export button visibility
+    const netscapeBtn = document.getElementById('btn-export-netscape');
+    if (netscapeBtn) {
+        netscapeBtn.style.display = (tab === 'cookies') ? 'inline-flex' : 'none';
+    }
+
     renderConsoleOutput();
 }
+
+// Export cookies in standard Netscape format for curl/wget/Playwright/yt-dlp
+function exportNetscapeCookies() {
+    if (!lastResponseData || !lastResponseData.cookies || lastResponseData.cookies.length === 0) {
+        showToast('No clearance cookies available to export.', 'error');
+        return;
+    }
+
+    let netscapeText = '# Netscape HTTP Cookie File\n# https://curl.haxx.se/docs/http-cookies.html\n# Exported from Xploit Unblocker API\n\n';
+    const targetUrl = document.getElementById('target-url')?.value.trim() || '';
+    let defaultDomain = 'example.com';
+    try {
+        defaultDomain = new URL(targetUrl).hostname;
+    } catch (e) {}
+
+    const now = Math.floor(Date.now() / 1000) + 86400 * 30; // default 30 days expiration
+
+    lastResponseData.cookies.forEach(c => {
+        const domain = c.domain ? (c.domain.startsWith('.') ? c.domain : '.' + c.domain) : '.' + defaultDomain;
+        const flag = 'TRUE';
+        const path = c.path || '/';
+        const secure = c.secure ? 'TRUE' : 'FALSE';
+        const expiration = c.expires || c.expirationDate || now;
+        const name = c.name || '';
+        const value = c.value || '';
+        netscapeText += `${domain}\t${flag}\t${path}\t${secure}\t${Math.floor(expiration)}\t${name}\t${value}\n`;
+    });
+
+    const blob = new Blob([netscapeText], { type: 'text/plain;charset=utf-8' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `cookies_${defaultDomain.replace(/[^a-zA-Z0-9.-]/g, '_')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(downloadUrl);
+
+    showToast('Exported Netscape cookies.txt successfully.', 'success');
+}
+
 
 // Poll GitHub Actions Worker Nodes Fleet Status
 async function pollFleetStatus() {
@@ -233,9 +350,11 @@ async function executeScrape() {
 
     const startTime = Date.now();
     try {
+        const method = (document.getElementById('target-method')?.value) || 'GET';
         const payload = {
             url: url,
             mode: currentMode,
+            method: method,
             force_cdp: currentMode === 'stealth'
         };
         if (proxy) payload.proxy = proxy;

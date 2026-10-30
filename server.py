@@ -59,6 +59,12 @@ class UnlockRequest(BaseModel):
     mode: Optional[str] = "auto" # "auto", "fast", "stealth"
     proxy: Optional[str] = None
     force_cdp: Optional[bool] = False
+    method: Optional[str] = "GET"
+    headers: Optional[dict] = None
+    body: Optional[Any] = None
+
+class AsyncUnlockRequest(UnlockRequest):
+    webhook_url: Optional[str] = None
 
 class PromoVerifyRequest(BaseModel):
     discord_id: str
@@ -68,6 +74,9 @@ class DepositVerifyRequest(BaseModel):
 
 class VoucherRedeemRequest(BaseModel):
     code: str
+
+# Async tasks storage: {task_id: {"id": str, "status": str, "created_at": int, "result": dict, "error": str, "webhook_url": str}}
+async_tasks = {}
 
 # Helper to get user from API Key
 def authenticate_api_key(
@@ -112,7 +121,7 @@ def get_session_user(request: Request):
     return dict(row) if row else None
 
 # ════════════════════════════════════════════
-#  1. WEB INTERFACE (Win95 Aesthetic)
+#  1. WEB INTERFACE (Developer Console)
 # ════════════════════════════════════════════
 @app.get("/", response_class=HTMLResponse)
 async def index():
@@ -120,14 +129,21 @@ async def index():
     if os.path.exists(html_file):
         with open(html_file, "r", encoding="utf-8") as f:
             return f.read()
-    return "<h1>Xploit Unblocker 95</h1>"
+    return "<h1>Xploit Unblocker API</h1>"
 
 # ════════════════════════════════════════════
-#  2. CORE UNBLOCKER ENDPOINT ($0.001/req)
-#     Hybrid: Dispatches to GitHub worker if
-#     available, else runs locally.
+#  2. CORE UNBLOCKER ENDPOINTS ($0.001/req)
 # ════════════════════════════════════════════
-async def dispatch_to_worker(url: str, mode: str, force_cdp: bool, proxy: str = None, timeout: int = 35):
+async def dispatch_to_worker(
+    url: str,
+    mode: str,
+    force_cdp: bool,
+    proxy: str = None,
+    method: str = "GET",
+    headers: dict = None,
+    body: Any = None,
+    timeout: int = 35
+):
     """Push a task onto the queue and wait for a worker to complete it."""
     task_id = str(uuid.uuid4())[:12]
     event = asyncio.Event()
@@ -138,6 +154,9 @@ async def dispatch_to_worker(url: str, mode: str, force_cdp: bool, proxy: str = 
         "mode": mode,
         "force_cdp": force_cdp,
         "proxy": proxy,
+        "method": method,
+        "headers": headers,
+        "body": body,
     })
     try:
         await asyncio.wait_for(event.wait(), timeout=timeout)
@@ -165,7 +184,15 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
 
     # If remote workers are online, dispatch heavy CDP tasks to them
     if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto")):
-        result = await dispatch_to_worker(req.url, req.mode or "auto", force_cdp, req.proxy)
+        result = await dispatch_to_worker(
+            url=req.url,
+            mode=req.mode or "auto",
+            force_cdp=force_cdp,
+            proxy=req.proxy,
+            method=req.method or "GET",
+            headers=req.headers,
+            body=req.body
+        )
         if result and result.get("success"):
             duration_ms = int((time.time() - start_time) * 1000)
             deduct_credit(user["id"], 1.0)
@@ -180,11 +207,19 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 "credits_remaining": user["credits"] - 1.0,
                 "html": result.get("html", ""),
                 "cookies": result.get("cookies", []),
+                "headers": result.get("headers", {}),
                 "worker_node": result.get("worker_id", "unknown")
             }
 
     # Fallback: execute locally on this server
-    result = execute_unblock(req.url, force_cdp=force_cdp, proxy=req.proxy)
+    result = execute_unblock(
+        url=req.url,
+        force_cdp=force_cdp,
+        proxy=req.proxy,
+        method=req.method or "GET",
+        headers=req.headers,
+        body=req.body
+    )
     duration_ms = int((time.time() - start_time) * 1000)
     status_code = result.get("status_code", 200)
     
@@ -200,7 +235,8 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
             "title": result.get("title", ""),
             "credits_remaining": user["credits"] - 1.0,
             "html": result.get("html", ""),
-            "cookies": result.get("cookies", [])
+            "cookies": result.get("cookies", []),
+            "headers": result.get("headers", {})
         }
     else:
         log_request(user["id"], req.url, result.get("mode", "failed"), status_code, duration_ms, 0.0)
@@ -213,6 +249,144 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 "duration_ms": duration_ms
             }
         )
+
+# ── Background Task Runner for Async Scrapes ───────────
+async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int):
+    """Processes an async unblock task in the background, updates status, and triggers webhook."""
+    async_tasks[task_id]["status"] = "processing"
+    start_time = time.time()
+    force_cdp = req.force_cdp or (req.mode == "stealth")
+
+    try:
+        result = None
+        # Try worker dispatch first if available
+        if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto")):
+            result = await dispatch_to_worker(
+                url=req.url,
+                mode=req.mode or "auto",
+                force_cdp=force_cdp,
+                proxy=req.proxy,
+                method=req.method or "GET",
+                headers=req.headers,
+                body=req.body,
+                timeout=60
+            )
+
+        # Fallback to local execution
+        if not result:
+            result = await asyncio.to_thread(
+                execute_unblock,
+                req.url,
+                force_cdp=force_cdp,
+                proxy=req.proxy,
+                method=req.method or "GET",
+                headers=req.headers,
+                body=req.body
+            )
+
+        duration_ms = int((time.time() - start_time) * 1000)
+        if result and result.get("success"):
+            deduct_credit(user_id, 1.0)
+            log_request(user_id, req.url, result.get("mode", "async"), 200, duration_ms, 0.001)
+            async_tasks[task_id].update({
+                "status": "completed",
+                "completed_at": int(time.time()),
+                "duration_ms": duration_ms,
+                "result": {
+                    "success": True,
+                    "url": req.url,
+                    "mode": result.get("mode"),
+                    "title": result.get("title", ""),
+                    "status_code": result.get("status_code", 200),
+                    "cookies": result.get("cookies", []),
+                    "headers": result.get("headers", {}),
+                    "html": result.get("html", "")
+                }
+            })
+        else:
+            async_tasks[task_id].update({
+                "status": "failed",
+                "completed_at": int(time.time()),
+                "duration_ms": duration_ms,
+                "error": result.get("error", "Challenge resolution timed out or blocked") if result else "Execution failed"
+            })
+    except Exception as e:
+        async_tasks[task_id].update({
+            "status": "failed",
+            "completed_at": int(time.time()),
+            "error": str(e)
+        })
+
+    # Webhook Callback if provided
+    if req.webhook_url:
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {
+                    "task_id": task_id,
+                    "status": async_tasks[task_id]["status"],
+                    "data": async_tasks[task_id].get("result") or {"error": async_tasks[task_id].get("error")}
+                }
+                await session.post(req.webhook_url, json=payload, timeout=10)
+        except Exception as wh_err:
+            print(f"[ASYNC] Webhook callback failed for {task_id}: {wh_err}")
+
+@app.post("/v1/unlock/async", status_code=202)
+async def unlock_async_endpoint(req: AsyncUnlockRequest, user = Depends(authenticate_api_key)):
+    """
+    Submits an unblock job asynchronously.
+    Returns task_id immediately. Client can poll /v1/tasks/{task_id} or receive webhook POST.
+    """
+    task_id = f"task_{uuid.uuid4().hex[:16]}"
+    async_tasks[task_id] = {
+        "task_id": task_id,
+        "user_id": user["id"],
+        "url": req.url,
+        "mode": req.mode,
+        "status": "queued",
+        "created_at": int(time.time()),
+        "webhook_url": req.webhook_url,
+        "result": None,
+        "error": None
+    }
+
+    # Launch background worker
+    asyncio.create_task(process_async_task(task_id, req, user["id"]))
+
+    return {
+        "success": True,
+        "task_id": task_id,
+        "status": "queued",
+        "poll_url": f"/v1/tasks/{task_id}",
+        "webhook_url": req.webhook_url
+    }
+
+@app.get("/v1/tasks/{task_id}")
+async def get_task_status(task_id: str):
+    """Poll status of an asynchronous unblock job."""
+    task = async_tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found or expired.")
+    return task
+
+@app.get("/v1/tasks")
+async def list_recent_tasks():
+    """Returns the most recent 25 async tasks in reverse chronological order."""
+    sorted_tasks = sorted(
+        [
+            {
+                "task_id": t["task_id"],
+                "url": t["url"],
+                "status": t["status"],
+                "created_at": t["created_at"],
+                "completed_at": t.get("completed_at")
+            }
+            for t in async_tasks.values()
+        ],
+        key=lambda x: x["created_at"],
+        reverse=True
+    )
+    return {"tasks": sorted_tasks[:25]}
+
 
 # ════════════════════════════════════════════
 #  3. DISCORD OAUTH2 AUTHENTICATION

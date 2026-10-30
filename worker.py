@@ -48,7 +48,7 @@ def heartbeat_loop():
 
 
 # ── CDP Bypass Engine ─────────────────────────
-def execute_cdp_bypass(url, force_cdp=False, proxy=None):
+def execute_cdp_bypass(url, force_cdp=False, proxy=None, method="GET", headers=None, body=None):
     """
     Run the full dual-tier bypass locally on GitHub runner.
     Tier 1: Fast TLS via curl_cffi with Chrome 124 fingerprint.
@@ -68,17 +68,32 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None):
             from curl_cffi import requests as cffi_requests
             start = time.time()
             proxies = {"http": resolved_proxy, "https": resolved_proxy} if resolved_proxy else None
-            response = cffi_requests.get(
-                url,
-                impersonate="chrome124",
-                proxies=proxies,
-                timeout=15,
-                headers={
-                    "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "DNT": "1",
-                    "Upgrade-Insecure-Requests": "1"
-                }
+            req_headers = {
+                "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "DNT": "1",
+                "Upgrade-Insecure-Requests": "1"
+            }
+            if headers and isinstance(headers, dict):
+                req_headers.update(headers)
+
+            http_method = (method or "GET").upper()
+            kwargs = {
+                "impersonate": "chrome124",
+                "proxies": proxies,
+                "timeout": 15,
+                "headers": req_headers
+            }
+            if body is not None:
+                if isinstance(body, (dict, list)):
+                    kwargs["json"] = body
+                else:
+                    kwargs["data"] = str(body)
+
+            response = cffi_requests.request(
+                method=http_method,
+                url=url,
+                **kwargs
             )
             text = response.text
             duration = int((time.time() - start) * 1000)
@@ -97,7 +112,8 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None):
                     "mode": "worker_fast_tls",
                     "title": title,
                     "html": text,
-                    "cookies": [],
+                    "cookies": [{"name": k, "value": v} for k, v in response.cookies.items()],
+                    "headers": dict(response.headers),
                     "duration_ms": duration,
                     "proxy_used": bool(resolved_proxy)
                 }
@@ -226,10 +242,20 @@ def main():
             url = task["url"]
             force_cdp = task.get("force_cdp", False)
             proxy = task.get("proxy")
-            print(f"[TASK] Received {task_id}: {url}")
+            method = task.get("method", "GET")
+            headers = task.get("headers")
+            body = task.get("body")
+            print(f"[TASK] Received {task_id} [{method}]: {url}")
 
             # Execute the bypass
-            result = execute_cdp_bypass(url, force_cdp=force_cdp, proxy=proxy)
+            result = execute_cdp_bypass(
+                url,
+                force_cdp=force_cdp,
+                proxy=proxy,
+                method=method,
+                headers=headers,
+                body=body
+            )
             result["task_id"] = task_id
             result["worker_id"] = WORKER_ID
 
