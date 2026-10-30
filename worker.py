@@ -214,18 +214,48 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None, method="GET", headers=N
                     except Exception:
                         pass
 
-            # Wait for challenge resolution (give verification time to complete without disruptive re-clicks)
+            # Check if initial page is a Cloudflare interstitial wall
+            initial_title = sb.get_title()
+            is_cf_shield = any(k in initial_title.lower() for k in ("just a moment", "attention required", "cloudflare"))
+
+            # Wait for clearance or on-page token generation
             for i in range(14):
-                title = sb.get_title()
-                if "Just a moment" not in title and "Attention Required" not in title and "Cloudflare" not in title:
-                    break
-                # Only re-attempt solve ONCE after 5 seconds if still stuck
-                if i == 4:
+                if is_cf_shield:
+                    current_title = sb.get_title()
+                    if "just a moment" not in current_title.lower() and "attention required" not in current_title.lower():
+                        break
+                else:
+                    # Check if on-page widget has generated token or success callback
+                    token_found = False
                     try:
-                        if hasattr(sb, "solve_captcha"):
-                            sb.solve_captcha()
+                        token_found = sb.cdp.evaluate("""
+                            (() => {
+                                let h = document.querySelector('[name="h-captcha-response"]');
+                                if (h && h.value && h.value.length > 5) return true;
+                                let c = document.querySelector('[name="cf-turnstile-response"]');
+                                if (c && c.value && c.value.length > 5) return true;
+                                let g = document.querySelector('[name="g-recaptcha-response"]');
+                                if (g && g.value && g.value.length > 5) return true;
+                                let s = document.querySelector('.hcaptcha-success');
+                                if (s && s.textContent && s.textContent.trim().length > 0) return true;
+                                return false;
+                            })()
+                        """)
                     except Exception:
                         pass
+
+                    if token_found:
+                        print(f"[WORKER-CDP] On-page CAPTCHA solved successfully (Token verified)!")
+                        break
+
+                    # If on-page captcha not solved yet, attempt solve_captcha once iframe is ready
+                    if i in (1, 3):
+                        try:
+                            if hasattr(sb, "solve_captcha"):
+                                sb.solve_captcha()
+                        except Exception:
+                            pass
+
                 sb.sleep(1.2)
 
             html = sb.get_page_source()
