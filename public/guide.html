@@ -113,15 +113,19 @@
             <div class="sys-item">
                 <span class="pulse-indicator"></span>
                 <span class="sys-label">DOCUMENTATION:</span>
-                <span class="sys-val">API SPECIFICATION v2.4</span>
+                <span class="sys-val">API SPECIFICATION v3.0</span>
             </div>
             <div class="sys-item hide-mobile">
                 <span class="sys-label">SETTLEMENT:</span>
                 <span class="sys-val">SOLANA MAINNET USDT (SPL)</span>
             </div>
             <div class="sys-item">
-                <span class="sys-label">UNIT COST:</span>
-                <span class="sys-val text-accent">$0.1 / REQ</span>
+                <span class="sys-label">FREE TIER:</span>
+                <span class="sys-val text-accent">$0.10 / REQ</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">PAID TIER:</span>
+                <span class="sys-val" style="color:#10b981;">$0.01 / REQ</span>
             </div>
         </div>
     </div>
@@ -216,15 +220,61 @@
             </table>
         </div>
 
-        <!-- SECTION 2: Balance Upgrades & Solana USDT Settlement -->
+        <!-- SECTION 2: Tier Plans & Balance Upgrades -->
         <div class="guide-card">
             <h3>
                 <span class="step-num">2</span>
-                How Limits & Balances Upgrade Upon Topup
+                Pricing Tiers &amp; Daily Credit System
             </h3>
             <p>
-                Xploit Unblocker uses a zero-subscription, micro-metered settlement model. There are no monthly tiers or artificial concurrency throttles.
+                Xploit Unblocker uses a two-tier credit model. Every registered account gets a daily free allocation. Depositing any amount of USDT permanently unlocks the <strong>Paid Tier</strong> with a 10x cheaper rate and a larger daily bonus.
             </p>
+
+            <!-- Tier Comparison Table -->
+            <table class="guide-table" style="margin-bottom:20px;">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th style="color:var(--text-cyan);">FREE Tier</th>
+                        <th style="color:#10b981;">PAID Tier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Activation</td>
+                        <td>Automatic on Sign Up</td>
+                        <td>Any Solana USDT Deposit</td>
+                    </tr>
+                    <tr>
+                        <td>Per-Request Cost</td>
+                        <td><code>$0.10 / req</code> (1 credit)</td>
+                        <td><code style="color:#10b981;">$0.01 / req</code> (0.1 credit) <strong>10x cheaper</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Daily Credits</td>
+                        <td>50 credits ($5) — resets at UTC midnight</td>
+                        <td>+1500 credits ($15) — added daily, never expire</td>
+                    </tr>
+                    <tr>
+                        <td>Balance Rollover</td>
+                        <td><span style="color:#f59e0b;">No rollover</span> — unused credits lost at reset</td>
+                        <td><span style="color:#10b981;">Unlimited</span> — credits accumulate forever</td>
+                    </tr>
+                    <tr>
+                        <td>Requests / Day (free alloc)</td>
+                        <td>50 requests</td>
+                        <td>1,500 requests + unlimited from topup balance</td>
+                    </tr>
+                    <tr>
+                        <td>Concurrent Workers</td>
+                        <td>50 workers</td>
+                        <td>Unlimited runner pool</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Deposit → Credits table -->
+            <h3 style="font-size:13px; margin-bottom:10px; color:var(--text-secondary); font-weight:600;">DEPOSIT → CREDIT CONVERSION (PAID TIER)</h3>
             <div class="info-block" style="margin-bottom: 14px;">
                 <div class="info-label">OFFICIAL TREASURY WALLET (SOLANA SPL)</div>
                 <div class="info-content-row">
@@ -234,35 +284,41 @@
             <table class="guide-table">
                 <thead>
                     <tr>
-                        <th>Deposit Amount</th>
-                        <th>Clearance Credits Added</th>
-                        <th>Equivalent Unit Cost</th>
-                        <th>Concurrency / Rate Limit</th>
+                        <th>Deposit (USDT)</th>
+                        <th>Credits Added</th>
+                        <th>Requests Available</th>
+                        <th>Effective Cost</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>1.00 USDT (SPL)</td>
-                        <td>+10 Requests</td>
-                        <td>$0.1 / request</td>
-                        <td>50 Concurrent Workers</td>
+                        <td>1.00 USDT</td>
+                        <td>+10 credits</td>
+                        <td>100 requests</td>
+                        <td>$0.01 / req</td>
                     </tr>
                     <tr>
-                        <td>5.00 USDT (SPL)</td>
-                        <td>+50 Requests</td>
-                        <td>$0.1 / request</td>
-                        <td>100 Concurrent Workers</td>
+                        <td>5.00 USDT</td>
+                        <td>+50 credits</td>
+                        <td>500 requests</td>
+                        <td>$0.01 / req</td>
                     </tr>
                     <tr>
-                        <td>20.00 USDT (SPL)</td>
-                        <td>+200 Requests</td>
-                        <td>$0.1 / request</td>
-                        <td>Unlimited Runner Pool</td>
+                        <td>10.00 USDT</td>
+                        <td>+100 credits</td>
+                        <td>1,000 requests</td>
+                        <td>$0.01 / req</td>
+                    </tr>
+                    <tr>
+                        <td>50.00 USDT</td>
+                        <td>+500 credits</td>
+                        <td>5,000 requests</td>
+                        <td>$0.01 / req</td>
                     </tr>
                 </tbody>
             </table>
             <p style="margin-top: 14px;">
-                <strong>Instant Credit Activation:</strong> When you transfer Solana USDT to the treasury wallet and enter your transaction hash in the console, our backend validates the transaction on Solana mainnet RPC. Upon confirmation, credits are credited directly to your <code>api_key</code> in the database.
+                <strong>Instant Credit Activation:</strong> Transfer USDT to the treasury wallet and paste your transaction hash in the console. Our backend validates on Solana mainnet RPC — credits are applied within seconds. First deposit permanently upgrades your account to Paid Tier.
             </p>
         </div>
 
@@ -355,6 +411,53 @@ else:
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- SECTION 5: Pricing Plans Summary -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">5</span>
+                Pricing Plans at a Glance
+            </h3>
+            <p>Two plans. No subscriptions. Pay only for what you use.</p>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:8px;">
+                <!-- FREE Plan -->
+                <div style="background:rgba(6,182,212,0.06); border:1px solid rgba(6,182,212,0.25); border-radius:8px; padding:18px;">
+                    <div style="font-family:var(--font-mono); font-size:10px; letter-spacing:1px; color:var(--text-cyan); font-weight:700; margin-bottom:8px;">FREE TIER</div>
+                    <div style="font-size:24px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">$5 <span style="font-size:13px; font-weight:400; color:var(--text-muted);">/ day</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:14px;">Resets every UTC midnight. No rollover.</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:6px;">
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> 50 credits/day (50 requests)</li>
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> $0.10 per request</li>
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> 50 concurrent workers</li>
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> No credit rollover</li>
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Sign Up required</li>
+                    </ul>
+                </div>
+
+                <!-- PAID Plan -->
+                <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.35); border-radius:8px; padding:18px; position:relative;">
+                    <div style="position:absolute;top:-10px;right:12px;background:#10b981;color:#000;font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:0.5px;">RECOMMENDED</div>
+                    <div style="font-family:var(--font-mono); font-size:10px; letter-spacing:1px; color:#10b981; font-weight:700; margin-bottom:8px;">PAID TIER</div>
+                    <div style="font-size:24px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">$15 <span style="font-size:13px; font-weight:400; color:var(--text-muted);">/ day bonus</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:14px;">Unlocked by any USDT deposit. Credits never expire.</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:6px;">
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> +1,500 credits/day (1,500 requests)</li>
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong style="color:#10b981;">$0.01 per request</strong> (10x cheaper)</li>
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Unlimited concurrent workers</li>
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Unlimited credit accumulation</li>
+                        <li style="display:flex;align-items:center;gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> One-time upgrade, permanent</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="notice-box notice-info" style="margin-top:16px; font-size:11px;">
+                <svg class="notice-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <div class="notice-text">
+                    <strong>How to upgrade:</strong> Send any amount of USDT (Solana SPL) to the treasury wallet above. Paste the transaction hash in the Solana Top-Up panel in your console. Upgrade is instant and permanent — your account tier never reverts.
+                </div>
+            </div>
         </div>
     </div>
 
