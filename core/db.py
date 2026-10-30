@@ -89,16 +89,16 @@ def init_db():
         except Exception:
             pass
 
-    # Pre-seed a few demo vouchers if none exist
-    cur.execute("SELECT COUNT(*) as cnt FROM vouchers")
-    if cur.fetchone()['cnt'] == 0:
+    # Pre-seed vouchers with INSERT OR IGNORE — safe to run on existing DBs
+    seed_vouchers = [
+        ("XPK-WELCOME-1000",  1000.0),   # existing welcome code
+        ("XPK-DISCORD-BOOST", 5000.0),   # existing booster code
+        ("LAUNCH10",            10.0),   # launch promo — 10 free credits
+    ]
+    for code, credits in seed_vouchers:
         cur.execute(
-            "INSERT INTO vouchers (code, credits, is_used, created_at) VALUES (?, ?, 0, ?)",
-            ("XPK-WELCOME-1000", 1000.0, int(time.time()))
-        )
-        cur.execute(
-            "INSERT INTO vouchers (code, credits, is_used, created_at) VALUES (?, ?, 0, ?)",
-            ("XPK-DISCORD-BOOST", 5000.0, int(time.time()))
+            "INSERT OR IGNORE INTO vouchers (code, credits, is_used, created_at) VALUES (?, ?, 0, ?)",
+            (code, credits, int(time.time()))
         )
 
     conn.commit()
