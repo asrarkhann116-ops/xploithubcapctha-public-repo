@@ -673,6 +673,17 @@ async def plans_html_page():
             return f.read()
     return RedirectResponse("/")
 
+@app.get("/guide", response_class=HTMLResponse)
+@app.get("/guide/", response_class=HTMLResponse)
+@app.get("/docs", response_class=HTMLResponse)
+@app.get("/developer/api-key/guide", response_class=HTMLResponse)
+async def guide_html_page():
+    guide_file = os.path.join(PUBLIC_DIR, "guide.html")
+    if os.path.exists(guide_file):
+        with open(guide_file, "r", encoding="utf-8") as f:
+            return f.read()
+    return RedirectResponse("/")
+
 # ════════════════════════════════════════════
 #  5. PROMO VERIFICATION, SOLANA & VOUCHERS
 # ════════════════════════════════════════════
