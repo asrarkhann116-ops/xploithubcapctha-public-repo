@@ -91,9 +91,10 @@ async def verify_solana_deposit(tx_hash: str, user_id: int) -> Dict[str, Any]:
             if diff > 0:
                 deposit_amount += diff
 
-    # If SPL token parse didn't detect difference (e.g. native SOL or custom token transfer), check instructions
+    # If SPL token parse didn't detect difference, reject invalid/dust deposit
     if deposit_amount <= 0:
-        deposit_amount = 1.0
+        conn.close()
+        return {"success": False, "error": "Could not detect valid USDT SPL deposit amount. Please ensure you sent USDT (SPL) to the designated treasury wallet."}
 
     now = int(time.time())
     new_plan = None

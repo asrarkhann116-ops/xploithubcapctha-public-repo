@@ -312,7 +312,7 @@ def register_user(email: str, username: str, password: str) -> Dict[str, Any]:
 
     cur.execute(
         """INSERT INTO users (email, username, password_hash, api_key, deposit_ref, credits, is_guest, created_at)
-           VALUES (?, ?, ?, ?, ?, 10.0, 0, ?)""",
+           VALUES (?, ?, ?, ?, ?, 75.0, 0, ?)""",
         (email, username, pwd_hash, api_key, deposit_ref, now)
     )
     conn.commit()
@@ -385,9 +385,9 @@ def get_or_create_user(discord_id: str, username: str, avatar: str = "") -> Dict
     
     api_key = generate_api_key()
     deposit_ref = generate_deposit_ref()
-    # 10 free trial credits for new users
+    # 75 free trial credits for new users
     cur.execute(
-        "INSERT INTO users (discord_id, username, avatar, api_key, deposit_ref, credits, has_promo, created_at) VALUES (?, ?, ?, ?, ?, 10.0, 0, ?)",
+        "INSERT INTO users (discord_id, username, avatar, api_key, deposit_ref, credits, has_promo, created_at) VALUES (?, ?, ?, ?, ?, 75.0, 0, ?)",
         (discord_id, username, avatar, api_key, deposit_ref, now)
     )
     conn.commit()
@@ -453,6 +453,14 @@ def get_user_by_discord_id(discord_id: str) -> Optional[Dict[str, Any]]:
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT * FROM users WHERE discord_id = ?", (discord_id,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None

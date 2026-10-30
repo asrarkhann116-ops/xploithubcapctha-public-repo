@@ -18,6 +18,7 @@ load_dotenv()
 from core.db import (
     get_user_by_api_key,
     get_user_by_discord_id,
+    get_user_by_id,
     get_or_create_user,
     regenerate_user_api_key,
     register_user,
@@ -112,7 +113,7 @@ def authenticate_api_key(
         if not user:
             raise HTTPException(status_code=403, detail="Invalid API Key.")
         # Guest accounts cannot be used for external script automation
-        if bool(user.get("is_guest", 0)) and not request.cookies.get("xpk_uid"):
+        if bool(user.get("is_guest", 0)):
             raise HTTPException(
                 status_code=403,
                 detail="Guest accounts are restricted to browser testing only. Please register an account to unlock your personal X-API-Key for automation."
@@ -277,6 +278,8 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 duration_ms = int((time.time() - start_time) * 1000)
                 cost = get_request_cost(user)
                 deduct_credit(user_id, cost)
+                fresh_user = get_user_by_id(user_id)
+                credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
                 log_request(user_id, req.url, result.get("mode", "worker"), 200, duration_ms, cost)
                 return {
                     "success": True,
@@ -285,7 +288,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                     "status_code": 200,
                     "duration_ms": duration_ms,
                     "title": result.get("title", ""),
-                    "credits_remaining": user["credits"] - cost,
+                    "credits_remaining": credits_remaining,
                     "cf_clearance": result.get("cf_clearance"),
                     "cf_bm": result.get("cf_bm"),
                     "user_agent": result.get("user_agent"),
@@ -322,6 +325,8 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
         if result.get("success"):
             cost = get_request_cost(user)
             deduct_credit(user_id, cost)
+            fresh_user = get_user_by_id(user_id)
+            credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
             log_request(user_id, req.url, result.get("mode", "auto"), status_code, duration_ms, cost)
             return {
                 "success": True,
@@ -330,7 +335,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 "status_code": status_code,
                 "duration_ms": duration_ms,
                 "title": result.get("title", ""),
-                "credits_remaining": user["credits"] - cost,
+                "credits_remaining": credits_remaining,
                 "cf_clearance": result.get("cf_clearance"),
                 "cf_bm": result.get("cf_bm"),
                 "user_agent": result.get("user_agent"),
@@ -353,6 +358,8 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
             if result2 and result2.get("success"):
                 cost = get_request_cost(user)
                 deduct_credit(user_id, cost)
+                fresh_user = get_user_by_id(user_id)
+                credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
                 log_request(user_id, req.url, "worker_cdp_escalated", 200, duration_ms, cost)
                 return {
                     "success": True,
@@ -361,7 +368,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                     "status_code": 200,
                     "duration_ms": int((time.time() - start_time) * 1000),
                     "title": result2.get("title", ""),
-                    "credits_remaining": user["credits"] - cost,
+                    "credits_remaining": credits_remaining,
                     "cf_clearance": result2.get("cf_clearance"),
                     "cf_bm": result2.get("cf_bm"),
                     "user_agent": result2.get("user_agent"),
@@ -421,12 +428,12 @@ async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int
                 timeout=60
             )
 
-        # Fallback to local execution
+        # Fallback to local execution (fast_tls only on server)
         if not result:
             result = await asyncio.to_thread(
                 execute_unblock,
                 req.url,
-                force_cdp=force_cdp,
+                force_cdp=False,  # Railway environment has no Chrome
                 proxy=req.proxy,
                 method=req.method or "GET",
                 headers=req.headers,
@@ -435,15 +442,8 @@ async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int
 
         duration_ms = int((time.time() - start_time) * 1000)
         if result and result.get("success"):
-            # For async tasks, look up user to determine their tier cost
-            from core.db import get_db as _gdb
-            _conn = _gdb()
-            _cur = _conn.cursor()
-            _cur.execute("SELECT has_deposited FROM users WHERE id = ?", (user_id,))
-            _row = _cur.fetchone()
-            _conn.close()
-            _user_partial = {"has_deposited": (_row["has_deposited"] if _row else 0)}
-            cost = get_request_cost(_user_partial)
+            user_obj = get_user_by_id(user_id) or {"has_deposited": 0}
+            cost = get_request_cost(user_obj)
             deduct_credit(user_id, cost)
             log_request(user_id, req.url, result.get("mode", "async"), 200, duration_ms, cost)
             async_tasks[task_id].update({
@@ -739,14 +739,6 @@ async def get_my_api_key(request: Request, response: Response):
         "credits": user["credits"]
     }
 
-@app.get("/developer/api-key/guide", response_class=HTMLResponse)
-async def developer_api_key_guide_page():
-    guide_file = os.path.join(PUBLIC_DIR, "guide.html")
-    if os.path.exists(guide_file):
-        with open(guide_file, "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>Developer API Key Guide</h1><p>Guide file not found.</p>"
-
 @app.get("/plans", response_class=HTMLResponse)
 @app.get("/plans/", response_class=HTMLResponse)
 @app.get("/pricing", response_class=HTMLResponse)
@@ -775,18 +767,24 @@ async def guide_html_page():
 @app.post("/api/user/promo/verify")
 async def claim_promo(request: Request, response: Response):
     user = get_or_create_session_user(request, response)
+    if not user.get("discord_id"):
+        return {"success": False, "message": "Promo verification is only available for Discord-linked accounts."}
     res = await verify_user_promo(user["discord_id"], user["id"])
     return res
 
 @app.post("/api/deposit/verify")
 async def verify_deposit(req: DepositVerifyRequest, request: Request, response: Response):
     user = get_or_create_session_user(request, response)
+    if bool(user.get("is_guest", 0)):
+        raise HTTPException(status_code=403, detail="Please sign in or register an account to verify deposits.")
     res = await verify_solana_deposit(req.tx_hash, user["id"])
     return res
 
 @app.post("/api/voucher/redeem")
 async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request, response: Response):
     user = get_or_create_session_user(request, response)
+    if bool(user.get("is_guest", 0)):
+        raise HTTPException(status_code=403, detail="Please sign in or register an account to redeem vouchers.")
     res = redeem_voucher(req.code, user["id"])
     return res
 
@@ -833,6 +831,12 @@ class WorkerResultPayload(BaseModel):
     title: Optional[str] = ""
     html: Optional[str] = ""
     cookies: Optional[list] = []
+    headers: Optional[dict] = {}
+    cf_clearance: Optional[str] = None
+    cf_bm: Optional[str] = None
+    user_agent: Optional[str] = None
+    captcha_detected: Optional[bool] = None
+    status_code: Optional[int] = 200
     error: Optional[str] = None
 
 @app.post("/api/worker/result")

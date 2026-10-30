@@ -758,7 +758,7 @@
                     </li>
                 </ul>
 
-                <button class="card-btn btn-starter-card" onclick="scrollToCheckout('Starter', 9)">
+                <button class="card-btn btn-starter-card" id="btn-starter-cta" onclick="scrollToCheckout('Starter', 9)">
                     <span>Get Starter ($9)</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
@@ -1161,6 +1161,17 @@
                 btnM.classList.remove('active');
                 btnA.classList.add('active');
 
+                // Update Starter
+                const priceStarter = document.getElementById('price-starter');
+                const subStarter = document.getElementById('sub-starter');
+                const btnStarter = document.getElementById('btn-starter-cta');
+                if (priceStarter) priceStarter.innerText = '$89';
+                if (subStarter) subStarter.innerText = '/ year ($7.41/mo)';
+                if (btnStarter) {
+                    const span = btnStarter.querySelector('span');
+                    if (span) span.innerText = 'Activate Annual Starter ($89)';
+                }
+
                 // Update Moderato
                 document.getElementById('price-moderato').innerText = '$279';
                 document.getElementById('sub-moderato').innerText = '/ year ($23.25/mo)';
@@ -1175,6 +1186,17 @@
             } else {
                 btnA.classList.remove('active');
                 btnM.classList.add('active');
+
+                // Reset Starter
+                const priceStarter = document.getElementById('price-starter');
+                const subStarter = document.getElementById('sub-starter');
+                const btnStarter = document.getElementById('btn-starter-cta');
+                if (priceStarter) priceStarter.innerText = '$9';
+                if (subStarter) subStarter.innerText = '/ month';
+                if (btnStarter) {
+                    const span = btnStarter.querySelector('span');
+                    if (span) span.innerText = 'Get Starter ($9)';
+                }
 
                 // Reset Moderato
                 document.getElementById('price-moderato').innerText = '$29';
@@ -1195,6 +1217,7 @@
             if (el) {
                 let finalAmount = amount;
                 if (currentCycle === 'annual') {
+                    if (tierName === 'Starter') finalAmount = 89;
                     if (tierName === 'Moderato') finalAmount = 279;
                     if (tierName === 'Vince') finalAmount = 949;
                 }
