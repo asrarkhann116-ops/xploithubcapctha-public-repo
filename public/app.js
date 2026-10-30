@@ -560,6 +560,27 @@ function copyApiKey() {
     showToast('API Key copied to clipboard.', 'info');
 }
 
+async function regenerateApiKey() {
+    if (!confirm('Regenerate secret API key? Any active scripts or bots using the current key will be revoked immediately.')) {
+        return;
+    }
+    try {
+        const res = await fetch('/api/user/regenerate-key', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('api-key-val').value = data.api_key;
+            if (currentUser) currentUser.api_key = data.api_key;
+            updateSnippetDisplay();
+            showToast('New API Key generated & saved to database.', 'success');
+        } else {
+            showToast(data.error || 'Failed to regenerate API key.', 'error');
+        }
+    } catch (e) {
+        showToast('Error regenerating key: ' + e.message, 'error');
+    }
+}
+
+
 function copyPromoLink() {
     const link = document.getElementById('promo-link-text').innerText;
     navigator.clipboard.writeText(link);

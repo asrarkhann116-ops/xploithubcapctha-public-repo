@@ -132,6 +132,17 @@ def get_or_create_user(discord_id: str, username: str, avatar: str = "") -> Dict
     conn.close()
     return user
 
+def regenerate_user_api_key(user_id: int) -> str:
+    """Regenerates a fresh random API key for the given user in database."""
+    new_key = generate_api_key()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE users SET api_key = ? WHERE id = ?", (new_key, user_id))
+    conn.commit()
+    conn.close()
+    return new_key
+
+
 def redeem_voucher(code: str, user_id: int) -> Dict[str, Any]:
     code = code.strip().upper()
     conn = get_db()

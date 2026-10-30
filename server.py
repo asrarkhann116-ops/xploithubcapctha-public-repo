@@ -2,8 +2,9 @@ import os
 import time
 import asyncio
 import uuid
+import secrets
 import aiohttp
-from typing import Optional
+from typing import Optional, Any, Dict, List, Union
 from collections import deque
 from fastapi import FastAPI, Header, Query, HTTPException, Request, Response, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -18,6 +19,7 @@ from core.db import (
     get_user_by_api_key,
     get_user_by_discord_id,
     get_or_create_user,
+    regenerate_user_api_key,
     deduct_credit,
     log_request,
     redeem_voucher,
@@ -119,6 +121,26 @@ def get_session_user(request: Request):
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
+
+def get_or_create_session_user(request: Request, response: Response):
+    """
+    Ensures every visitor gets their OWN unique database record,
+    unique API key, unique Solana deposit memo reference, and 10 credits.
+    """
+    user = get_session_user(request)
+    if not user:
+        anon_id = f"guest_{secrets.token_hex(6)}"
+        anon_name = f"Operator-{secrets.token_hex(2).upper()}"
+        user = get_or_create_user(anon_id, anon_name, "")
+        response.set_cookie(
+            key="xpk_uid",
+            value=str(user["id"]),
+            max_age=86400 * 365,
+            httponly=False,
+            samesite="lax"
+        )
+    return user
+
 
 # ════════════════════════════════════════════
 #  1. WEB INTERFACE (Developer Console)
@@ -439,15 +461,11 @@ async def discord_callback(code: str, response: Response):
     return redirect
 
 # ════════════════════════════════════════════
-#  4. USER PROFILE & DEMO AUTH
+#  4. USER PROFILE & AUTH
 # ════════════════════════════════════════════
 @app.get("/api/user/me")
-async def get_current_user_profile(request: Request):
-    user = get_session_user(request)
-    if not user:
-        # Default guest / demo profile so frontend works immediately out of the box!
-        user = get_or_create_user("demo_guest_95", "RetroPilot95", "")
-    
+async def get_current_user_profile(request: Request, response: Response):
+    user = get_or_create_session_user(request, response)
     now = int(time.time())
     timeout_remaining = max(0, (user.get("timeout_until", 0) - now) // 60)
     
@@ -465,35 +483,45 @@ async def get_current_user_profile(request: Request):
         "cost_per_request": 0.001
     }
 
+@app.post("/api/user/regenerate-key")
+async def regenerate_api_key_endpoint(request: Request, response: Response):
+    user = get_or_create_session_user(request, response)
+    new_key = regenerate_user_api_key(user["id"])
+    return {
+        "success": True,
+        "api_key": new_key,
+        "message": "New API Key generated and committed to database."
+    }
+
+@app.get("/developer/api-key/guide", response_class=HTMLResponse)
+async def developer_api_key_guide_page():
+    guide_file = os.path.join(PUBLIC_DIR, "guide.html")
+    if os.path.exists(guide_file):
+        with open(guide_file, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>Developer API Key Guide</h1><p>Guide file not found.</p>"
+
 # ════════════════════════════════════════════
 #  5. PROMO VERIFICATION, SOLANA & VOUCHERS
 # ════════════════════════════════════════════
 @app.post("/api/user/promo/verify")
-async def claim_promo(request: Request):
-    user = get_session_user(request)
-    if not user:
-        user = get_or_create_user("demo_guest_95", "RetroPilot95", "")
-        
+async def claim_promo(request: Request, response: Response):
+    user = get_or_create_session_user(request, response)
     res = await verify_user_promo(user["discord_id"], user["id"])
     return res
 
 @app.post("/api/deposit/verify")
-async def verify_deposit(req: DepositVerifyRequest, request: Request):
-    user = get_session_user(request)
-    if not user:
-        user = get_or_create_user("demo_guest_95", "RetroPilot95", "")
-        
+async def verify_deposit(req: DepositVerifyRequest, request: Request, response: Response):
+    user = get_or_create_session_user(request, response)
     res = await verify_solana_deposit(req.tx_hash, user["id"])
     return res
 
 @app.post("/api/voucher/redeem")
-async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request):
-    user = get_session_user(request)
-    if not user:
-        user = get_or_create_user("demo_guest_95", "RetroPilot95", "")
-        
+async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request, response: Response):
+    user = get_or_create_session_user(request, response)
     res = redeem_voucher(req.code, user["id"])
     return res
+
 
 # ════════════════════════════════════════════
 #  6. GITHUB ACTIONS WORKER NODE ENDPOINTS

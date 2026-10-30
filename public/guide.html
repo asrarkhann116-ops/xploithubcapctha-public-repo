@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Key & Billing Specification — Xploit Unblocker Documentation</title>
+    <meta name="description" content="Official developer documentation for Xploit Unblocker API key authentication, database storage, Solana USDT settlement, and rate limits.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .guide-container {
+            max-width: 960px;
+            margin: 32px auto 80px;
+            padding: 0 24px;
+        }
+        .guide-header {
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 24px;
+        }
+        .guide-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .guide-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .guide-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .guide-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .guide-card p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+        .guide-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #080b12;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .guide-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+        .guide-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--text-accent);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .btn-nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            margin-bottom: 16px;
+            transition: color 0.12s;
+        }
+        .btn-nav-back:hover {
+            color: var(--text-accent);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top System Telemetry Bar -->
+    <div class="system-bar">
+        <div class="system-container">
+            <div class="sys-item">
+                <span class="pulse-indicator"></span>
+                <span class="sys-label">DOCUMENTATION:</span>
+                <span class="sys-val">API SPECIFICATION v2.4</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">SETTLEMENT:</span>
+                <span class="sys-val">SOLANA MAINNET USDT (SPL)</span>
+            </div>
+            <div class="sys-item">
+                <span class="sys-label">UNIT COST:</span>
+                <span class="sys-val text-accent">$0.001 / REQ</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div class="brand-meta">
+                    <div class="brand-name">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div>
+                    <div class="brand-subtitle">DEVELOPER DOCUMENTATION</div>
+                </div>
+            </div>
+
+            <div class="nav-controls">
+                <a href="/" class="btn-secondary" style="width: auto; text-decoration: none; padding: 6px 14px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    <span>Return to Console</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-container">
+        <a href="/" class="btn-nav-back">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Console Workspace
+        </a>
+
+        <div class="guide-header">
+            <div class="hero-chip" style="margin-bottom: 12px;">
+                <span class="chip-accent">AUTHENTICATION & BILLING</span>
+                <span>Developer Guide</span>
+            </div>
+            <h1 class="guide-title">API Key Architecture & Balance Upgrades</h1>
+            <p class="guide-subtitle">
+                Comprehensive technical guide on API key isolation, SQLite database schema persistence, Solana USDT micro-settlements, and challenge unblocking request limits.
+            </p>
+        </div>
+
+        <!-- SECTION 1: API Key Isolation & Storage -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">1</span>
+                API Key Architecture & Database Persistence
+            </h3>
+            <p>
+                Every operator who opens the console or signs in via Discord is automatically allocated an isolated user account in the central SQLite database (<code>data/unblocker.db</code>).
+            </p>
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th>Database Field</th>
+                        <th>Format / Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>users.id</code></td>
+                        <td>INTEGER (Primary Key)</td>
+                        <td>Unique database account identifier.</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.api_key</code></td>
+                        <td>TEXT (Unique)</td>
+                        <td>Secret key formatted as <code>xpk_</code> followed by 40 cryptographically random hexadecimal characters.</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.deposit_ref</code></td>
+                        <td>TEXT (Unique)</td>
+                        <td>Unique 8-character deposit memo reference code (e.g. <code>XPK-7B2A</code>) linked to your ledger balance.</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.credits</code></td>
+                        <td>REAL (Floating Point)</td>
+                        <td>Active request credits balance. 1 credit = 1 request clearance ($0.001 USD value).</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.has_promo</code></td>
+                        <td>INTEGER (0 or 1)</td>
+                        <td>Flag recording whether the 500 free promotional request package has been redeemed.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SECTION 2: Balance Upgrades & Solana USDT Settlement -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">2</span>
+                How Limits & Balances Upgrade Upon Topup
+            </h3>
+            <p>
+                Xploit Unblocker uses a zero-subscription, micro-metered settlement model. There are no monthly tiers or artificial concurrency throttles.
+            </p>
+            <div class="info-block" style="margin-bottom: 14px;">
+                <div class="info-label">OFFICIAL TREASURY WALLET (SOLANA SPL)</div>
+                <div class="info-content-row">
+                    <code style="color: var(--text-accent);">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
+                </div>
+            </div>
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th>Deposit Amount</th>
+                        <th>Clearance Credits Added</th>
+                        <th>Equivalent Unit Cost</th>
+                        <th>Concurrency / Rate Limit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1.00 USDT (SPL)</td>
+                        <td>+1,000 Requests</td>
+                        <td>$0.001 / request</td>
+                        <td>50 Concurrent Workers</td>
+                    </tr>
+                    <tr>
+                        <td>5.00 USDT (SPL)</td>
+                        <td>+5,000 Requests</td>
+                        <td>$0.001 / request</td>
+                        <td>100 Concurrent Workers</td>
+                    </tr>
+                    <tr>
+                        <td>20.00 USDT (SPL)</td>
+                        <td>+20,000 Requests</td>
+                        <td>$0.001 / request</td>
+                        <td>Unlimited Runner Pool</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 14px;">
+                <strong>Instant Credit Activation:</strong> When you transfer Solana USDT to the treasury wallet and enter your transaction hash in the console, our backend validates the transaction on Solana mainnet RPC. Upon confirmation, credits are credited directly to your <code>api_key</code> in the database.
+            </p>
+        </div>
+
+        <!-- SECTION 3: HTTP Authentication Protocol -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">3</span>
+                Authentication Protocols & Code Implementation
+            </h3>
+            <p>
+                Pass your API key in every HTTP request. Header authentication is strongly recommended:
+            </p>
+            <div class="code-snippet-box">
+                <div class="code-snippet-head">
+                    <span>Python Example (requests)</span>
+                </div>
+                <pre><code>import requests
+
+API_KEY = "xpk_your_secret_api_key_here"
+url = "https://xploithubcapctha.up.railway.app/v1/unlock"
+
+headers = {
+    "X-API-Key": API_KEY,
+    "Content-Type": "application/json"
+}
+
+payload = {
+    "url": "https://gitlab.com/users/sign_in",
+    "mode": "auto",       # "auto", "stealth", "fast"
+    "method": "GET"
+}
+
+response = requests.post(url, headers=headers, json=payload)
+data = response.json()
+
+if data.get("success"):
+    print("Page Title:", data["title"])
+    print("Cookies Captured:", data["cookies"])
+    print("Execution Duration:", data["duration_ms"], "ms")
+    print("Credits Remaining:", data["credits_remaining"])
+else:
+    print("Error:", data.get("error"))</code></pre>
+            </div>
+        </div>
+
+        <!-- SECTION 4: Status Codes & Error Handling -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">4</span>
+                HTTP Response Codes & Error Matrix
+            </h3>
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th>Status Code</th>
+                        <th>Meaning</th>
+                        <th>Resolution Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code style="color: #10b981;">200 OK</code></td>
+                        <td>Challenge successfully cleared.</td>
+                        <td>DOM and cookies returned in JSON body. 1.0 credit deducted.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #06b6d4;">202 Accepted</code></td>
+                        <td>Async scrape task queued.</td>
+                        <td>Poll <code>/v1/tasks/{task_id}</code> or await webhook POST.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #ef4444;">401 Unauthorized</code></td>
+                        <td>API Key missing or invalid.</td>
+                        <td>Check the <code>X-API-Key</code> header in your request.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #f59e0b;">402 Payment Required</code></td>
+                        <td>Insufficient credits (balance &lt; 1.0).</td>
+                        <td>Top up via Solana USDT or claim free 500 credits with Discord promo.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #f59e0b;">403 Forbidden</code></td>
+                        <td>Account restricted (5-hr cooldown active).</td>
+                        <td>Wait for cooldown period to elapse if promo link was removed.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #ef4444;">400 Bad Request</code></td>
+                        <td>Target host refused or timeout.</td>
+                        <td>No credit is debited on failed challenge attempts.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Application Footer -->
+    <footer class="app-footer">
+        <div class="footer-container">
+            <div class="footer-left">
+                <span>Developer Guide & API Authentication Standard</span>
+                <span class="footer-divider">|</span>
+                <span>Xploit Unblocker Infrastructure</span>
+            </div>
+            <div class="footer-links">
+                <a href="/">Console Workspace</a>
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener">Discord Support</a>
+                <a href="https://github.com/asrarkhann116-ops/xploithubcapctha-public-repo" target="_blank" rel="noopener">Public Repository</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
