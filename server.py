@@ -263,7 +263,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
 
     try:
         # If remote workers are online, dispatch heavy CDP tasks to them
-        if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto")):
+        if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto", "cdp")):
             result = await dispatch_to_worker(
                 url=req.url,
                 mode=req.mode or "auto",
@@ -295,11 +295,22 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                     "headers": result.get("headers", {}),
                     "worker_node": result.get("worker_id", "unknown")
                 }
+            elif result and not result.get("success"):
+                # Worker returned failure - surface it cleanly
+                duration_ms = int((time.time() - start_time) * 1000)
+                log_request(user_id, req.url, "worker_failed", 400, duration_ms, 0.0)
+                return JSONResponse(status_code=400, content={
+                    "success": False,
+                    "url": req.url,
+                    "error": result.get("error", "Worker failed to bypass challenge"),
+                    "duration_ms": duration_ms
+                })
 
-        # Fallback: execute locally on this server
-        result = execute_unblock(
-            url=req.url,
-            force_cdp=force_cdp,
+        # Fallback: execute locally on this server (fast_tls only - no browser on Railway)
+        result = await asyncio.to_thread(
+            execute_unblock,
+            req.url,
+            force_cdp=False,  # Never run local CDP on Railway (no Chrome) - use fast_tls only
             proxy=req.proxy,
             method=req.method or "GET",
             headers=req.headers,
@@ -307,7 +318,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
         )
         duration_ms = int((time.time() - start_time) * 1000)
         status_code = result.get("status_code", 200)
-        
+
         if result.get("success"):
             cost = get_request_cost(user)
             deduct_credit(user_id, cost)
@@ -328,18 +339,63 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 "cookies": result.get("cookies", []),
                 "headers": result.get("headers", {})
             }
-        else:
-            # Bill ONLY for successful solves (0.0 cost on failed requests)
-            log_request(user_id, req.url, result.get("mode", "failed"), status_code, duration_ms, 0.0)
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "success": False,
-                    "url": req.url,
-                    "error": result.get("error", "Failed to bypass target challenge"),
-                    "duration_ms": duration_ms
-                }
+        elif result.get("needs_cdp") and has_active_workers():
+            # Fast-TLS escalation needed but worker dispatch missed - re-try via worker
+            result2 = await dispatch_to_worker(
+                url=req.url,
+                mode="cdp",
+                force_cdp=True,
+                proxy=req.proxy,
+                method=req.method or "GET",
+                headers=req.headers,
+                body=req.body
             )
+            if result2 and result2.get("success"):
+                cost = get_request_cost(user)
+                deduct_credit(user_id, cost)
+                log_request(user_id, req.url, "worker_cdp_escalated", 200, duration_ms, cost)
+                return {
+                    "success": True,
+                    "url": req.url,
+                    "mode": "worker_cdp_escalated",
+                    "status_code": 200,
+                    "duration_ms": int((time.time() - start_time) * 1000),
+                    "title": result2.get("title", ""),
+                    "credits_remaining": user["credits"] - cost,
+                    "cf_clearance": result2.get("cf_clearance"),
+                    "cf_bm": result2.get("cf_bm"),
+                    "user_agent": result2.get("user_agent"),
+                    "captcha_detected": result2.get("captcha_detected"),
+                    "html": result2.get("html", ""),
+                    "cookies": result2.get("cookies", []),
+                    "headers": result2.get("headers", {}),
+                    "worker_node": result2.get("worker_id", "unknown")
+                }
+
+        # All tiers exhausted - return failure without charging
+        log_request(user_id, req.url, result.get("mode", "failed"), status_code, duration_ms, 0.0)
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "url": req.url,
+                "error": result.get("error", "Failed to bypass target challenge"),
+                "duration_ms": duration_ms
+            }
+        )
+    except Exception as exc:
+        duration_ms = int((time.time() - start_time) * 1000)
+        print(f"[UNLOCK] Unhandled exception for {req.url}: {exc}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "success": False,
+                "url": req.url,
+                "error": f"Server error: {str(exc)}",
+                "duration_ms": duration_ms,
+                "hint": "CDP mode requires an active GitHub Actions worker. Check /api/workers/status"
+            }
+        )
     finally:
         active_user_concurrency[user_id] = max(0, active_user_concurrency.get(user_id, 1) - 1)
 
