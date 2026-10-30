@@ -133,7 +133,7 @@ def authenticate_api_key(
             )
         raise HTTPException(
             status_code=402,
-            detail="Insufficient credits! $0.001 (1 credit) required per request. Top up via Solana USDT or claim free credits with Discord promo."
+            detail="Insufficient credits! $0.1 (1 credit) required per request. Top up via Solana USDT or claim free credits with Discord promo."
         )
 
     return user
@@ -181,7 +181,7 @@ async def index():
     return "<h1>Xploit Unblocker API</h1>"
 
 # ════════════════════════════════════════════
-#  2. CORE UNBLOCKER ENDPOINTS ($0.001/req)
+#  2. CORE UNBLOCKER ENDPOINTS ($0.1/req)
 # ════════════════════════════════════════════
 async def dispatch_to_worker(
     url: str,
@@ -245,7 +245,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
         if result and result.get("success"):
             duration_ms = int((time.time() - start_time) * 1000)
             deduct_credit(user["id"], 1.0)
-            log_request(user["id"], req.url, result.get("mode", "worker"), 200, duration_ms, 0.001)
+            log_request(user["id"], req.url, result.get("mode", "worker"), 200, duration_ms, 0.1)
             return {
                 "success": True,
                 "url": req.url,
@@ -274,7 +274,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
     
     if result.get("success"):
         deduct_credit(user["id"], 1.0)
-        log_request(user["id"], req.url, result.get("mode", "auto"), status_code, duration_ms, 0.001)
+        log_request(user["id"], req.url, result.get("mode", "auto"), status_code, duration_ms, 0.1)
         return {
             "success": True,
             "url": req.url,
@@ -336,7 +336,7 @@ async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int
         duration_ms = int((time.time() - start_time) * 1000)
         if result and result.get("success"):
             deduct_credit(user_id, 1.0)
-            log_request(user_id, req.url, result.get("mode", "async"), 200, duration_ms, 0.001)
+            log_request(user_id, req.url, result.get("mode", "async"), 200, duration_ms, 0.1)
             async_tasks[task_id].update({
                 "status": "completed",
                 "completed_at": int(time.time()),
@@ -511,7 +511,7 @@ async def get_current_user_profile(request: Request, response: Response):
         "timeout_active": timeout_remaining > 0,
         "timeout_minutes": timeout_remaining,
         "solana_wallet": SOLANA_WALLET,
-        "cost_per_request": 0.001
+        "cost_per_request": 0.1
     }
 
 @app.post("/api/auth/register")

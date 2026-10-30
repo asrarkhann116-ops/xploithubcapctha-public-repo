@@ -15,12 +15,12 @@
    - **Free 500 Credits Promo:** Users place `discord.gg/3fb9Q7ucSN` in their Discord Bio (About Me) or Custom Status.
    - **5-Hour Cooldown Rule:** If an operator removes the server invite link after claiming, the account enters an automated **5-Hour Cooldown**.
 
-3. **Solana USDT Micro-Settlement ($0.001 / request):**
+3. **Solana USDT Micro-Settlement ($0.1 / request):**
    - Official Treasury Wallet: `6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u`
    - Replay defense: Each transaction signature is checked against the database.
    - Solana Mainnet RPC verification: Confirms on-chain token transfer to the treasury wallet.
    - Unique deposit reference IDs and voucher code redemption supported.
-   - Settlement Rate: **1 USDT = 1,000 requests**.
+   - Settlement Rate: **1 USDT = 10 requests**.
 
 4. **Discord Bot Slash Commands:**
    - `/unblock <url>` — Bypass challenges and return response metadata.

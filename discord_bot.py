@@ -55,7 +55,7 @@ async def unblock_command(interaction: discord.Interaction, url: str):
     if user["credits"] < 1.0:
         embed = discord.Embed(
             title="❌ Insufficient Credits",
-            description="You need at least 1 credit ($0.001) to unblock a URL.\n\n"
+            description="You need at least 1 credit ($0.1) to unblock a URL.\n\n"
                         "• Use `/promo` to claim **500 FREE credits** (put server link in bio)\n"
                         "• Use `/topup` to deposit Solana USDT",
             color=0xff0033
@@ -78,7 +78,7 @@ async def unblock_command(interaction: discord.Interaction, url: str):
         )
         embed.add_field(name="⚡ Engine Mode", value=f"`{mode}`", inline=True)
         embed.add_field(name="⏱️ Duration", value=f"`{dur}ms`", inline=True)
-        embed.add_field(name="💰 Cost", value="`$0.001 (1 Credit)`", inline=True)
+        embed.add_field(name="💰 Cost", value="`$0.1 (1 Credit)`", inline=True)
         embed.add_field(name="📄 HTML Snippet", value=f"```{html_snip[:300]}...```", inline=False)
         embed.set_footer(text=f"Credits Remaining: {user['credits'] - 1.0:.1f} | Xploit Unblocker 95")
         await interaction.followup.send(embed=embed)
@@ -122,7 +122,7 @@ async def credits_command(interaction: discord.Interaction):
     )
     
     embed = discord.Embed(title="🔑 Your Xploit Unblocker Account", color=0x008080)
-    embed.add_field(name="💰 Credits Balance", value=f"**{user['credits']:.1f} Requests** ($0.001/ea)", inline=False)
+    embed.add_field(name="💰 Credits Balance", value=f"**{user['credits']:.1f} Requests** ($0.1/ea)", inline=False)
     embed.add_field(name="🔑 API Key (Keep Private)", value=f"`{user['api_key']}`", inline=False)
     embed.add_field(name="🌐 Web Dashboard", value="Login at your unblocker web portal with Discord OAuth2", inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)

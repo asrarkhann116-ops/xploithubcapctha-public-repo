@@ -48,6 +48,11 @@
 
 body {
     background-color: var(--bg-base);
+    background-image: url('/static/bg.gif');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     color: var(--text-primary);
     font-family: var(--font-sans);
     font-size: 14px;
@@ -58,10 +63,28 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Dark overlay on top of GIF to keep UI readable */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 8, 18, 0.78);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Ensure all content sits above the overlay */
+body > * {
+    position: relative;
+    z-index: 1;
+}
+
 /* ══════════ 1. TOP SYSTEM TELEMETRY STRIP ══════════ */
 .system-bar {
-    background: #06080e;
-    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(6, 8, 14, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(28, 36, 56, 0.7);
     padding: 6px 24px;
     font-family: var(--font-mono);
     font-size: 11px;
@@ -108,8 +131,10 @@ body {
 
 /* ══════════ 2. NAVBAR ══════════ */
 .navbar {
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(14, 19, 32, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(28, 36, 56, 0.8);
     position: sticky;
     top: 0;
     z-index: 50;
@@ -296,17 +321,20 @@ body {
 
 /* ══════════ 5. CARDS & PANELS ══════════ */
 .panel {
-    background: var(--bg-panel);
-    border: 1px solid var(--border-subtle);
+    background: rgba(17, 22, 37, 0.78);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(28, 36, 56, 0.8);
     border-radius: var(--radius-md);
     padding: 20px;
-    box-shadow: var(--shadow-panel);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
     position: relative;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .panel:hover {
-    border-color: var(--border-strong);
+    border-color: rgba(39, 51, 77, 0.95);
+    background: rgba(17, 22, 37, 0.88);
 }
 
 .panel-header {

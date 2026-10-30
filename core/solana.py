@@ -8,8 +8,8 @@ SOLANA_WALLET = os.getenv("SOLANA_WALLET", "6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1
 USDT_MINT = os.getenv("USDT_MINT", "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB")
 SOLANA_RPC = "https://api.mainnet-beta.solana.com"
 
-# $0.001 per request = 1000 credits per 1 USDT
-CREDITS_PER_USDT = 1000.0
+# $0.1 per request = 10 credits per 1 USDT
+CREDITS_PER_USDT = 10.0
 
 async def verify_solana_deposit(tx_hash: str, user_id: int) -> Dict[str, Any]:
     """
