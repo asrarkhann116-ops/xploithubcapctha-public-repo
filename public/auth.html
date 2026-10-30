@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operator Authentication — Xploit Unblocker</title>
+    <meta name="description" content="Sign in or register an account to unlock your personal X-API-Key and manage anti-bot clearance automation.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .auth-wrapper {
+            min-height: calc(100vh - 120px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .auth-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 440px;
+            padding: 32px;
+            box-shadow: var(--shadow-panel);
+        }
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .auth-tabs {
+            display: flex;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            margin-bottom: 24px;
+            gap: 4px;
+        }
+        .auth-tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .auth-tab-btn.active {
+            background: var(--bg-panel);
+            color: var(--text-accent);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+        .auth-field {
+            margin-bottom: 16px;
+        }
+        .auth-label {
+            display: block;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .auth-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xs);
+            color: var(--text-primary);
+            font-size: 13px;
+            padding: 10px 12px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .auth-input:focus {
+            border-color: var(--border-accent);
+        }
+        .auth-submit-btn {
+            width: 100%;
+            background: var(--text-accent);
+            color: #060911;
+            border: none;
+            border-radius: var(--radius-xs);
+            font-size: 13px;
+            font-weight: 700;
+            padding: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+            transition: opacity 0.15s;
+        }
+        .auth-submit-btn:hover {
+            opacity: 0.92;
+        }
+        .auth-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-family: var(--font-mono);
+        }
+        .auth-divider::before, .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-subtle);
+        }
+        .auth-divider span {
+            padding: 0 10px;
+        }
+        .btn-discord-oauth {
+            width: 100%;
+            background: #1c2438;
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-xs);
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .btn-discord-oauth:hover {
+            background: #25314d;
+            border-color: #3b4b6e;
+        }
+        .auth-error-box {
+            background: #1f0f12;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            padding: 10px 12px;
+            border-radius: var(--radius-xs);
+            font-size: 12px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .auth-guest-note {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .auth-guest-note a {
+            color: var(--text-accent);
+            text-decoration: none;
+        }
+        .auth-guest-note a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="system-bar">
+        <div class="system-container">
+            <div class="sys-item">
+                <span class="pulse-indicator"></span>
+                <span class="sys-label">INFRASTRUCTURE STATUS:</span>
+                <span class="sys-val">ONLINE</span>
+            </div>
+            <div class="sys-item">
+                <span class="sys-label">AUTHENTICATION:</span>
+                <span class="sys-val text-accent">ISOLATED API KEYS</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="brand-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div>
+                    <div class="brand-name" style="font-size: 16px;">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div>
+                    <div class="brand-subtitle" style="font-size: 10px;">OPERATOR ACCESS CONTROL</div>
+                </div>
+            </div>
+
+            <!-- Tabs: Sign In / Create Account -->
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+                <button class="auth-tab-btn" id="tab-register" onclick="switchAuthTab('register')">Create Account</button>
+            </div>
+
+            <div id="auth-error" class="auth-error-box"></div>
+
+            <!-- Sign In Form -->
+            <form id="form-login" onsubmit="handleLogin(event)">
+                <div class="auth-field">
+                    <label class="auth-label">EMAIL OR USERNAME</label>
+                    <input type="text" id="login-identity" class="auth-input" placeholder="e.g. operator@domain.com" required autocomplete="username">
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label">PASSWORD</label>
+                    <input type="password" id="login-password" class="auth-input" placeholder="Enter password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="auth-submit-btn" id="btn-login-submit">
+                    <span>Sign In & Unlock API Key</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </button>
+            </form>
+
+            <!-- Register Form (hidden by default) -->
+            <form id="form-register" style="display: none;" onsubmit="handleRegister(event)">
+                <div class="auth-field">
+                    <label class="auth-label">EMAIL ADDRESS</label>
+                    <input type="email" id="reg-email" class="auth-input" placeholder="operator@domain.com" required autocomplete="email">
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label">DESIRED USERNAME</label>
+                    <input type="text" id="reg-username" class="auth-input" placeholder="e.g. ShadowOperator" required autocomplete="username">
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label">PASSWORD (MIN 6 CHARS)</label>
+                    <input type="password" id="reg-password" class="auth-input" placeholder="Choose a strong password" required minlength="6" autocomplete="new-password">
+                </div>
+                <button type="submit" class="auth-submit-btn" id="btn-register-submit">
+                    <span>Create Account & Get 10 Credits</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </button>
+            </form>
+
+            <div class="auth-divider">
+                <span>OR CONTINUE WITH</span>
+            </div>
+
+            <a href="/api/auth/discord/login" class="btn-discord-oauth">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                </svg>
+                <span>Discord OAuth</span>
+            </a>
+
+            <div class="auth-guest-note">
+                <span>Just testing? </span>
+                <a href="/">Continue to Playground as Guest</a>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    (Guest access includes 5 test runs; API key is hidden until registration)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchAuthTab(mode) {
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const formLogin = document.getElementById('form-login');
+            const formRegister = document.getElementById('form-register');
+            const errBox = document.getElementById('auth-error');
+            errBox.style.display = 'none';
+
+            if (mode === 'register') {
+                tabRegister.classList.add('active');
+                tabLogin.classList.remove('active');
+                formRegister.style.display = 'block';
+                formLogin.style.display = 'none';
+            } else {
+                tabLogin.classList.add('active');
+                tabRegister.classList.remove('active');
+                formLogin.style.display = 'block';
+                formRegister.style.display = 'none';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const identity = document.getElementById('login-identity').value.trim();
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-login-submit');
+            const errBox = document.getElementById('auth-error');
+
+            btn.disabled = true;
+            errBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identity, password })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    window.location.href = '/';
+                } else {
+                    errBox.innerText = data.detail || data.error || 'Authentication failed.';
+                    errBox.style.display = 'block';
+                }
+            } catch (err) {
+                errBox.innerText = 'Network error contacting authentication server.';
+                errBox.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('reg-email').value.trim();
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const btn = document.getElementById('btn-register-submit');
+            const errBox = document.getElementById('auth-error');
+
+            btn.disabled = true;
+            errBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, username, password })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    window.location.href = '/';
+                } else {
+                    errBox.innerText = data.detail || data.error || 'Registration failed.';
+                    errBox.style.display = 'block';
+                }
+            } catch (err) {
+                errBox.innerText = 'Network error contacting authentication server.';
+                errBox.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Auto-switch to register tab if URL is /register
+        if (window.location.pathname.includes('register')) {
+            switchAuthTab('register');
+        }
+    </script>
+</body>
+</html>

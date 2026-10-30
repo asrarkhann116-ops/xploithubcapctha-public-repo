@@ -52,13 +52,48 @@ async function loadUserProfile() {
 
         // Navbar & Profile Info
         const usernameEl = document.getElementById('nav-username');
-        if (usernameEl) usernameEl.innerText = data.username || 'Guest Operator';
+        if (usernameEl) {
+            usernameEl.innerText = data.is_guest 
+                ? (data.username + ' (Guest Tester)')
+                : data.username;
+        }
 
         const creditsEl = document.getElementById('nav-credits');
         if (creditsEl) creditsEl.innerText = Number(data.credits).toFixed(1);
 
         const apiKeyEl = document.getElementById('api-key-val');
-        if (apiKeyEl) apiKeyEl.value = data.api_key;
+        const apiKeyActions = document.getElementById('api-key-actions');
+        const guestBanner = document.getElementById('guest-key-banner');
+        const authBtnText = document.getElementById('btn-auth-text');
+        const authBtn = document.getElementById('btn-auth-action');
+
+        if (data.is_guest) {
+            // Guest tester: hide API key & show sign-up banner
+            if (apiKeyEl) {
+                apiKeyEl.type = 'text';
+                apiKeyEl.value = '🔒 Hidden for Guests (Sign Up to Unlock)';
+            }
+            if (apiKeyActions) apiKeyActions.style.display = 'none';
+            if (guestBanner) guestBanner.style.display = 'flex';
+            if (authBtn) {
+                authBtn.href = '/login';
+                authBtn.onclick = null;
+            }
+            if (authBtnText) authBtnText.innerText = 'Sign In / Register';
+        } else {
+            // Logged-in user: show real API key and allow regeneration
+            if (apiKeyEl) {
+                apiKeyEl.type = 'password';
+                apiKeyEl.value = data.api_key;
+            }
+            if (apiKeyActions) apiKeyActions.style.display = 'flex';
+            if (guestBanner) guestBanner.style.display = 'none';
+            if (authBtn) {
+                authBtn.href = 'javascript:void(0)';
+                authBtn.onclick = logoutUser;
+            }
+            if (authBtnText) authBtnText.innerText = 'Sign Out';
+        }
 
         const solanaWalletEl = document.getElementById('solana-wallet-val');
         if (solanaWalletEl && data.solana_wallet) {
@@ -66,8 +101,8 @@ async function loadUserProfile() {
         }
 
         const depositRefEl = document.getElementById('user-deposit-ref');
-        if (depositRefEl && data.deposit_ref) {
-            depositRefEl.innerText = data.deposit_ref;
+        if (depositRefEl) {
+            depositRefEl.innerText = data.is_guest ? 'REGISTER_FOR_REF' : (data.deposit_ref || 'XPK-REF');
         }
         
         // Update code snippet box
@@ -81,13 +116,24 @@ async function loadUserProfile() {
             } else if (data.has_promo) {
                 promoMsg.innerHTML = `<span style="color: #10b981; font-weight: 600;">ACTIVE PROMO:</span> 500 Credits claimed successfully.`;
             } else {
-                promoMsg.innerText = 'Verification status: Ready';
+                promoMsg.innerText = data.is_guest ? 'Sign in to claim Discord promo credits' : 'Verification status: Ready';
             }
         }
     } catch (err) {
         console.error('Failed to load user profile:', err);
     }
 }
+
+async function logoutUser() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        showToast('Signed out successfully. Switched to guest mode.', 'info');
+        setTimeout(() => window.location.reload(), 400);
+    } catch (e) {
+        window.location.reload();
+    }
+}
+
 
 // Mode specifications and descriptions
 const MODE_SPECS = {
@@ -138,16 +184,19 @@ function updateSnippetDisplay() {
     const displayEl = document.getElementById('snippet-code-display');
     if (!displayEl) return;
 
-    const apiKey = currentUser ? currentUser.api_key : 'YOUR_API_KEY';
+    const isGuest = !currentUser || Boolean(currentUser.is_guest);
+    // GUEST RESTRICTION: Never expose API key to guests in code snippets
+    const apiKey = isGuest ? 'YOUR_API_KEY_HERE' : currentUser.api_key;
     const targetUrl = (document.getElementById('target-url')?.value.trim()) || 'https://gitlab.com/users/sign_in';
     const method = (document.getElementById('target-method')?.value) || 'GET';
     const proxy = (document.getElementById('target-proxy')?.value.trim()) || '';
-    const host = window.location.origin || 'http://localhost:8000';
+    const host = window.location.origin || 'https://xploithubcapctha.up.railway.app';
 
     if (currentSnippetLang === 'curl') {
         const proxyField = proxy ? `,\n    "proxy": "${proxy}"` : '';
+        const guestComment = isGuest ? '# Note: Register at /register to unlock your personal X-API-Key\n' : '';
         displayEl.innerText = 
-`curl -X POST "${host}/v1/unlock" \\
+`${guestComment}curl -X POST "${host}/v1/unlock" \\
   -H "X-API-Key: ${apiKey}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -157,8 +206,9 @@ function updateSnippetDisplay() {
   }'`;
     } else if (currentSnippetLang === 'python') {
         const proxyParam = proxy ? `, "proxy": "${proxy}"` : '';
+        const guestComment = isGuest ? '# Note: Register at /register to unlock your personal X-API-Key\n' : '';
         displayEl.innerText = 
-`import requests
+`${guestComment}import requests
 
 url = "${host}/v1/unlock"
 headers = {
@@ -178,8 +228,9 @@ print("Cookies:", len(data.get("cookies", [])))
 print("Page Title:", data.get("title"))`;
     } else if (currentSnippetLang === 'node') {
         const proxyParam = proxy ? `,\n    proxy: '${proxy}'` : '';
+        const guestComment = isGuest ? '// Note: Register at /register to unlock your personal X-API-Key\n' : '';
         displayEl.innerText = 
-`const fetch = require('node-fetch'); // or native fetch in Node 18+
+`${guestComment}const fetch = require('node-fetch'); // or native fetch in Node 18+
 
 async function unlockTarget() {
   const response = await fetch('${host}/v1/unlock', {
@@ -208,7 +259,11 @@ function copySnippetCode() {
     const displayEl = document.getElementById('snippet-code-display');
     if (!displayEl) return;
     navigator.clipboard.writeText(displayEl.innerText);
-    showToast(`${currentSnippetLang.toUpperCase()} snippet copied to clipboard.`, 'info');
+    if (!currentUser || currentUser.is_guest) {
+        showToast(`${currentSnippetLang.toUpperCase()} snippet copied! Register at /register to unlock your personal API key.`, 'info');
+    } else {
+        showToast(`${currentSnippetLang.toUpperCase()} snippet copied to clipboard.`, 'info');
+    }
 }
 
 // Tab Switcher for Output
@@ -359,12 +414,14 @@ async function executeScrape() {
         };
         if (proxy) payload.proxy = proxy;
 
+        const reqHeaders = { 'Content-Type': 'application/json' };
+        if (currentUser && !currentUser.is_guest && currentUser.api_key) {
+            reqHeaders['X-API-Key'] = currentUser.api_key;
+        }
+
         const res = await fetch('/v1/unlock', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': currentUser.api_key
-            },
+            headers: reqHeaders,
             body: JSON.stringify(payload)
         });
 

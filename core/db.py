@@ -72,11 +72,17 @@ def init_db():
     )
     ''')
     
-    # Migration check for existing databases
-    try:
-        cur.execute("ALTER TABLE users ADD COLUMN deposit_ref TEXT")
-    except Exception:
-        pass
+    # Migration checks for existing databases
+    for col_def in [
+        "ALTER TABLE users ADD COLUMN deposit_ref TEXT",
+        "ALTER TABLE users ADD COLUMN email TEXT",
+        "ALTER TABLE users ADD COLUMN password_hash TEXT",
+        "ALTER TABLE users ADD COLUMN is_guest INTEGER DEFAULT 0"
+    ]:
+        try:
+            cur.execute(col_def)
+        except Exception:
+            pass
 
     # Pre-seed a few demo vouchers if none exist
     cur.execute("SELECT COUNT(*) as cnt FROM vouchers")
@@ -92,6 +98,93 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+import hashlib
+
+def hash_password(password: str) -> str:
+    salt = os.urandom(16)
+    key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+    return salt.hex() + ":" + key.hex()
+
+def verify_password(stored_password: str, provided_password: str) -> bool:
+    try:
+        salt_hex, key_hex = stored_password.split(":")
+        salt = bytes.fromhex(salt_hex)
+        key = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'), salt, 100000)
+        return key.hex() == key_hex
+    except Exception:
+        return False
+
+def register_user(email: str, username: str, password: str) -> Dict[str, Any]:
+    """Register a new persistent user account."""
+    email = email.strip().lower()
+    username = username.strip()
+    if not email or "@" not in email:
+        return {"success": False, "error": "Please provide a valid email address."}
+    if len(password) < 6:
+        return {"success": False, "error": "Password must be at least 6 characters long."}
+    if not username:
+        username = email.split("@")[0]
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?", (email, username.lower()))
+    if cur.fetchone():
+        conn.close()
+        return {"success": False, "error": "An account with this email or username already exists."}
+
+    pwd_hash = hash_password(password)
+    api_key = generate_api_key()
+    deposit_ref = generate_deposit_ref()
+    now = int(time.time())
+
+    cur.execute(
+        """INSERT INTO users (email, username, password_hash, api_key, deposit_ref, credits, is_guest, created_at)
+           VALUES (?, ?, ?, ?, ?, 10.0, 0, ?)""",
+        (email, username, pwd_hash, api_key, deposit_ref, now)
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    cur.execute("SELECT * FROM users WHERE id = ?", (new_id,))
+    user = dict(cur.fetchone())
+    conn.close()
+    return {"success": True, "user": user}
+
+def authenticate_user(identity: str, password: str) -> Dict[str, Any]:
+    """Authenticate existing user by email or username."""
+    identity = identity.strip().lower()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?", (identity, identity))
+    row = cur.fetchone()
+    conn.close()
+    if not row or not row["password_hash"]:
+        return {"success": False, "error": "Invalid email/username or password."}
+    if not verify_password(row["password_hash"], password):
+        return {"success": False, "error": "Invalid email/username or password."}
+    return {"success": True, "user": dict(row)}
+
+def create_guest_user() -> Dict[str, Any]:
+    """Create a temporary guest tester account with test credits only (no API key access)."""
+    conn = get_db()
+    cur = conn.cursor()
+    guest_id = f"guest_{secrets.token_hex(6)}"
+    guest_name = f"Guest-{secrets.token_hex(2).upper()}"
+    api_key = generate_api_key()
+    deposit_ref = generate_deposit_ref()
+    now = int(time.time())
+    cur.execute(
+        """INSERT INTO users (discord_id, username, api_key, deposit_ref, credits, is_guest, created_at)
+           VALUES (?, ?, ?, ?, 5.0, 1, ?)""",
+        (guest_id, guest_name, api_key, deposit_ref, now)
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    cur.execute("SELECT * FROM users WHERE id = ?", (new_id,))
+    user = dict(cur.fetchone())
+    conn.close()
+    return user
+
 
 def generate_api_key() -> str:
     return "xpk_" + secrets.token_hex(20)

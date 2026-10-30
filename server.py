@@ -20,6 +20,9 @@ from core.db import (
     get_user_by_discord_id,
     get_or_create_user,
     regenerate_user_api_key,
+    register_user,
+    authenticate_user,
+    create_guest_user,
     deduct_credit,
     log_request,
     redeem_voucher,
@@ -68,6 +71,15 @@ class UnlockRequest(BaseModel):
 class AsyncUnlockRequest(UnlockRequest):
     webhook_url: Optional[str] = None
 
+class RegisterRequest(BaseModel):
+    email: str
+    username: Optional[str] = None
+    password: str
+
+class LoginRequest(BaseModel):
+    identity: str
+    password: str
+
 class PromoVerifyRequest(BaseModel):
     discord_id: str
 
@@ -80,19 +92,30 @@ class VoucherRedeemRequest(BaseModel):
 # Async tasks storage: {task_id: {"id": str, "status": str, "created_at": int, "result": dict, "error": str, "webhook_url": str}}
 async_tasks = {}
 
-# Helper to get user from API Key
+# Helper to get user from API Key or Web Session
 def authenticate_api_key(
+    request: Request,
     x_api_key: Optional[str] = Header(None),
     api_key: Optional[str] = Query(None)
 ):
     key = x_api_key or api_key
-    if not key:
-        raise HTTPException(status_code=401, detail="API Key required. Pass via 'X-API-Key' header or '?api_key=' param.")
-    
-    user = get_user_by_api_key(key)
-    if not user:
-        raise HTTPException(status_code=403, detail="Invalid API Key.")
-    
+    user = None
+    if key:
+        user = get_user_by_api_key(key)
+        if not user:
+            raise HTTPException(status_code=403, detail="Invalid API Key.")
+        # Guest accounts cannot be used for external script automation
+        if bool(user.get("is_guest", 0)) and not request.cookies.get("xpk_uid"):
+            raise HTTPException(
+                status_code=403,
+                detail="Guest accounts are restricted to browser testing only. Please register an account to unlock your personal X-API-Key for automation."
+            )
+    else:
+        # Check session cookie from web console
+        user = get_session_user(request)
+        if not user:
+            raise HTTPException(status_code=401, detail="Authentication required. Pass X-API-Key header or sign in.")
+
     # Check 5-hour timeout restriction
     now = int(time.time())
     if user.get("timeout_until", 0) > now:
@@ -103,6 +126,11 @@ def authenticate_api_key(
         )
 
     if user["credits"] < 1.0:
+        if bool(user.get("is_guest", 0)):
+            raise HTTPException(
+                status_code=402,
+                detail="Guest trial credits exhausted (5/5 used). Please Sign Up or Log In to get 10 free credits and permanent API access!"
+            )
         raise HTTPException(
             status_code=402,
             detail="Insufficient credits! $0.001 (1 credit) required per request. Top up via Solana USDT or claim free credits with Discord promo."
@@ -124,14 +152,12 @@ def get_session_user(request: Request):
 
 def get_or_create_session_user(request: Request, response: Response):
     """
-    Ensures every visitor gets their OWN unique database record,
-    unique API key, unique Solana deposit memo reference, and 10 credits.
+    Ensures every visitor gets their OWN unique session account.
+    Guests receive testing access only (API Key hidden until registration).
     """
     user = get_session_user(request)
     if not user:
-        anon_id = f"guest_{secrets.token_hex(6)}"
-        anon_name = f"Operator-{secrets.token_hex(2).upper()}"
-        user = get_or_create_user(anon_id, anon_name, "")
+        user = create_guest_user()
         response.set_cookie(
             key="xpk_uid",
             value=str(user["id"]),
@@ -140,6 +166,7 @@ def get_or_create_session_user(request: Request, response: Response):
             samesite="lax"
         )
     return user
+
 
 
 # ════════════════════════════════════════════
@@ -461,20 +488,24 @@ async def discord_callback(code: str, response: Response):
     return redirect
 
 # ════════════════════════════════════════════
-#  4. USER PROFILE & AUTH
+#  4. USER PROFILE & AUTHENTICATION
 # ════════════════════════════════════════════
 @app.get("/api/user/me")
 async def get_current_user_profile(request: Request, response: Response):
     user = get_or_create_session_user(request, response)
     now = int(time.time())
     timeout_remaining = max(0, (user.get("timeout_until", 0) - now) // 60)
+    is_guest = bool(user.get("is_guest", 0))
     
     return {
         "id": user["id"],
-        "discord_id": user["discord_id"],
+        "discord_id": user.get("discord_id"),
         "username": user["username"],
-        "api_key": user["api_key"],
-        "deposit_ref": user.get("deposit_ref", "XPK-REF"),
+        "email": user.get("email"),
+        "is_guest": is_guest,
+        # GUEST PROTECTION: Guests are for testing only. NEVER reveal API key until registered!
+        "api_key": "" if is_guest else user["api_key"],
+        "deposit_ref": "" if is_guest else user.get("deposit_ref", "XPK-REF"),
         "credits": user["credits"],
         "has_promo": bool(user["has_promo"]),
         "timeout_active": timeout_remaining > 0,
@@ -483,9 +514,66 @@ async def get_current_user_profile(request: Request, response: Response):
         "cost_per_request": 0.001
     }
 
+@app.post("/api/auth/register")
+async def auth_register(req: RegisterRequest, response: Response):
+    """Register a new user account with email and password."""
+    res = register_user(req.email, req.username or "", req.password)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    user = res["user"]
+    response.set_cookie(key="xpk_uid", value=str(user["id"]), max_age=86400 * 365, httponly=False, samesite="lax")
+    return {
+        "success": True,
+        "message": f"Welcome aboard, {user['username']}! Your account and API key are now active.",
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "email": user["email"],
+            "api_key": user["api_key"],
+            "credits": user["credits"]
+        }
+    }
+
+@app.post("/api/auth/login")
+async def auth_login(req: LoginRequest, response: Response):
+    """Authenticate existing user with email/username and password."""
+    res = authenticate_user(req.identity, req.password)
+    if not res.get("success"):
+        raise HTTPException(status_code=401, detail=res.get("error"))
+    user = res["user"]
+    response.set_cookie(key="xpk_uid", value=str(user["id"]), max_age=86400 * 365, httponly=False, samesite="lax")
+    return {
+        "success": True,
+        "message": f"Welcome back, {user['username']}!",
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "email": user.get("email"),
+            "api_key": user["api_key"],
+            "credits": user["credits"]
+        }
+    }
+
+@app.post("/api/auth/logout")
+async def auth_logout(response: Response):
+    """Log out current session and create fresh guest tester."""
+    response.delete_cookie("xpk_uid")
+    return {"success": True, "message": "Signed out successfully."}
+
+@app.get("/login", response_class=HTMLResponse)
+@app.get("/register", response_class=HTMLResponse)
+async def auth_html_page():
+    auth_file = os.path.join(PUBLIC_DIR, "auth.html")
+    if os.path.exists(auth_file):
+        with open(auth_file, "r", encoding="utf-8") as f:
+            return f.read()
+    return RedirectResponse("/")
+
 @app.post("/api/user/regenerate-key")
 async def regenerate_api_key_endpoint(request: Request, response: Response):
     user = get_or_create_session_user(request, response)
+    if bool(user.get("is_guest", 0)):
+        raise HTTPException(status_code=403, detail="Please sign in or register to manage API keys.")
     new_key = regenerate_user_api_key(user["id"])
     return {
         "success": True,
@@ -504,6 +592,7 @@ async def developer_api_key_guide_page():
 # ════════════════════════════════════════════
 #  5. PROMO VERIFICATION, SOLANA & VOUCHERS
 # ════════════════════════════════════════════
+
 @app.post("/api/user/promo/verify")
 async def claim_promo(request: Request, response: Response):
     user = get_or_create_session_user(request, response)
