@@ -1135,6 +1135,31 @@ async def get_proxies_status_endpoint():
     from engine.proxies import get_proxy_stats
     return get_proxy_stats()
 
+# ════════════════════════════════════════════
+#  7. PUBLIC ANALYTICS METRICS (for hero stats & status page)
+# ════════════════════════════════════════════
+@app.get("/api/analytics/metrics")
+async def public_metrics():
+    """Public metrics endpoint for frontend hero numbers and status page live data."""
+    now = time.time()
+    online_workers = [w for w in active_workers.values() if now - w.get("last_seen", 0) < 90]
+    metrics = get_platform_metrics()
+    total_completed = sum(w.get("tasks_completed", 0) for w in online_workers)
+    return {
+        "success": True,
+        "workers_online": len(online_workers),
+        "queue_depth": len(task_queue),
+        "total_requests": metrics.get("total_requests", 0),
+        "success_rate_percent": metrics.get("success_rate_percent", 100.0),
+        "registered_users": metrics.get("total_registered_users", 0),
+        "avg_latency_ms": metrics.get("avg_duration_ms", 0),
+        "cost_per_solve_usd": 0.01,
+        "credits_per_usdt": 100,
+        "free_daily_credits": 75,
+        "status": "operational" if len(online_workers) > 0 else "degraded"
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
