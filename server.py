@@ -7,7 +7,7 @@ import aiohttp
 from typing import Optional, Any, Dict, List, Union
 from collections import deque
 from fastapi import FastAPI, Header, Query, HTTPException, Request, Response, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -931,6 +931,15 @@ async def custom_404_handler(request: Request, exc):
         content = open(f, "r", encoding="utf-8").read()
         return HTMLResponse(content=content, status_code=404)
     return HTMLResponse(content="<h1>404 Not Found</h1>", status_code=404)
+
+@app.get("/favicon.ico", include_in_schema=False)
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon_route():
+    f = os.path.join(PUBLIC_DIR, "favicon.svg")
+    if os.path.exists(f):
+        return FileResponse(f, media_type="image/svg+xml")
+    raise HTTPException(status_code=404)
+
 
 
 # ════════════════════════════════════════════
