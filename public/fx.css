@@ -188,3 +188,23 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
   .fx-toc a:hover, .fx-toc a.on { color: var(--text-accent); border-left-color: var(--text-accent); } }
 @media (max-width: 640px) { .cards-grid-main { display: grid; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 86%; overflow-x: auto; scroll-snap-type: x mandatory; gap: 14px; padding-bottom: 14px; }
   .cards-grid-main > .pricing-card { scroll-snap-align: center; min-width: 0; } }
+
+/* Skeleton, presets, themes, pricing flow */
+@keyframes fxShim { to { background-position: -200% 0; } } @keyframes fxRoll { from { opacity: 0; translate: 0 14px; } }
+.fx-skel { color: transparent !important; border-radius: 3px; background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-panel-hover) 50%, var(--bg-input) 75%); background-size: 200% 100%; animation: fxShim 1.2s linear infinite; user-select: none; }
+.fx-roll { animation: fxRoll .35s steps(5); }
+.fx-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 14px; }
+.fx-presets button { font: 600 11px var(--font-mono); color: var(--text-secondary); background: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 4px 9px; border-radius: var(--radius-xs); cursor: pointer; }
+.fx-presets button:hover { color: var(--text-accent); border-color: var(--text-accent); }
+.fx-presets .fx-save { color: var(--text-accent); border-style: dashed; }
+.fx-pre { display: inline-flex; } .fx-pre button:first-child { border-right: 0; } .fx-pre button:last-child { padding: 4px 7px; }
+.fx-theme { font: 600 12px var(--font-sans); color: var(--text-primary); background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; box-shadow: 2px 2px 0 rgba(8,9,24,.6); }
+.fx-theme:hover { border-color: var(--text-accent); }
+html[data-theme=night] { filter: hue-rotate(155deg) saturate(.95) brightness(.92); }
+html[data-theme=dawn] { filter: hue-rotate(-32deg) saturate(1.1) brightness(1.08); }
+.fx-flow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; max-width: 860px; margin: 14px auto 0; font-size: 12.5px; }
+.fx-flow span { padding: 7px 12px; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-xs); color: var(--text-secondary); }
+.fx-flow b::before { content: '\203A'; color: var(--text-accent); font-size: 18px; }
+.fx-flow .ok { border-color: var(--text-ok); color: var(--text-ok); } .fx-flow .no { border-color: var(--text-amber); color: var(--text-amber); }
+.fx-pay { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.fx-pay span { font: 600 12px var(--font-mono); padding: 5px 10px; border: 1px solid var(--border-strong); color: var(--text-secondary); border-radius: var(--radius-xs); }

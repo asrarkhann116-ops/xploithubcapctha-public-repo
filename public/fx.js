@@ -177,4 +177,38 @@
     if (hs.length > 1) { const t = document.createElement('nav'); t.className = 'fx-toc'; t.setAttribute('aria-label', 'On this page');
       t.innerHTML = '<b>On this page</b>' + hs.map((h, i) => { h.id = h.id || 'sec-' + i; return `<a href="#${h.id}">${h.textContent.trim()}</a>`; }).join(''); document.body.append(t);
       const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) $$('a', t).forEach(a => a.classList.toggle('on', a.hash === '#' + e.target.id)); }), { rootMargin: '-20% 0px -70% 0px' }); hs.forEach(h => io.observe(h)); } }
+
+  // top bar: show real fleet state and measured latency instead of static text
+  const fc = $('#fleet-count'), st1 = $('#sys-status-text'), lat = $('#telemetry-latency');
+  if (fc && st1) new MutationObserver(() => { const n = parseInt(fc.textContent, 10) || 0, dot = $('.system-bar .pulse-indicator');
+    st1.textContent = n > 0 ? 'Operational' : 'No solvers online'; st1.style.color = n > 0 ? '' : '#ffe0a8';
+    if (dot) { dot.style.background = n > 0 ? '' : '#ffe0a8'; dot.style.boxShadow = n > 0 ? '' : '0 0 6px #ffe0a8'; } }).observe(fc, { childList: true, characterData: true, subtree: true });
+  if (lat) { const t0 = performance.now(); fetch('/api/workers/status', { cache: 'no-store' }).then(() => { lat.textContent = Math.round(performance.now() - t0) + ' ms'; const l = lat.previousElementSibling; if (l) l.textContent = 'API round trip:'; }).catch(() => {}); }
+
+  // skeleton shimmer until real values arrive
+  ['#nav-credits', '#reset-timer', '#snippet-code-display'].forEach(s => { const el = $(s); if (!el) return; el.classList.add('fx-skel');
+    const mo = new MutationObserver(() => { el.classList.remove('fx-skel'); mo.disconnect(); }); mo.observe(el, { childList: true, characterData: true, subtree: true }); setTimeout(() => el.classList.remove('fx-skel'), 6000); });
+
+  // saved targets (stored in this browser only)
+  const cb = $('.command-bar'), ui = $('#target-url'), E = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  if (cb && ui) { let L = []; try { L = JSON.parse(localStorage.getItem('fx_targets') || '[]'); } catch (e) {}
+    const row = document.createElement('div'); row.className = 'fx-presets'; cb.after(row); const sv = () => { try { localStorage.setItem('fx_targets', JSON.stringify(L)); } catch (e) {} };
+    const rd = () => { row.innerHTML = '<button type="button" class="fx-save">Save this URL</button>' + L.map((u, i) => `<span class="fx-pre"><button type="button" data-u="${i}" title="${E(u)}">${E(u.replace(/^https?:\/\//, '').slice(0, 28))}</button><button type="button" data-d="${i}" aria-label="Remove saved URL">\u00d7</button></span>`).join(''); }; rd();
+    row.addEventListener('click', e => { const t = e.target;
+      if (t.classList.contains('fx-save')) { const u = ui.value.trim(); if (u && !L.includes(u)) { L.unshift(u); L = L.slice(0, 6); sv(); rd(); } }
+      else if (t.dataset.u !== undefined) { ui.value = L[+t.dataset.u]; ui.dispatchEvent(new Event('input', { bubbles: true })); }
+      else if (t.dataset.d !== undefined) { L.splice(+t.dataset.d, 1); sv(); rd(); } }); }
+
+  // theme switch: dusk / night / dawn
+  { const T = ['dusk', 'night', 'dawn']; let cur = 'dusk'; try { cur = localStorage.getItem('fx_theme') || 'dusk'; } catch (e) {} root.dataset.theme = cur;
+    const host = $('.nav-controls') || $('.nav-container');
+    if (host) { const b = document.createElement('button'); b.type = 'button'; b.className = 'fx-theme';
+      const set = t => { cur = t; root.dataset.theme = t; try { localStorage.setItem('fx_theme', t); } catch (e) {} b.textContent = t[0].toUpperCase() + t.slice(1); b.setAttribute('aria-label', 'Theme: ' + t + '. Click to change'); };
+      host.prepend(b); b.onclick = () => set(T[(T.indexOf(cur) + 1) % 3]); set(cur); } }
+
+  // pricing: price roll on plan switch, billing flow, payment methods
+  $$('.price-val').forEach(el => new MutationObserver(() => { el.classList.remove('fx-roll'); void el.offsetWidth; el.classList.add('fx-roll'); }).observe(el, { childList: true, characterData: true, subtree: true }));
+  const gb = $('.guarantee-banner');
+  if (gb) { const fl = document.createElement('div'); fl.className = 'fx-flow'; fl.innerHTML = '<span>Your request</span><b></b><span>Solver attempts clearance</span><b></b><span class="ok">Cleared: 1 credit debited</span><span class="no">Not cleared: 0 credits debited</span>'; gb.after(fl); }
+  const fq = $('.fx-faq'); if (fq) fq.insertAdjacentHTML('beforeend', '<div class="fx-pay"><span>Solana USDT (SPL)</span><span>Voucher codes</span></div>');
 })();
