@@ -37,6 +37,7 @@ from core.db import (
 from engine.unblocker import execute_unblock
 from core.promo import verify_user_promo
 from core.solana import verify_solana_deposit, SOLANA_WALLET
+from core import email_notify
 
 # Worker secret key for GitHub Actions runners to authenticate
 WORKER_SECRET = os.getenv("WORKER_SECRET", "xpk-worker-default-secret")
@@ -100,6 +101,19 @@ class VoucherRedeemRequest(BaseModel):
 
 # Async tasks storage: {task_id: {"id": str, "status": str, "created_at": int, "result": dict, "error": str, "webhook_url": str}}
 async_tasks = {}
+
+def check_low_credits_and_notify(user_before: dict, fresh_user: Optional[dict]):
+    """Send low-credits email warning when user balance drops below threshold."""
+    if not fresh_user or not fresh_user.get("email"):
+        return
+    old_c = float(user_before.get("credits", 0) or 0)
+    new_c = float(fresh_user.get("credits", 0) or 0)
+    if old_c > email_notify.LOW_CREDITS_THRESHOLD >= new_c:
+        asyncio.create_task(email_notify.low_credits_warning(
+            to=fresh_user["email"],
+            username=fresh_user.get("username", "there"),
+            credits_remaining=new_c
+        ))
 
 # Helper to get user from API Key or Web Session
 def authenticate_api_key(
@@ -280,6 +294,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 cost = get_request_cost(user)
                 deduct_credit(user_id, cost)
                 fresh_user = get_user_by_id(user_id)
+                check_low_credits_and_notify(user, fresh_user)
                 credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
                 log_request(user_id, req.url, result.get("mode", "worker"), 200, duration_ms, cost)
                 return {
@@ -327,6 +342,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
             cost = get_request_cost(user)
             deduct_credit(user_id, cost)
             fresh_user = get_user_by_id(user_id)
+            check_low_credits_and_notify(user, fresh_user)
             credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
             log_request(user_id, req.url, result.get("mode", "auto"), status_code, duration_ms, cost)
             return {
@@ -360,6 +376,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 cost = get_request_cost(user)
                 deduct_credit(user_id, cost)
                 fresh_user = get_user_by_id(user_id)
+                check_low_credits_and_notify(user, fresh_user)
                 credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
                 log_request(user_id, req.url, "worker_cdp_escalated", 200, duration_ms, cost)
                 return {
@@ -660,6 +677,13 @@ async def auth_register(req: RegisterRequest, response: Response):
         raise HTTPException(status_code=400, detail=res.get("error"))
     user = res["user"]
     response.set_cookie(key="xpk_uid", value=str(user["id"]), max_age=86400 * 365, httponly=False, samesite="lax")
+    if user.get("email"):
+        asyncio.create_task(email_notify.welcome_email(
+            to=user["email"],
+            username=user.get("username", "there"),
+            api_key=user.get("api_key", ""),
+            credits=float(user.get("credits", 75))
+        ))
     return {
         "success": True,
         "message": f"Welcome aboard, {user['username']}! Your account and API key are now active.",
@@ -779,6 +803,16 @@ async def verify_deposit(req: DepositVerifyRequest, request: Request, response: 
     if bool(user.get("is_guest", 0)):
         raise HTTPException(status_code=403, detail="Please sign in or register an account to verify deposits.")
     res = await verify_solana_deposit(req.tx_hash, user["id"], plan_type=req.plan_type)
+    # Send email notification on successful deposit
+    if res.get("success") and user.get("email"):
+        asyncio.create_task(email_notify.deposit_confirmed(
+            to=user["email"],
+            username=user.get("username", "there"),
+            amount_usdt=res.get("amount_usdt", 0),
+            credits_added=res.get("credits_added", 0),
+            new_balance=res.get("new_balance", 0),
+            tx_hash=req.tx_hash,
+        ))
     return res
 
 @app.post("/api/voucher/redeem")
