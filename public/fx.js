@@ -212,3 +212,64 @@
   if (gb) { const fl = document.createElement('div'); fl.className = 'fx-flow'; fl.innerHTML = '<span>Your request</span><b></b><span>Solver attempts clearance</span><b></b><span class="ok">Cleared: 1 credit debited</span><span class="no">Not cleared: 0 credits debited</span>'; gb.after(fl); }
   const fq = $('.fx-faq'); if (fq) fq.insertAdjacentHTML('beforeend', '<div class="fx-pay"><span>Solana USDT (SPL)</span><span>Voucher codes</span></div>');
 })();
+
+/* ---- round 4: works-with, scroll hint, mini CTA, glitch, raw/pretty, line numbers, code theme, type scale, low-credit prompt, sounds ---- */
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const home = location.pathname === '/' || /index\.html$/.test(location.pathname);
+  const nav = $('.nav-container');
+  const mk = (tag, cls, html) => { const e = document.createElement(tag); e.className = cls; if (html) e.innerHTML = html; return e; };
+
+  // #4 works-with strip, #5 scroll hint, #6 sticky mini-CTA, #7 one-time glitch
+  const lead = home && $('.hero-lead');
+  if (lead) lead.after(mk('div', 'fx-works', '<span>Works with</span><b>cURL</b><b>Python</b><b>Node.js</b><b>Playwright</b>'));
+  const h1 = $('.hero-heading');
+  if (home && h1 && !RM) setTimeout(() => { h1.classList.add('fx-glitch'); setTimeout(() => h1.classList.remove('fx-glitch'), 700); }, 1400);
+  if (home) {
+    const hint = mk('div', 'fx-scrollhint', 'Scroll'); hint.setAttribute('aria-hidden', 'true'); document.body.append(hint);
+    const bar = mk('div', 'fx-mini', '<span>75 free solves every day. No card needed.</span><a class="btn-hero-primary" href="/register">Create account</a>'); document.body.append(bar);
+    addEventListener('scroll', () => { const y = scrollY; hint.classList.toggle('gone', y > 80); bar.classList.toggle('on', y > 700); }, { passive: true });
+  }
+
+  // #34 console Raw / Pretty toggle
+  const out = $('#console-output');
+  if (out) {
+    const btn = mk('button', 'fx-mini-btn', 'Pretty'); btn.type = 'button'; let busy = false, pretty = true;
+    const fmt = () => { if (busy) return; const t = out.textContent.trim(); if (t[0] !== '{' && t[0] !== '[') return;
+      try { const j = JSON.parse(t); busy = true; out.textContent = JSON.stringify(j, null, pretty ? 2 : 0); } catch (e) {} busy = false; };
+    btn.onclick = () => { pretty = !pretty; btn.textContent = pretty ? 'Pretty' : 'Raw'; fmt(); };
+    out.before(btn); new MutationObserver(fmt).observe(out, { childList: true, characterData: true, subtree: true });
+  }
+
+  // #41 line numbers on plain code blocks, #46 code theme switch
+  if (/guide/.test(location.pathname)) $$('pre').filter(p => p.id !== 'console-output' && !p.children.length).forEach(p => {
+    p.classList.add('fx-ln'); p.innerHTML = p.textContent.replace(/\n$/, '').split('\n').map(l => '<span class="ln"></span>' + l.replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;')).join('\n'); });
+  if (nav && $('pre')) {
+    const C = ['dusk', 'mono', 'paper']; let c = C.includes(store.get('fx_code')) ? store.get('fx_code') : 'dusk';
+    const b = mk('button', 'fx-theme', ''); b.type = 'button';
+    const set = v => { c = v; document.documentElement.dataset.code = v; store.set('fx_code', v); b.textContent = 'Code: ' + v; b.setAttribute('aria-label', 'Code theme: ' + v + '. Click to change'); };
+    b.onclick = () => set(C[(C.indexOf(c) + 1) % 3]); nav.prepend(b); set(c);
+  }
+
+  // #67 low-credit prompt
+  const cr = $('#nav-credits');
+  if (cr && !/plans/.test(location.pathname)) {
+    const note = mk('div', 'fx-low', '<span>Credits are running low.</span><a href="/plans/">Top up</a><button type="button" aria-label="Dismiss">×</button>'); document.body.append(note);
+    note.querySelector('button').onclick = () => { note.classList.remove('on'); sessionStorage.setItem('fx_low_x', '1'); };
+    const chk = () => { const m = cr.textContent.replace(/,/g, '').match(/\d+(\.\d+)?/); let dismissed = false; try { dismissed = sessionStorage.getItem('fx_low_x'); } catch (e) {}
+      note.classList.toggle('on', !!m && +m[0] <= 10 && !dismissed && !/guest/i.test(cr.textContent)); };
+    new MutationObserver(chk).observe(cr, { childList: true, characterData: true, subtree: true }); chk();
+  }
+
+  // #59 optional UI sounds, off by default
+  if (nav) {
+    let on = store.get('fx_snd') === '1', ac = null; const b = mk('button', 'fx-theme', ''); b.type = 'button';
+    const lab = () => { b.textContent = 'Sound: ' + (on ? 'on' : 'off'); b.setAttribute('aria-pressed', on); };
+    const beep = f => { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'square'; o.frequency.value = f; g.gain.value = .02; o.connect(g); g.connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + .08); o.stop(ac.currentTime + .09); } catch (e) {} };
+    b.onclick = () => { on = !on; store.set('fx_snd', on ? '1' : '0'); lab(); if (on) beep(660); }; lab(); nav.prepend(b);
+    document.addEventListener('click', e => { if (on && e.target.closest('button,a.btn-hero-primary,a.btn-hero-secondary')) beep(520); });
+  }
+})();
