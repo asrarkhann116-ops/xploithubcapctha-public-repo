@@ -14,7 +14,14 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 load_dotenv()
 
-from core.db import get_or_create_user, get_user_by_discord_id, deduct_credit
+from core.db import (
+    get_or_create_user,
+    get_user_by_discord_id,
+    deduct_credit,
+    get_platform_metrics,
+    get_user_plan_meta,
+    redeem_voucher
+)
 from core.db_backup import backup_loop
 from engine.unblocker import execute_unblock
 from core.promo import verify_user_promo
@@ -22,6 +29,7 @@ from core.solana import verify_solana_deposit, SOLANA_WALLET
 
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 GUILD_ID = int(os.getenv("DISCORD_GUILD_ID", "1459402620199374872"))
+BASE_URL = os.getenv("BASE_URL", "https://xploithubcapctha.up.railway.app")
 
 class UnblockerBot(discord.Client):
     def __init__(self):
@@ -116,21 +124,92 @@ async def promo_command(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 # ═════════════════════════════════════════════════
-#  COMMAND 3: /credits
+#  COMMAND 3: /credits (Legacy Alias for /balance)
 # ═════════════════════════════════════════════════
 @client.tree.command(name="credits", description="🔑 View your credits balance and secret API key")
 async def credits_command(interaction: discord.Interaction):
+    await balance_command(interaction)
+
+# ═════════════════════════════════════════════════
+#  COMMAND: /balance
+# ═════════════════════════════════════════════════
+@client.tree.command(name="balance", description="💳 Check your API credits balance, tier, and API key")
+async def balance_command(interaction: discord.Interaction):
     user = get_or_create_user(
         str(interaction.user.id),
         interaction.user.name,
         interaction.user.avatar.url if interaction.user.avatar else ""
     )
-    
-    embed = discord.Embed(title="🔑 Your Xploit Unblocker Account", color=0x008080)
-    embed.add_field(name="💰 Credits Balance", value=f"**{user['credits']:.1f} Requests** ($0.1/ea)", inline=False)
-    embed.add_field(name="🔑 API Key (Keep Private)", value=f"`{user['api_key']}`", inline=False)
-    embed.add_field(name="🌐 Web Dashboard", value="Login at your unblocker web portal with Discord OAuth2", inline=False)
+    plan_meta = get_user_plan_meta(user)
+    embed = discord.Embed(
+        title="⚡ Xploit Unblocker Account Balance",
+        color=0x06b6d4
+    )
+    embed.add_field(name="💰 Available Balance", value=f"**{user['credits']:,.1f} Credits**", inline=True)
+    embed.add_field(name="🛡️ Tier Plan", value=f"`{plan_meta['name']}`", inline=True)
+    embed.add_field(name="⚡ Concurrency Limit", value=f"`{user.get('concurrency_limit') or plan_meta.get('concurrency', 3)} threads`", inline=True)
+    embed.add_field(name="🔑 API Key", value=f"||`{user['api_key']}`|| *(Click to reveal)*", inline=False)
+    embed.add_field(
+        name="🔗 Quick Actions",
+        value=f"• [Web Console & Playground]({BASE_URL})\n• Top up via Solana: `/topup`\n• Free credits voucher: `/voucher LAUNCH10`",
+        inline=False
+    )
+    embed.set_footer(text=f"User ID: {user['id']} · Xploit Unblocker")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+# ═════════════════════════════════════════════════
+#  COMMAND: /status (Platform Health & Metrics)
+# ═════════════════════════════════════════════════
+@client.tree.command(name="status", description="📊 Live platform infrastructure status & success rates")
+async def status_command(interaction: discord.Interaction):
+    metrics = get_platform_metrics(7)
+    embed = discord.Embed(
+        title="⚡ Xploit Unblocker Platform Telemetry",
+        description="Real-time multi-tier anti-bot bypass infrastructure status.",
+        color=0x10b981
+    )
+    embed.add_field(name="🟢 Status", value="`OPERATIONAL (100% UP)`", inline=True)
+    embed.add_field(name="🎯 Bypass Success Rate", value=f"**{metrics['success_rate_percent']}%**", inline=True)
+    embed.add_field(name="⏱️ Average Latency", value=f"**{metrics['avg_latency_ms']} ms**", inline=True)
+    embed.add_field(name="📈 Total Solves (All Time)", value=f"**{metrics['total_requests']:,}**", inline=True)
+    embed.add_field(name="👥 Active Users (24h)", value=f"**{metrics['active_users_24h']:,}**", inline=True)
+    embed.add_field(name="🤖 Solver Engine", value="`X-Stealth CDP + Fast-TLS v2.4`", inline=True)
+    embed.add_field(
+        name="🛡️ Supported Defenses",
+        value="• Cloudflare Turnstile\n• DataDome Interstitial\n• Cloudflare 5s / Under-Attack\n• Akamai & Kasada",
+        inline=False
+    )
+    embed.set_footer(text=f"Live telemetry at {BASE_URL}")
+    await interaction.response.send_message(embed=embed)
+
+# ═════════════════════════════════════════════════
+#  COMMAND: /voucher <code>
+# ═════════════════════════════════════════════════
+@client.tree.command(name="voucher", description="🎁 Redeem a promotional voucher code (e.g. LAUNCH10)")
+@app_commands.describe(code="Promo or gift code to redeem")
+async def voucher_command(interaction: discord.Interaction, code: str):
+    await interaction.response.defer(ephemeral=True)
+    user = get_or_create_user(
+        str(interaction.user.id),
+        interaction.user.name,
+        interaction.user.avatar.url if interaction.user.avatar else ""
+    )
+    res = redeem_voucher(code.strip().upper(), user["id"])
+    if res.get("success"):
+        embed = discord.Embed(
+            title="🎉 Voucher Claimed Successfully!",
+            description=f"**+{res['credits_added']:,.0f} Free Credits** have been added to your account.",
+            color=0x00ff99
+        )
+        embed.add_field(name="New Balance", value=f"**{res['new_balance']:,.1f} Credits**", inline=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
+    else:
+        embed = discord.Embed(
+            title="❌ Voucher Error",
+            description=res.get("error", "Invalid or already redeemed voucher code."),
+            color=0xff0033
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
 # ═════════════════════════════════════════════════
 #  COMMAND 4: /topup

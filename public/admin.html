@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xploit Unblocker — Admin Command Center</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .admin-page { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        .admin-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+        .admin-title-wrap { display: flex; align-items: center; gap: 12px; }
+        .admin-tag { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; }
+        
+        /* Stats Grid */
+        .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .admin-stat-card { background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(31, 41, 55, 0.9); border-radius: 12px; padding: 18px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .stat-card-title { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .stat-card-val { font-size: 26px; font-weight: 800; font-family: var(--font-mono); color: #f8fafc; }
+        .stat-card-sub { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+        /* Tabs */
+        .admin-tabs { display: flex; gap: 8px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); margin-bottom: 20px; }
+        .admin-tab-btn { background: transparent; border: none; color: #94a3b8; font-family: var(--font-mono); font-size: 13px; font-weight: 600; padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .admin-tab-btn:hover { color: #f1f5f9; }
+        .admin-tab-btn.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+
+        /* Table Panels */
+        .admin-table-panel { background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(31, 41, 55, 0.9); border-radius: 12px; overflow: hidden; }
+        .admin-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        .admin-table th { background: rgba(15, 23, 42, 0.9); color: #64748b; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); }
+        .admin-table td { padding: 12px 16px; border-bottom: 1px solid rgba(31, 41, 55, 0.6); color: #e2e8f0; }
+        .admin-table tr:hover { background: rgba(30, 41, 59, 0.4); }
+
+        /* Badges */
+        .badge-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-blue { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+        /* Action Buttons */
+        .btn-sm-action { background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(51, 65, 85, 0.8); color: #e2e8f0; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .btn-sm-action:hover { background: #0284c7; color: #fff; border-color: #38bdf8; }
+
+        /* Modals & Key Prompt */
+        .admin-lock-screen { position: fixed; inset: 0; background: rgba(10, 15, 26, 0.95); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .lock-box { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; max-width: 420px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .lock-input { width: 100%; background: #0f172a; border: 1px solid #334155; color: #f8fafc; padding: 10px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 13px; margin: 12px 0 16px; outline: none; }
+        .lock-input:focus { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.25); }
+    </style>
+</head>
+<body style="background: #0a0f1a; color: #f8fafc; min-height: 100vh;">
+
+    <!-- Admin Key Lock Screen (Dismissed if valid key stored) -->
+    <div id="admin-lock" class="admin-lock-screen" style="display: flex;">
+        <div class="lock-box">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span class="admin-tag">RESTRICTED</span>
+                <span style="font-size: 13px; color: #64748b; font-family: var(--font-mono);">ROOT ACCESS</span>
+            </div>
+            <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">Admin Authentication</h2>
+            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 14px;">Enter the master admin secret key to unlock the command center.</p>
+            <input type="password" id="admin-secret-input" class="lock-input" placeholder="Enter ADMIN_SECRET..." onkeydown="if(event.key==='Enter') verifyAndUnlock();">
+            <button onclick="verifyAndUnlock()" class="btn-primary" style="width: 100%; padding: 10px; font-weight: 600;">Unlock Dashboard</button>
+            <p id="lock-error" style="color: #f87171; font-size: 12px; margin-top: 10px; display: none; text-align: center;"></p>
+        </div>
+    </div>
+
+    <!-- Main Admin Container -->
+    <div class="admin-page" id="admin-main" style="display: none;">
+        
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="admin-title-wrap">
+                <a href="/" style="color: #64748b; text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                    ← Back to App
+                </a>
+                <span class="footer-divider" style="color: #334155;">|</span>
+                <h1 style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin: 0;">⚡ Admin Command Center</h1>
+                <span class="admin-tag">MASTER ROOT</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button onclick="fetchAdminData()" class="btn-sm-action" style="display: flex; align-items: center; gap: 6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    <span>Refresh</span>
+                </button>
+                <button onclick="adminLogout()" class="btn-sm-action" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);">Lock Out</button>
+            </div>
+        </header>
+
+        <!-- KPI Metric Cards Grid -->
+        <div class="admin-stats-grid">
+            <div class="admin-stat-card">
+                <div class="stat-card-title">Registered Users</div>
+                <div class="stat-card-val text-cyan" id="stat-reg-users">0</div>
+                <div class="stat-card-sub" id="stat-guest-users">0 guest sessions active</div>
+            </div>
+            <div class="admin-stat-card">
+                <div class="stat-card-title">Total Verified Revenue</div>
+                <div class="stat-card-val" style="color: #34d399;" id="stat-revenue">$0.00 USDT</div>
+                <div class="stat-card-sub" id="stat-deposits-count">0 on-chain deposits verified</div>
+            </div>
+            <div class="admin-stat-card">
+                <div class="stat-card-title">Total Solves Handled</div>
+                <div class="stat-card-val" style="color: #fbbf24;" id="stat-requests">0</div>
+                <div class="stat-card-sub" id="stat-success-rate">100% platform success rate</div>
+            </div>
+            <div class="admin-stat-card">
+                <div class="stat-card-title">Distributed Edge Solvers</div>
+                <div class="stat-card-val" style="color: #c084fc;" id="stat-solvers">0</div>
+                <div class="stat-card-sub">Active CDP solver nodes</div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab-btn active" onclick="switchTab('users')">👥 Users (<span id="tab-user-count">0</span>)</button>
+            <button class="admin-tab-btn" onclick="switchTab('deposits')">💳 Deposits &amp; Revenue</button>
+            <button class="admin-tab-btn" onclick="switchTab('vouchers')">🎁 Voucher Generator</button>
+            <button class="admin-tab-btn" onclick="switchTab('requests')">⚡ Live Request Stream</button>
+        </div>
+
+        <!-- TAB 1: Users Management -->
+        <div id="tab-users" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px;">
+                <input type="text" id="user-search" placeholder="Search user by username, email, ID..." oninput="filterUsers()" class="lock-input" style="max-width: 320px; margin: 0; padding: 8px 12px;">
+                <span style="font-size: 12px; color: #64748b;">Showing up to 30 most recent accounts</span>
+            </div>
+            <div class="admin-table-panel">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Tier / Plan</th>
+                            <th>Credits</th>
+                            <th>Paid Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr><td colspan="7" style="text-align: center; color: #64748b;">Loading user database...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2: Deposits & Revenue -->
+        <div id="tab-deposits" class="tab-content" style="display: none;">
+            <div class="admin-table-panel">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Amount (USDT)</th>
+                            <th>Credits Added</th>
+                            <th>TX Signature</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deposits-table-body">
+                        <tr><td colspan="7" style="text-align: center; color: #64748b;">No deposits recorded yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 3: Voucher Codes Generator -->
+        <div id="tab-vouchers" class="tab-content" style="display: none;">
+            <div class="admin-stat-card" style="margin-bottom: 20px; max-width: 600px;">
+                <h3 style="font-size: 15px; margin-bottom: 12px; font-weight: 700;">🎁 Generate New Voucher Code</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="voucher-code-input" placeholder="VOUCHER CODE (e.g. LAUNCH50)" class="lock-input" style="flex: 2; margin: 0; text-transform: uppercase;">
+                    <input type="number" id="voucher-credits-input" placeholder="Credits (e.g. 50)" class="lock-input" style="flex: 1; margin: 0;" min="1" value="50">
+                    <button onclick="createNewVoucher()" class="btn-primary" style="padding: 8px 18px; font-size: 13px;">Create</button>
+                </div>
+            </div>
+            <div class="admin-table-panel">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Credits</th>
+                            <th>Status</th>
+                            <th>Used By (User ID)</th>
+                            <th>Used At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vouchers-table-body">
+                        <tr><td colspan="5" style="text-align: center; color: #64748b;">Loading vouchers...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 4: Live Request Stream -->
+        <div id="tab-requests" class="tab-content" style="display: none;">
+            <div class="admin-table-panel">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Target URL</th>
+                            <th>Mode</th>
+                            <th>Status</th>
+                            <th>Latency</th>
+                            <th>Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requests-table-body">
+                        <tr><td colspan="7" style="text-align: center; color: #64748b;">Loading request logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Credit Adjustment Modal Prompt -->
+    <div id="credit-modal" class="admin-lock-screen" style="display: none;">
+        <div class="lock-box">
+            <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px;">Adjust User Credits</h3>
+            <p id="modal-user-info" style="font-size: 13px; color: #94a3b8; margin-bottom: 14px;"></p>
+            <input type="number" id="modal-amount-input" class="lock-input" placeholder="Amount (+100 or -50)">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="submitCreditAdjust()" class="btn-primary" style="flex: 1; padding: 8px;">Apply Credits</button>
+                <button onclick="closeCreditModal()" class="btn-sm-action" style="flex: 1; padding: 8px;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rawAdminData = null;
+        let selectedUserId = null;
+
+        function getSavedKey() {
+            return localStorage.getItem('xpk_admin_key') || '';
+        }
+
+        async function verifyAndUnlock() {
+            const input = document.getElementById('admin-secret-input');
+            const err = document.getElementById('lock-error');
+            const key = input ? input.value.trim() : getSavedKey();
+            if (!key) return;
+
+            try {
+                const res = await fetch(`/api/admin/overview?key=${encodeURIComponent(key)}`);
+                const json = await res.json();
+                if (json.success) {
+                    localStorage.setItem('xpk_admin_key', key);
+                    document.getElementById('admin-lock').style.display = 'none';
+                    document.getElementById('admin-main').style.display = 'block';
+                    rawAdminData = json.data;
+                    renderDashboard(rawAdminData);
+                } else {
+                    if (err) { err.innerText = json.detail || "Invalid Admin Key"; err.style.display = 'block'; }
+                }
+            } catch (e) {
+                if (err) { err.innerText = "Network / Authentication Error: " + e.message; err.style.display = 'block'; }
+            }
+        }
+
+        function adminLogout() {
+            localStorage.removeItem('xpk_admin_key');
+            location.reload();
+        }
+
+        async function fetchAdminData() {
+            const key = getSavedKey();
+            if (!key) return;
+            try {
+                const res = await fetch(`/api/admin/overview?key=${encodeURIComponent(key)}`);
+                const json = await res.json();
+                if (json.success) {
+                    rawAdminData = json.data;
+                    renderDashboard(rawAdminData);
+                }
+            } catch(e) {
+                console.error("Failed to refresh admin data", e);
+            }
+        }
+
+        function renderDashboard(data) {
+            if (!data) return;
+            const stats = data.stats || {};
+            document.getElementById('stat-reg-users').innerText = stats.total_registered_users || 0;
+            document.getElementById('stat-guest-users').innerText = `${stats.total_guest_users || 0} guest sessions active`;
+            document.getElementById('stat-revenue').innerText = `$${(stats.total_revenue_usdt || 0).toFixed(2)} USDT`;
+            document.getElementById('stat-deposits-count').innerText = `${stats.total_deposits_count || 0} on-chain deposits verified`;
+            document.getElementById('stat-requests').innerText = (stats.total_requests || 0).toLocaleString();
+            document.getElementById('stat-success-rate').innerText = `${stats.success_rate_percent || 100}% platform success rate`;
+            document.getElementById('stat-solvers').innerText = stats.active_solvers || 0;
+            document.getElementById('tab-user-count').innerText = (data.users || []).length;
+
+            renderUsers(data.users || []);
+            renderDeposits(data.deposits || []);
+            renderVouchers(data.vouchers || []);
+            renderRequests(data.recent_requests || []);
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('users-table-body');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b;">No users found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td><code>#${u.id}</code></td>
+                    <td style="font-weight: 600;">${escapeHtml(u.username || 'Anonymous')}</td>
+                    <td><span style="color: #94a3b8;">${escapeHtml(u.email || (u.discord_id ? 'Discord Linked' : '—'))}</span></td>
+                    <td><span class="badge-pill badge-blue">${escapeHtml(u.plan || 'free')}</span></td>
+                    <td><strong style="color: #38bdf8;">${Number(u.credits || 0).toLocaleString()}</strong></td>
+                    <td>${u.has_deposited ? '<span class="badge-pill badge-green">PAID DEPOSIT</span>' : '<span style="color:#64748b; font-size:11px;">FREE TIER</span>'}</td>
+                    <td>
+                        <button class="btn-sm-action" onclick="openCreditModal(${u.id}, '${escapeHtml(u.username || '')}', ${u.credits || 0})">± Credits</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterUsers() {
+            const q = document.getElementById('user-search').value.toLowerCase();
+            if (!rawAdminData || !rawAdminData.users) return;
+            const filtered = rawAdminData.users.filter(u => 
+                String(u.id).includes(q) ||
+                (u.username && u.username.toLowerCase().includes(q)) ||
+                (u.email && u.email.toLowerCase().includes(q))
+            );
+            renderUsers(filtered);
+        }
+
+        function renderDeposits(deposits) {
+            const tbody = document.getElementById('deposits-table-body');
+            if (!deposits || deposits.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b;">No on-chain deposits yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = deposits.map(d => `
+                <tr>
+                    <td><code>#${d.id}</code></td>
+                    <td><strong>${escapeHtml(d.username || 'User #' + d.user_id)}</strong></td>
+                    <td style="color: #34d399; font-weight: 700;">+${Number(d.amount_usdt || 0).toFixed(2)} USDT</td>
+                    <td><span style="color: #38bdf8;">+${Number(d.credits_added || 0).toLocaleString()}</span></td>
+                    <td><code style="font-size: 11px; color: #64748b;">${(d.tx_hash || '').slice(0, 18)}...</code></td>
+                    <td><span class="badge-pill badge-green">${escapeHtml(d.status || 'verified')}</span></td>
+                    <td style="color: #64748b; font-size: 11px;">${new Date((d.created_at || 0) * 1000).toLocaleString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderVouchers(vouchers) {
+            const tbody = document.getElementById('vouchers-table-body');
+            if (!vouchers || vouchers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b;">No vouchers created.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = vouchers.map(v => `
+                <tr>
+                    <td><code style="color: #fbbf24; font-weight: 700; font-size: 13px;">${escapeHtml(v.code)}</code></td>
+                    <td><strong>${Number(v.credits || 0).toLocaleString()} Credits</strong></td>
+                    <td>${v.is_used ? '<span class="badge-pill badge-amber">REDEEMED</span>' : '<span class="badge-pill badge-green">ACTIVE</span>'}</td>
+                    <td>${v.used_by ? '#' + v.used_by : '—'}</td>
+                    <td style="color: #64748b; font-size: 11px;">${v.used_at ? new Date(v.used_at * 1000).toLocaleString() : '—'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderRequests(reqs) {
+            const tbody = document.getElementById('requests-table-body');
+            if (!reqs || reqs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b;">No recent request logs.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = reqs.map(r => `
+                <tr>
+                    <td><code>#${r.id}</code></td>
+                    <td>${escapeHtml(r.username || 'User #' + r.user_id)}</td>
+                    <td><span style="font-family: var(--font-mono); font-size: 12px; color: #94a3b8;" title="${escapeHtml(r.target_url || '')}">${escapeHtml((r.target_url || '').slice(0, 45))}...</span></td>
+                    <td><code>${escapeHtml(r.mode || 'auto')}</code></td>
+                    <td>${r.status_code === 200 ? '<span class="badge-pill badge-green">200 OK</span>' : '<span class="badge-pill badge-amber">' + r.status_code + '</span>'}</td>
+                    <td>${r.duration_ms} ms</td>
+                    <td style="color: #64748b;">${r.cost} cr</td>
+                </tr>
+            `).join('');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.style.display = 'block';
+            event.target.classList.add('active');
+        }
+
+        function openCreditModal(userId, username, currentCredits) {
+            selectedUserId = userId;
+            document.getElementById('modal-user-info').innerText = `User: ${username} (Current: ${currentCredits} credits)`;
+            document.getElementById('modal-amount-input').value = '100';
+            document.getElementById('credit-modal').style.display = 'flex';
+        }
+
+        function closeCreditModal() {
+            selectedUserId = null;
+            document.getElementById('credit-modal').style.display = 'none';
+        }
+
+        async function submitCreditAdjust() {
+            const amount = parseFloat(document.getElementById('modal-amount-input').value);
+            if (!selectedUserId || isNaN(amount)) return;
+            const key = getSavedKey();
+            try {
+                const res = await fetch(`/api/admin/users/credits?key=${encodeURIComponent(key)}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: selectedUserId, amount: amount })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    closeCreditModal();
+                    fetchAdminData();
+                } else {
+                    alert(json.detail || json.error || "Failed to adjust credits");
+                }
+            } catch(e) {
+                alert("Error adjusting credits: " + e.message);
+            }
+        }
+
+        async function createNewVoucher() {
+            const code = document.getElementById('voucher-code-input').value.trim();
+            const credits = parseFloat(document.getElementById('voucher-credits-input').value);
+            if (!code || isNaN(credits) || credits <= 0) {
+                alert("Please enter a valid code and credit amount.");
+                return;
+            }
+            const key = getSavedKey();
+            try {
+                const res = await fetch(`/api/admin/vouchers/create?key=${encodeURIComponent(key)}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ code: code, credits: credits })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    document.getElementById('voucher-code-input').value = '';
+                    fetchAdminData();
+                } else {
+                    alert(json.detail || json.error || "Failed to create voucher");
+                }
+            } catch(e) {
+                alert("Error creating voucher: " + e.message);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // Auto unlock if key already stored
+        window.addEventListener('DOMContentLoaded', () => {
+            if (getSavedKey()) {
+                verifyAndUnlock();
+            }
+        });
+    </script>
+</body>
+</html>

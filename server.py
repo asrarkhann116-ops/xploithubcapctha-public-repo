@@ -31,6 +31,11 @@ from core.db import (
     apply_daily_credits,
     get_request_cost,
     get_user_plan_meta,
+    get_platform_metrics,
+    get_user_metrics,
+    get_admin_overview,
+    admin_adjust_user_credits,
+    admin_create_voucher,
     PLANS,
     FREE_DAILY_REQUESTS
 )
@@ -41,6 +46,7 @@ from core import email_notify
 
 # Worker secret key for GitHub Actions runners to authenticate
 WORKER_SECRET = os.getenv("WORKER_SECRET", "xpk-worker-default-secret")
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "xpk-master-asrar-2026")
 
 # In-memory task queue: pending tasks waiting for a worker
 task_queue = deque()
@@ -98,6 +104,14 @@ class DepositVerifyRequest(BaseModel):
 
 class VoucherRedeemRequest(BaseModel):
     code: str
+
+class AdminCreditAdjustRequest(BaseModel):
+    user_id: int
+    amount: float
+
+class AdminVoucherCreateRequest(BaseModel):
+    code: str
+    credits: float
 
 # Async tasks storage: {task_id: {"id": str, "status": str, "created_at": int, "result": dict, "error": str, "webhook_url": str}}
 async_tasks = {}
@@ -821,6 +835,86 @@ async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request, r
     if bool(user.get("is_guest", 0)):
         raise HTTPException(status_code=403, detail="Please sign in or register an account to redeem vouchers.")
     res = redeem_voucher(req.code, user["id"])
+    return res
+
+@app.get("/api/analytics/metrics")
+async def platform_analytics_metrics(days: int = 7):
+    """Public platform metrics: total requests, success rates, latency, trends."""
+    # Bound days between 1 and 30
+    days = max(1, min(30, days))
+    metrics = get_platform_metrics(days=days)
+    return {
+        "success": True,
+        "metrics": metrics
+    }
+
+@app.get("/api/user/analytics")
+async def user_personal_analytics(request: Request, response: Response):
+    """Personal analytics and request history for current authenticated user."""
+    user = get_or_create_session_user(request, response)
+    metrics = get_user_metrics(user["id"])
+    return {
+        "success": True,
+        "user_id": user["id"],
+        "metrics": metrics
+    }
+
+# ════════════════════════════════════════════
+#  5.5 ADMIN CONTROL PANEL & ENDPOINTS
+# ════════════════════════════════════════════
+
+def verify_admin_key(
+    x_admin_key: Optional[str] = Header(None),
+    admin_key: Optional[str] = Query(None)
+):
+    key = x_admin_key or admin_key
+    if not key or key != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Unauthorized: Invalid admin secret key.")
+    return True
+
+@app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin/", response_class=HTMLResponse)
+async def admin_html_page():
+    admin_file = os.path.join(PUBLIC_DIR, "admin.html")
+    if os.path.exists(admin_file):
+        with open(admin_file, "r", encoding="utf-8") as f:
+            return f.read()
+    return RedirectResponse("/")
+
+@app.get("/api/admin/overview")
+async def admin_overview_api(
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    verify_admin_key(x_admin_key, key)
+    data = get_admin_overview()
+    now = time.time()
+    active_worker_count = len([w for w in active_workers.values() if now - w.get("last_seen", 0) < 60])
+    data["stats"]["active_solvers"] = active_worker_count
+    return {"success": True, "data": data}
+
+@app.post("/api/admin/users/credits")
+async def admin_adjust_user_credits_api(
+    req: AdminCreditAdjustRequest,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    verify_admin_key(x_admin_key, key)
+    res = admin_adjust_user_credits(req.user_id, req.amount)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
+@app.post("/api/admin/vouchers/create")
+async def admin_create_voucher_api(
+    req: AdminVoucherCreateRequest,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    verify_admin_key(x_admin_key, key)
+    res = admin_create_voucher(req.code, req.credits)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
     return res
 
 

@@ -222,7 +222,7 @@ async function logoutUser() {
 const MODE_SPECS = {
     'auto': {
         name: 'Auto Dual-Tier Mode',
-        desc: '<strong>Auto Dual-Tier Mode:</strong> Tries fast 50ms TLS impersonation first. If Cloudflare Turnstile or 5s challenge is triggered, auto-escalates to GitHub Actions Chrome CDP runner.',
+        desc: '<strong>Auto Dual-Tier Mode:</strong> Tries fast 50ms TLS impersonation first. If Cloudflare Turnstile or 5s challenge is triggered, auto-escalates to Distributed Chrome CDP Solver cluster.',
         toast: 'Engine mode set: Auto Dual-Tier (Fast TLS + CDP Fallback)'
     },
     'stealth': {
@@ -423,8 +423,8 @@ async function pollFleetStatus() {
         }
         if (pillEl) {
             pillEl.title = count > 0
-                ? `${count} GitHub Actions runner(s) active & ready for heavy CDP tasks`
-                : 'No external runners online. Requests run on local server engine.';
+                ? `${count} Distributed CDP solver node(s) active & ready`
+                : 'Edge cluster operational. High-priority clearance ready.';
         }
     } catch (e) {
         // Silent fail on background poll

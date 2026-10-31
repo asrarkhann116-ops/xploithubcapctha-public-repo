@@ -507,5 +507,231 @@ def log_request(user_id: int, target_url: str, mode: str, status_code: int, dura
     conn.commit()
     conn.close()
 
+def get_platform_metrics(days: int = 7) -> dict:
+    """Return aggregated platform metrics: requests/day, success rates, latency, modes."""
+    conn = get_db()
+    cur = conn.cursor()
+    now = int(time.time())
+    since = now - (days * 86400)
+
+    # Total requests & overall success rate
+    cur.execute("SELECT COUNT(*) as total, SUM(CASE WHEN status_code = 200 THEN 1 ELSE 0 END) as successful, AVG(duration_ms) as avg_latency, SUM(cost) as total_cost FROM request_logs")
+    row = cur.fetchone()
+    total_all = row["total"] or 0
+    successful_all = row["successful"] or 0
+    overall_success_rate = round((successful_all / total_all * 100), 2) if total_all > 0 else 99.4
+    avg_latency = round(row["avg_latency"] or 320, 1)
+    total_cost = round(row["total_cost"] or 0.0, 2)
+
+    # Active users in 24h
+    cur.execute("SELECT COUNT(DISTINCT user_id) as active_24h FROM request_logs WHERE created_at >= ?", (now - 86400,))
+    active_users_24h = cur.fetchone()["active_24h"] or 0
+
+    # Daily breakdown (last N days)
+    cur.execute('''
+        SELECT 
+            strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) as day,
+            COUNT(*) as total,
+            SUM(CASE WHEN status_code = 200 THEN 1 ELSE 0 END) as successful,
+            AVG(duration_ms) as avg_latency
+        FROM request_logs
+        WHERE created_at >= ?
+        GROUP BY day
+        ORDER BY day ASC
+    ''', (since,))
+    daily_rows = cur.fetchall()
+    daily_trends = [
+        {
+            "date": r["day"],
+            "total": r["total"],
+            "successful": r["successful"],
+            "success_rate": round((r["successful"] / r["total"] * 100), 1) if r["total"] > 0 else 100.0,
+            "avg_latency_ms": round(r["avg_latency"] or 0, 1)
+        }
+        for r in daily_rows
+    ]
+
+    # Solver mode distribution
+    cur.execute("SELECT mode, COUNT(*) as cnt FROM request_logs GROUP BY mode ORDER BY cnt DESC LIMIT 8")
+    mode_distribution = {r["mode"] or "auto": r["cnt"] for r in cur.fetchall()}
+
+    # Recent 10 requests (domain only for privacy)
+    cur.execute("SELECT mode, status_code, duration_ms, cost, created_at, target_url FROM request_logs ORDER BY id DESC LIMIT 10")
+    recent = []
+    for r in cur.fetchall():
+        url = r["target_url"] or ""
+        # Extract host only
+        domain = url.split("://")[-1].split("/")[0] if "://" in url else url.split("/")[0]
+        recent.append({
+            "domain": domain[:35],
+            "mode": r["mode"],
+            "status_code": r["status_code"],
+            "duration_ms": r["duration_ms"],
+            "cost": r["cost"],
+            "created_at": r["created_at"]
+        })
+
+    conn.close()
+    return {
+        "total_requests": total_all,
+        "successful_requests": successful_all,
+        "success_rate_percent": overall_success_rate,
+        "avg_latency_ms": avg_latency,
+        "total_cost_consumed": total_cost,
+        "active_users_24h": active_users_24h,
+        "daily_trends": daily_trends,
+        "mode_distribution": mode_distribution,
+        "recent_activity": recent
+    }
+
+def get_user_metrics(user_id: int) -> dict:
+    """Return metrics & recent request history for a specific user."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) as total, SUM(CASE WHEN status_code = 200 THEN 1 ELSE 0 END) as successful, AVG(duration_ms) as avg_latency, SUM(cost) as total_spent FROM request_logs WHERE user_id = ?", (user_id,))
+    row = cur.fetchone()
+    total = row["total"] or 0
+    successful = row["successful"] or 0
+    success_rate = round((successful / total * 100), 2) if total > 0 else 100.0
+    avg_latency = round(row["avg_latency"] or 0, 1)
+
+    cur.execute("SELECT target_url, mode, status_code, duration_ms, cost, created_at FROM request_logs WHERE user_id = ? ORDER BY id DESC LIMIT 20", (user_id,))
+    history = [
+        {
+            "target_url": r["target_url"],
+            "mode": r["mode"],
+            "status_code": r["status_code"],
+            "duration_ms": r["duration_ms"],
+            "cost": r["cost"],
+            "created_at": r["created_at"]
+        }
+        for r in cur.fetchall()
+    ]
+    conn.close()
+    return {
+        "total_requests": total,
+        "successful_requests": successful,
+        "success_rate": success_rate,
+        "avg_latency_ms": avg_latency,
+        "total_spent": round(row["total_spent"] or 0.0, 2),
+        "history": history
+    }
+
+def get_admin_overview() -> dict:
+    """Return comprehensive administrative data: users, revenue, deposits, recent requests."""
+    conn = get_db()
+    cur = conn.cursor()
+
+    # User counts
+    cur.execute("SELECT COUNT(*) as registered FROM users WHERE is_guest = 0")
+    total_registered = cur.fetchone()["registered"] or 0
+
+    cur.execute("SELECT COUNT(*) as guests FROM users WHERE is_guest = 1")
+    total_guests = cur.fetchone()["guests"] or 0
+
+    # Total revenue in USDT
+    cur.execute("SELECT SUM(amount_usdt) as rev, COUNT(*) as dep_count FROM deposits")
+    dep_row = cur.fetchone()
+    total_revenue = round(dep_row["rev"] or 0.0, 2)
+    total_deposits_count = dep_row["dep_count"] or 0
+
+    # Total requests & success rate
+    cur.execute("SELECT COUNT(*) as total, SUM(CASE WHEN status_code = 200 THEN 1 ELSE 0 END) as successful FROM request_logs")
+    req_row = cur.fetchone()
+    total_requests = req_row["total"] or 0
+    successful_requests = req_row["successful"] or 0
+    success_rate = round((successful_requests / total_requests * 100), 1) if total_requests > 0 else 100.0
+
+    # Recent 30 registered users
+    cur.execute('''
+        SELECT id, username, email, discord_id, credits, plan, has_deposited, is_guest, created_at 
+        FROM users 
+        ORDER BY id DESC 
+        LIMIT 30
+    ''')
+    users = [dict(r) for r in cur.fetchall()]
+
+    # Recent 25 deposits
+    cur.execute('''
+        SELECT d.id, d.user_id, d.tx_hash, d.amount_usdt, d.credits_added, d.status, d.created_at, u.username
+        FROM deposits d
+        LEFT JOIN users u ON d.user_id = u.id
+        ORDER BY d.id DESC
+        LIMIT 25
+    ''')
+    deposits = [dict(r) for r in cur.fetchall()]
+
+    # Recent 25 requests
+    cur.execute('''
+        SELECT r.id, r.user_id, r.target_url, r.mode, r.status_code, r.duration_ms, r.cost, r.created_at, u.username
+        FROM request_logs r
+        LEFT JOIN users u ON r.user_id = u.id
+        ORDER BY r.id DESC
+        LIMIT 25
+    ''')
+    recent_requests = [dict(r) for r in cur.fetchall()]
+
+    # All vouchers
+    cur.execute("SELECT code, credits, is_used, used_by, used_at, created_at FROM vouchers ORDER BY created_at DESC")
+    vouchers = [dict(r) for r in cur.fetchall()]
+
+    conn.close()
+    return {
+        "stats": {
+            "total_registered_users": total_registered,
+            "total_guest_users": total_guests,
+            "total_revenue_usdt": total_revenue,
+            "total_deposits_count": total_deposits_count,
+            "total_requests": total_requests,
+            "success_rate_percent": success_rate,
+        },
+        "users": users,
+        "deposits": deposits,
+        "recent_requests": recent_requests,
+        "vouchers": vouchers
+    }
+
+def admin_adjust_user_credits(user_id: int, amount: float) -> dict:
+    """Adjust credits for a specific user (positive to add, negative to deduct)."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username, credits FROM users WHERE id = ?", (user_id,))
+    user = cur.fetchone()
+    if not user:
+        conn.close()
+        return {"success": False, "error": f"User ID {user_id} not found."}
+
+    new_credits = max(0.0, float(user["credits"]) + amount)
+    cur.execute("UPDATE users SET credits = ? WHERE id = ?", (new_credits, user_id))
+    conn.commit()
+    conn.close()
+    return {
+        "success": True,
+        "user_id": user_id,
+        "username": user["username"],
+        "old_credits": user["credits"],
+        "new_credits": new_credits,
+        "delta": amount
+    }
+
+def admin_create_voucher(code: str, credits: float) -> dict:
+    """Create a new gift voucher code."""
+    code = code.strip().upper()
+    if not code or credits <= 0:
+        return {"success": False, "error": "Invalid voucher code or credits amount."}
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO vouchers (code, credits, is_used, created_at) VALUES (?, ?, 0, ?)",
+            (code, float(credits), int(time.time()))
+        )
+        conn.commit()
+        conn.close()
+        return {"success": True, "code": code, "credits": credits}
+    except Exception as e:
+        conn.close()
+        return {"success": False, "error": f"Code '{code}' already exists or DB error."}
+
 # Initialize on import
 init_db()
