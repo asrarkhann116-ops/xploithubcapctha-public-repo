@@ -202,7 +202,7 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
 .fx-theme:hover { border-color: var(--text-accent); }
 html[data-theme=night] { filter: hue-rotate(155deg) saturate(.95) brightness(.92); }
 html[data-theme=dawn] { filter: hue-rotate(-32deg) saturate(1.1) brightness(1.08); }
-.fx-flow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; max-width: 860px; margin: 14px auto 0; font-size: 12.5px; }
+.fx-flow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; max-width: 860px; margin: 16px auto 32px auto; font-size: 12.5px; }
 .fx-flow span { padding: 7px 12px; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-xs); color: var(--text-secondary); }
 .fx-flow b::before { content: '\203A'; color: var(--text-accent); font-size: 18px; }
 .fx-flow .ok { border-color: var(--text-ok); color: var(--text-ok); } .fx-flow .no { border-color: var(--text-amber); color: var(--text-amber); }
@@ -212,7 +212,7 @@ html[data-theme=dawn] { filter: hue-rotate(-32deg) saturate(1.1) brightness(1.08
 /* ---- round 4 ---- */
 :root{--t-h1:clamp(2rem,5vw,3.4rem);--t-h2:clamp(1.25rem,2.4vw,1.6rem);--t-body:1rem;--t-small:.85rem;--sp:8px}
 body{line-height:1.6;font-size:var(--t-body)}h2{font-size:var(--t-h2);line-height:1.25}.panel-caption,.hero-lead{max-width:68ch}
-.fx-works{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 0;font-size:var(--t-small);color:var(--text-muted)}
+.fx-works{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 24px 0;font-size:var(--t-small);color:var(--text-muted)}
 .fx-works b{font:600 .8rem var(--font-mono);padding:4px 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-secondary);background:var(--bg-surface)}
 .fx-scrollhint{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);font:600 .75rem var(--font-mono);color:var(--text-muted);transition:opacity .3s;z-index:20;pointer-events:none}
 .fx-scrollhint::after{content:"";display:block;width:8px;height:8px;margin:6px auto 0;border:solid var(--text-accent);border-width:0 2px 2px 0;transform:rotate(45deg);animation:fxHint 1.6s steps(6) infinite}
