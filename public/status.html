@@ -1,0 +1,17 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="/static/style.css"><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=JetBrains+Mono:wght@500;700&family=Pixelify+Sans:wght@600&display=swap" rel="stylesheet"><link rel="stylesheet" href="/static/fx.css"><title>System status | Xploit Unblocker</title></head>
+<body><header class="navbar"><div class="nav-container"><a class="nav-brand" href="/" style="text-decoration:none"><div class="brand-meta"><div class="brand-name">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div><div class="brand-subtitle">System status</div></div></a><a class="nav-link-glow" href="/">Back to console</a></div></header>
+<main class="page-container" style="max-width:860px"><h1 class="hero-heading" id="overall">Checking systems...</h1>
+<p class="hero-lead">Live checks from your browser, refreshed every 10 seconds.</p>
+<div class="side-column"><div class="panel"><div class="panel-header"><h2>Solver fleet</h2><span class="tier-badge" id="b1">...</span></div><p class="panel-caption" id="d1">Waiting for first check.</p></div>
+<div class="panel"><div class="panel-header"><h2>API</h2><span class="tier-badge" id="b2">...</span></div><p class="panel-caption" id="d2">Waiting for first check.</p></div>
+<div class="panel"><div class="panel-header"><h2>This session</h2></div><p class="panel-caption">API checks since you opened this page. Long-term uptime history needs server-side logging.</p><div id="strip" style="display:flex;gap:3px;height:34px;align-items:end"></div></div></div></main>
+<script>
+const hist=[],S=(i,ok,txt,d)=>{const b=document.getElementById('b'+i);b.textContent=ok?'OPERATIONAL':'DEGRADED';b.className='tier-badge '+(ok?'tier-free':'tier-vince');document.getElementById('d'+i).textContent=d};
+async function chk(){let w=0,a=false,ms=0;
+try{const r=await fetch('/api/workers/status',{cache:'no-store'});w=(await r.json()).workers_online||0}catch(e){}
+try{const t=performance.now();const r=await fetch('/api/user/me',{cache:'no-store'});ms=Math.round(performance.now()-t);a=r.ok}catch(e){}
+S(1,w>0,'',w>0?w+' solver'+(w>1?'s':'')+' online.':'No solvers reported online.');S(2,a,'',a?'Responding in '+ms+' ms (measured from your browser).':'API did not respond.');
+hist.push({a,ms});if(hist.length>40)hist.shift();
+document.getElementById('strip').innerHTML=hist.map(h=>'<i title="'+(h.a?h.ms+' ms':'failed')+'" style="flex:1;height:'+(h.a?Math.max(25,Math.min(100,100-h.ms/20)):100)+'%;background:'+(h.a?'#8fe3c0':'#ff8a8a')+'"></i>').join('');
+document.getElementById('overall').textContent=(w>0&&a)?'All systems operational':'Some systems are degraded'}
+chk();setInterval(chk,10000);</script><script src="/static/fx.js" defer></script></body></html>

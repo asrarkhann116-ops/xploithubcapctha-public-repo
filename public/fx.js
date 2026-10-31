@@ -62,4 +62,23 @@
     new MutationObserver(() => { const on = btn.disabled; box.classList.toggle('is-running', on); pg && pg.classList.toggle('is-running', on); clearInterval(timer);
       if (on) { let i = 0; pill.textContent = steps[0]; timer = setInterval(() => { pill.textContent = steps[Math.min(++i, steps.length - 1)]; }, 1100); }
       else if (was) { box.classList.add('fx-done'); setTimeout(() => box.classList.remove('fx-done'), 900); } was = on; }).observe(btn, { attributes: true, attributeFilter: ['disabled'] }); }
+
+  // plans: monthly cost estimator (monthly prices as listed on the page)
+  const grid = $('.cards-grid-main');
+  if (grid) { const P = [['Free (75/day)', 0, 2250, '.card-free'], ['Starter', 9, 5000, '.card-starter'], ['Moderato', 29, 30000, '.card-moderato'], ['Vince', 99, 150000, '.card-vince']];
+    const box = document.createElement('section'); box.className = 'fx-calc';
+    box.innerHTML = '<h2>Estimate your monthly cost</h2><div class="fx-calc-row"><input id="fx-vol" type="range" min="0" max="100" value="45" aria-label="Solves per month"><output id="fx-out"></output></div><div class="fx-calc-res" id="fx-res"></div>';
+    grid.after(box); const vol = $('#fx-vol'), o = $('#fx-out'), res = $('#fx-res');
+    const upd = () => { let n = Math.pow(10, 2 + vol.value / 100 * 3.4); const st = n > 10000 ? 1000 : n > 1000 ? 100 : 10; n = Math.round(n / st) * st; o.textContent = n.toLocaleString() + ' solves / month';
+      const opts = P.filter(p => n <= p[2]).map(p => ({ name: p[0], cost: p[1], sel: p[3] })); opts.push({ name: 'Pay-as-you-go', cost: n * .002, sel: null });
+      const b = opts.reduce((a, c) => c.cost < a.cost ? c : a); const per = b.cost ? '$' + (b.cost / n * 1000).toFixed(2) + ' per 1k solves' : 'no charge';
+      res.innerHTML = `<div><span>Best fit</span><strong>${b.name}</strong></div><div><span>Estimated cost</span><strong>$${b.cost.toFixed(b.cost % 1 ? 2 : 0)}/mo</strong></div><div><span>Effective rate</span><strong>${per}</strong></div>` + (b.sel ? `<button class="btn-secondary" id="fx-go">See ${b.name}</button>` : '') + (n > 150000 ? '<p>Above 150k a month? Ask about Enterprise.</p>' : '');
+      const go = $('#fx-go'); if (go) go.onclick = () => $(b.sel).scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    vol.addEventListener('input', upd); upd(); }
+
+  // docs: instant search, "/" to focus
+  const gcs = $$('.guide-card');
+  if (gcs.length) { const i = document.createElement('input'); i.className = 'fx-search'; i.type = 'search'; i.placeholder = 'Search the docs   ( / )'; (($('.guide-header') || gcs[0])).after(i);
+    i.addEventListener('input', () => { const q = i.value.toLowerCase(); gcs.forEach(c => { c.hidden = !!q && !c.textContent.toLowerCase().includes(q); }); });
+    addEventListener('keydown', e => { if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); i.focus(); } }); }
 })();
