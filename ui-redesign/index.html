@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xploit Unblocker — Developer Console & Stealth Scraper API</title>
+    <meta name="description" content="High-concurrency anti-bot bypass infrastructure. Automated Cloudflare Turnstile, DataDome, and Akamai bypass with CDP emulation.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top System Telemetry Bar -->
+    <div class="system-bar">
+        <div class="system-container">
+            <div class="sys-item">
+                <span class="pulse-indicator"></span>
+                <span class="sys-label">Infrastructure status:</span>
+                <span class="sys-val" id="sys-status-text">Operational</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">Engine:</span>
+                <span class="sys-val">X-STEALTH CDP v2.4</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">Latency p95:</span>
+                <span class="sys-val" id="telemetry-latency">1,840 ms</span>
+            </div>
+            <div class="sys-item">
+                <span class="sys-label">Billing:</span>
+                <span class="sys-val text-accent">Successful solves only</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div class="brand-meta">
+                    <div class="brand-name">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div>
+                    <div class="brand-subtitle">Stealth bypass API</div>
+                </div>
+            </div>
+
+            <div class="nav-controls">
+                <div class="stat-pill" id="fleet-status-pill" title="Distributed Edge Solver cluster status">
+                    <span class="fleet-dot" id="fleet-dot"></span>
+                    <span class="stat-val" id="fleet-count">0</span>
+                    <span class="stat-lbl" id="fleet-label">Solvers Online</span>
+                </div>
+
+                <div class="stat-pill" title="Available API execution credits">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    <span class="stat-val" id="nav-credits">10.0</span>
+                    <span class="stat-lbl">Credits</span>
+                </div>
+
+                <a href="/guide/" class="nav-link-glow" style="margin-right: 4px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    <span>API Docs &amp; Guide</span>
+                </a>
+
+                <a href="/plans/" class="nav-link-glow">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>View Plan Pricing</span>
+                </a>
+
+                <div class="user-control" id="user-control-block">
+                    <div class="user-profile-badge" id="user-badge-wrap">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span id="nav-username">Guest Tester</span>
+                    </div>
+
+                    <a href="/login" class="btn-primary" id="btn-auth-action" style="padding: 6px 14px; text-decoration: none; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        <span id="btn-auth-text">Sign In / Register</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="page-container">
+
+        <!-- High-Conversion Hero Section -->
+        <section class="section-hero">
+            <div class="hero-top-row">
+                <div class="hero-chip glow-cyan">
+                    <span class="chip-accent">Engine v2.4</span>
+                    <span>Automated Dual-Tier Evasion (Fast-TLS + Undetected CDP)</span>
+                </div>
+                <div class="hero-promo-badge">
+                    <span>Use promo voucher <code class="promo-code-pill">LAUNCH10</code> for 10 free credits!</span>
+                </div>
+            </div>
+
+            <h1 class="hero-heading">
+                Bypass <span class="text-gradient-cyan">Cloudflare Turnstile</span> &amp; <span class="text-gradient-green">DataDome</span> in Seconds
+            </h1>
+            <p class="hero-lead">
+                Automated stealth scraping infrastructure engineered for developers. Solve anti-bot JavaScript challenges, bypass Cloudflare 5s / Under-Attack mode, and extract cleared DOM &amp; session cookies with a simple REST API.
+            </p>
+
+            <!-- Conversion Action CTAs -->
+            <div class="hero-cta-group">
+                <a href="#playground-panel" class="btn-hero-primary" onclick="document.querySelector('.panel-playground').scrollIntoView({behavior:'smooth'}); return false;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>Test in Live Console</span>
+                </a>
+                <a href="/login" class="btn-hero-secondary" id="btn-hero-claim">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    <span>Claim Free API Key</span>
+                </a>
+                <a href="/guide/" class="btn-hero-ghost">
+                    <span>Quickstart Docs →</span>
+                </a>
+            </div>
+
+            <!-- Platform Performance Metrics Bar -->
+            <div class="hero-metrics-bar">
+                <div class="hero-metric-item">
+                    <div class="metric-num text-cyan">99.4%</div>
+                    <div class="metric-desc">Turnstile &amp; Cloudflare Solve Rate</div>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="hero-metric-item">
+                    <div class="metric-num text-green">&lt; 1.8s</div>
+                    <div class="metric-desc">Median Clearance Latency</div>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="hero-metric-item">
+                    <div class="metric-num text-amber">0 Charge</div>
+                    <div class="metric-desc">Guaranteed (Free on Failure)</div>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="hero-metric-item">
+                    <div class="metric-num text-purple">Zero KYC</div>
+                    <div class="metric-desc">Instant Solana USDT &amp; Vouchers</div>
+                </div>
+            </div>
+
+            <!-- Anti-Bot Target Badges -->
+            <div class="target-defense-row">
+                <span class="defense-label">Unblocks:</span>
+                <span class="defense-tag"><span class="dot-green"></span>Cloudflare Turnstile</span>
+                <span class="defense-tag"><span class="dot-green"></span>DataDome Interstitial</span>
+                <span class="defense-tag"><span class="dot-green"></span>Akamai Bot Manager</span>
+                <span class="defense-tag"><span class="dot-green"></span>Cloudflare Under Attack (5s)</span>
+                <span class="defense-tag"><span class="dot-green"></span>Kasada / PerimeterX</span>
+            </div>
+        </section>
+
+        <!-- Primary Layout Grid -->
+        <div class="grid-layout">
+
+            <!-- LEFT MAIN: Interactive Execution Console -->
+            <div class="panel panel-playground">
+                <div class="panel-header">
+                    <div class="panel-title-wrap">
+                        <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="4 17 10 11 4 5"></polyline>
+                            <line x1="12" y1="19" x2="20" y2="19"></line>
+                        </svg>
+                        <h2>Execution Console</h2>
+                    </div>
+
+                    <div class="segmented-control" role="group" aria-label="Engine Mode">
+                        <button class="seg-btn active" data-mode="auto" onclick="setMode('auto')">Auto Dual-Tier</button>
+                        <button class="seg-btn" data-mode="stealth" onclick="setMode('stealth')">Pure CDP Stealth</button>
+                        <button class="seg-btn" data-mode="fast" onclick="setMode('fast')">Fast TLS (50ms)</button>
+                    </div>
+                </div>
+
+                <!-- Mode Explanation Banner -->
+                <div class="mode-info-banner" id="mode-info-banner">
+                    <div class="mode-info-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </div>
+                    <div class="mode-info-text" id="mode-info-desc">
+                        <strong>Auto Dual-Tier Mode:</strong> Tries 50ms TLS impersonation first. If Cloudflare Turnstile or 5s challenge is detected, auto-dispatches to Distributed Chrome CDP Solver cluster.
+                    </div>
+                </div>
+                <!-- Input Row -->
+                <div class="command-bar">
+                    <select id="target-method" class="method-selector" title="HTTP Method" onchange="updateSnippetDisplay()">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                    </select>
+                    <input type="url" id="target-url" value="https://gitlab.com/users/sign_in" placeholder="https://example.com/login" spellcheck="false" autocomplete="off" oninput="updateSnippetDisplay()">
+                    <input type="text" id="target-proxy" placeholder="Proxy (Optional)" spellcheck="false" autocomplete="off" style="max-width: 175px; border-left: 1px solid var(--border-subtle); padding-left: 10px; font-size: 11px;" oninput="updateSnippetDisplay()">
+                    <button class="btn-primary" id="btn-run" onclick="executeScrape()">
+                        <svg class="btn-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <span id="btn-run-text">Run Bypass</span>
+                    </button>
+                </div>
+
+                <!-- Metrics Strip -->
+                <div class="telemetry-strip">
+                    <div class="telemetry-cell">
+                        <div class="cell-label">Status</div>
+                        <div class="cell-val text-muted" id="metric-status">Idle / Standby</div>
+                    </div>
+                    <div class="telemetry-cell">
+                        <div class="cell-label">Execution time</div>
+                        <div class="cell-val" id="metric-latency">-- ms</div>
+                    </div>
+                    <div class="telemetry-cell">
+                        <div class="cell-label">Challenge clearance</div>
+                        <div class="cell-val" id="metric-bypass">Unexecuted</div>
+                    </div>
+                    <div class="telemetry-cell">
+                        <div class="cell-label">Debit</div>
+                        <div class="cell-val text-accent">1.0 Credit ($0.1)</div>
+                    </div>
+                </div>
+
+                <!-- Output Terminal View -->
+                <div class="terminal-container">
+                    <div class="terminal-tabbar">
+                        <div class="terminal-tabs">
+                            <button class="tab-item active" onclick="switchTab('html')">Decoded HTML</button>
+                            <button class="tab-item" onclick="switchTab('cookies')">Clearance Cookies</button>
+                            <button class="tab-item" onclick="switchTab('headers')">Response Headers</button>
+                        </div>
+                        <div class="terminal-actions" style="display: flex; gap: 8px;">
+                            <button class="btn-copy-terminal" id="btn-export-netscape" onclick="exportNetscapeCookies()" title="Download Netscape formatted cookies.txt for curl, wget, yt-dlp, Playwright" style="display: none;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                <span>Export Netscape .txt</span>
+                            </button>
+                            <button class="btn-copy-terminal" onclick="copyConsoleOutput()" title="Copy active tab output">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span>Copy Buffer</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="terminal-screen">
+                        <pre id="console-output"><code>// Standby mode. Enter a URL above and click "Run Bypass".
+// The solver emulates realistic human bezier mouse motion and solves Cloudflare Turnstile tokens.</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT STACK: API Key, Discord Promo, Solana Billing -->
+            <div class="side-column">
+
+                <!-- PANEL 1: API Key & Multi-Language Quickstart -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="7.5" cy="15.5" r="5.5"></circle>
+                                <path d="m21 2-9.6 9.6"></path>
+                                <path d="m15.5 7.5 3 3"></path>
+                                <path d="m18.5 4.5 3 3"></path>
+                            </svg>
+                            <h2>Authentication Key</h2>
+                        </div>
+                        <a href="/developer/api-key/guide" target="_blank" class="status-badge-accent" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Open Developer API Key & Billing Guide">
+                            <span>Key Guide</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>
+                    </div>
+
+                    <p class="panel-caption" id="api-key-caption">Send this key in your HTTP requests via the <code>X-API-Key</code> header.</p>
+
+                    <div class="field-box" id="api-key-box">
+                        <input type="password" id="api-key-val" value="xpk_fetching_credentials..." readonly>
+                        <div class="field-actions" id="api-key-actions">
+                            <button class="field-btn" onclick="toggleApiKeyVisibility()" id="btn-toggle-key" title="Toggle visibility">
+                                <svg id="svg-eye" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                            <button class="field-btn" onclick="regenerateApiKey()" id="btn-regen-key" title="Generate new secret API key">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                </svg>
+                            </button>
+                            <button class="field-btn" onclick="copyApiKey()" id="btn-copy-key" title="Copy key">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Guest Key Lock Banner (shown only to guests) -->
+                    <div id="guest-key-banner" class="notice-box notice-warning" style="display: none; margin-top: 10px; margin-bottom: 12px;">
+                        <svg class="notice-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <div class="notice-text">
+                            <strong>Guest Testing Mode:</strong> API Key is hidden for guests. You can test bypasses directly in this web console. To reveal your personal API key for cURL / Python automation and topup credits, please create an account.
+                            <a href="/register" class="btn-primary" style="display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 8px; text-decoration: none; padding: 7px; font-size: 11px;">Register to Unlock API Key</a>
+                        </div>
+                    </div>
+
+
+                    <div class="code-snippet-box">
+                        <div class="code-snippet-head">
+                            <div class="snippet-lang-tabs">
+                                <button class="snippet-lang-btn active" data-lang="curl" onclick="setSnippetLang('curl')">cURL</button>
+                                <button class="snippet-lang-btn" data-lang="python" onclick="setSnippetLang('python')">Python</button>
+                                <button class="snippet-lang-btn" data-lang="node" onclick="setSnippetLang('node')">Node.js</button>
+                            </div>
+                            <button class="code-copy-btn" onclick="copySnippetCode()">Copy</button>
+                        </div>
+                        <pre><code id="snippet-code-display">// Loading integration code snippet...</code></pre>
+                    </div>
+                </div>
+
+                <!-- PANEL: Tier & Daily Credit System -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                            </svg>
+                            <h2>Plan &amp; Concurrency</h2>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span id="tier-badge" class="tier-badge tier-free">FREE</span>
+                        </div>
+                    </div>
+
+                    <p id="tier-label" class="panel-caption">FREE — 75 requests/day • 3 slots • Resets daily (no rollover)</p>
+
+                    <div class="tier-stat-grid">
+                        <div class="tier-stat-cell">
+                            <div class="tier-stat-label">Rate per solve</div>
+                            <div class="tier-stat-val" id="cost-per-req">1.0 solve credit</div>
+                        </div>
+                        <div class="tier-stat-cell">
+                            <div class="tier-stat-label">Concurrency</div>
+                            <div class="tier-stat-val" id="daily-info">3 worker slots</div>
+                        </div>
+                        <div class="tier-stat-cell" style="grid-column: 1 / -1;">
+                            <div class="tier-stat-label">Next daily refresh (UTC)</div>
+                            <div class="tier-stat-val" style="font-size:20px; font-family: var(--font-mono); color: var(--text-accent);" id="reset-timer">--:--:--</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 14px;">
+                        <a href="/plans/" class="btn-plans-cta">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                            </svg>
+                            <span>View Plan Pricing</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- PANEL 2: Discord Promo Engine -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+
+                            <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                                <rect x="2" y="7" width="20" height="5"></rect>
+                                <line x1="12" y1="22" x2="12" y2="7"></line>
+                                <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                                <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+                            </svg>
+                            <h2>Discord Community Promotion</h2>
+                        </div>
+                        <span class="status-badge-accent">500 FREE REQS</span>
+                    </div>
+
+                    <p class="panel-caption">
+                        Place our official invite link into your Discord <strong>About Me (Bio)</strong> or <strong>Custom Status</strong>:
+                    </p>
+
+                    <div class="info-block">
+                        <div class="info-label">Invite link</div>
+                        <div class="info-content-row">
+                            <code id="promo-link-text">discord.gg/3fb9Q7ucSN</code>
+                            <button class="field-btn" onclick="copyPromoLink()" title="Copy link">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="notice-box notice-warning">
+                        <svg class="notice-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <div class="notice-text">
+                            <strong>5-Hour Timeout Cooldown:</strong> If the invite link is removed from your profile after claiming, the account enters a mandatory 5-hour cooldown during which no requests can be processed.
+                        </div>
+                    </div>
+
+                    <div id="promo-status-msg" class="promo-status-line">Verification status: Ready</div>
+
+                    <button class="btn-secondary" id="btn-verify-promo" onclick="verifyPromo()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <span id="btn-promo-text">Verify Discord Profile</span>
+                    </button>
+                </div>
+
+                <!-- PANEL 3: Solana Treasury Settlement & Vouchers -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title-wrap">
+                            <svg class="panel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                                <path d="M12 6v2m0 8v2"></path>
+                            </svg>
+                            <h2>Settlement & Balances</h2>
+                        </div>
+                    </div>
+
+                    <!-- Tabs for Solana vs Voucher -->
+                    <div class="sub-tab-bar">
+                        <button class="sub-tab active" id="tab-solana" onclick="toggleDepositTab('solana')">Solana USDT (SPL)</button>
+                        <button class="sub-tab" id="tab-voucher" onclick="toggleDepositTab('voucher')">Redeem Gift Voucher</button>
+                    </div>
+
+                    <!-- SOLANA TAB VIEW -->
+                    <div id="deposit-view-solana">
+                        <p class="panel-caption">Send USDT (SPL) to our official Solana treasury. Need 24/7 dedicated unblockers? <a href="/plans/" style="color:var(--text-accent); font-weight:600; text-decoration:underline;">View Plan Pricing</a></p>
+
+                        <div class="info-block">
+                            <div class="info-label">Solana treasury wallet</div>
+                            <div class="info-content-row">
+                                <code id="solana-wallet-val">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
+                                <button class="field-btn" onclick="copySolanaWallet()" title="Copy wallet address">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="info-block">
+                            <div class="info-label">Your unique deposit reference ID</div>
+                            <div class="info-content-row">
+                                <code id="user-deposit-ref" class="text-accent">XPK-REF</code>
+                                <button class="field-btn" onclick="copyDepositRef()" title="Copy reference memo">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="tx-input-group">
+                            <input type="text" id="tx-hash-input" placeholder="Paste Solana Transaction Signature (TX Hash)..." spellcheck="false" autocomplete="off">
+                            <button class="btn-secondary" onclick="verifyDeposit()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Verify On-Chain</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- VOUCHER TAB VIEW -->
+                    <div id="deposit-view-voucher" style="display: none;">
+                        <p class="panel-caption">Redeem a gift code or promotional voucher provided by administrators or boosters:</p>
+                        
+                        <div class="tx-input-group">
+                            <input type="text" id="voucher-code-input" placeholder="e.g. XPK-WELCOME-1000" spellcheck="false" autocomplete="off">
+                            <button class="btn-secondary" onclick="redeemVoucherCode()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Claim Code</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="deposit-msg" class="deposit-result-area"></div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Global Toast Alert Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- Application Footer -->
+    <footer class="app-footer">
+        <div class="footer-container">
+            <div class="footer-left">
+                <span>Enterprise Anti-Bot Clearance Infrastructure</span>
+                <span class="footer-divider">|</span>
+                <span>Dual-Tier Engine: Proprietary Fast-TLS + Stealth Hardware CDP</span>
+            </div>
+            <div class="footer-links">
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener">Discord Support</a>
+                <a href="/api/analytics/metrics" target="_blank">Platform Metrics</a>
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener">Developer Community</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

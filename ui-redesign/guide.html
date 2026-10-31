@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Key & Billing Specification — Xploit Unblocker Documentation</title>
+    <meta name="description" content="Official developer documentation for Xploit Unblocker API key authentication, database storage, Solana USDT settlement, and rate limits.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .guide-container {
+            max-width: 960px;
+            margin: 32px auto 80px;
+            padding: 0 24px;
+        }
+        .guide-header {
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 24px;
+        }
+        .guide-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .guide-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .guide-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .guide-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .guide-card p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+        .guide-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #111227;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .guide-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+        .guide-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(246, 184, 200, 0.15);
+            color: var(--text-accent);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .btn-nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            margin-bottom: 16px;
+            transition: color 0.12s;
+        }
+        .btn-nav-back:hover {
+            color: var(--text-accent);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top System Telemetry Bar -->
+    <div class="system-bar">
+        <div class="system-container">
+            <div class="sys-item">
+                <span class="pulse-indicator"></span>
+                <span class="sys-label">Documentation:</span>
+                <span class="sys-val">API SPECIFICATION v3.0</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">Settlement:</span>
+                <span class="sys-val">Solana mainnet USDT (SPL)</span>
+            </div>
+            <div class="sys-item">
+                <span class="sys-label">Free tier:</span>
+                <span class="sys-val text-accent">75 req/day free</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">Paid tier:</span>
+                <span class="sys-val" style="color:#f6b8c8;">From $0.0008/req</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="brand-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div class="brand-meta">
+                    <div class="brand-name">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div>
+                    <div class="brand-subtitle">Developer documentation</div>
+                </div>
+            </div>
+
+            <div class="nav-controls">
+                <a href="/plans/" class="nav-link-glow" style="margin-right: 6px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>View Plan Pricing</span>
+                </a>
+                <a href="/" class="btn-secondary" style="width: auto; text-decoration: none; padding: 6px 14px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    <span>Return to Console</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-container">
+        <a href="/" class="btn-nav-back">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Console Workspace
+        </a>
+
+        <div class="guide-header">
+            <div class="hero-chip" style="margin-bottom: 12px;">
+                <span class="chip-accent">AUTHENTICATION & BILLING</span>
+                <span>Developer Guide</span>
+            </div>
+            <h1 class="guide-title">API Key Architecture & Balance Upgrades</h1>
+            <p class="guide-subtitle">
+                Comprehensive technical guide on API key isolation, SQLite database schema persistence, Solana USDT micro-settlements, and challenge unblocking request limits.
+            </p>
+        </div>
+
+        <!-- SECTION 1: API Key Isolation & Storage -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">1</span>
+                API Key Architecture & Database Persistence
+            </h3>
+            <p>
+                Every operator who opens the console or signs in via Discord is automatically allocated an isolated user account in the central SQLite database (<code>data/unblocker.db</code>).
+            </p>
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th>Database Field</th>
+                        <th>Format / Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>users.id</code></td>
+                        <td>INTEGER (Primary Key)</td>
+                        <td>Unique database account identifier.</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.api_key</code></td>
+                        <td>TEXT (Unique)</td>
+                        <td>Secret key formatted as <code>xpk_</code> followed by 40 cryptographically random hexadecimal characters.</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.deposit_ref</code></td>
+                        <td>TEXT (Unique)</td>
+                        <td>Unique 8-character deposit memo reference code (e.g. <code>XPK-7B2A</code>) linked to your ledger balance.</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.credits</code></td>
+                        <td>REAL (Floating Point)</td>
+                        <td>Active request credits balance. 1 credit = 1 request clearance ($0.1 USD value).</td>
+                    </tr>
+                    <tr>
+                        <td><code>users.has_promo</code></td>
+                        <td>INTEGER (0 or 1)</td>
+                        <td>Flag recording whether the 500 free promotional request package has been redeemed.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SECTION 2: Tier Plans & Balance Upgrades -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">2</span>
+                Pricing Tiers &amp; Solve Credit Economy
+            </h3>
+            <p>
+                Xploit Unblocker bills <strong>strictly for successful solves</strong>. If a target challenge fails or times out, <strong>0 credits</strong> are debited. Every registered account receives 75 free requests refreshed daily. Upgrading unlocks high-concurrency pools, lower overage rates, and credit rollovers.
+            </p>
+
+            <!-- Tier Comparison Table -->
+            <table class="guide-table" style="margin-bottom:20px;">
+                <thead>
+                    <tr>
+                        <th>Plan</th>
+                        <th>Price</th>
+                        <th>Included Solves</th>
+                        <th>Overage Rate</th>
+                        <th>Price / 1k Solves</th>
+                        <th>Concurrency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Free</strong></td>
+                        <td>$0 forever</td>
+                        <td>75 requests / day (no rollover)</td>
+                        <td>—</td>
+                        <td>$0</td>
+                        <td>3 slots</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Starter</strong></td>
+                        <td>$9 / month</td>
+                        <td>5,000 solves / month</td>
+                        <td>$0.0025 / req</td>
+                        <td>$1.80–$2.50</td>
+                        <td>10 workers</td>
+                    </tr>
+                    <tr style="background:rgba(246,184,200,0.06);">
+                        <td><strong style="color:#f6b8c8;">Moderato (Most Popular)</strong></td>
+                        <td><strong>$29 / mo ($279/yr)</strong></td>
+                        <td><strong>30,000 solves / month</strong></td>
+                        <td><code style="color:#f6b8c8;">$0.0012 / req</code></td>
+                        <td><strong>$0.97–$1.20</strong></td>
+                        <td>50 workers (24/7)</td>
+                    </tr>
+                    <tr style="background:rgba(255,224,168,0.06);">
+                        <td><strong style="color:#ffe0a8;">Vince (Best Value)</strong></td>
+                        <td><strong>$99 / mo ($949/yr)</strong></td>
+                        <td><strong>150,000 solves / month</strong></td>
+                        <td><code style="color:#ffe0a8;">$0.0008 / req</code></td>
+                        <td><strong>$0.66–$0.80</strong></td>
+                        <td>Unlimited (150+)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pay-as-you-go</strong></td>
+                        <td>No subscription</td>
+                        <td>Buy credits anytime</td>
+                        <td>$0.0020 / req</td>
+                        <td>$2.00</td>
+                        <td>10 workers</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Deposit → Credits table -->
+            <h3 style="font-size:13px; margin-bottom:10px; color:var(--text-secondary); font-weight:600;">INSTANT ON-CHAIN UPGRADE (SOLANA USDT SPL)</h3>
+            <div class="info-block" style="margin-bottom: 14px;">
+                <div class="info-label">Official treasury wallet (solana SPL)</div>
+                <div class="info-content-row">
+                    <code style="color: var(--text-accent);">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
+                </div>
+            </div>
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th>Deposit (USDT)</th>
+                        <th>Plan Activated</th>
+                        <th>Included Solves</th>
+                        <th>Effective Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>9.00 USDT</td>
+                        <td><strong style="color:var(--text-cyan);">Starter (30 Days)</strong></td>
+                        <td>5,000 solves</td>
+                        <td>$0.0025 / req</td>
+                    </tr>
+                    <tr>
+                        <td>29.00 USDT</td>
+                        <td><strong style="color:#f6b8c8;">Moderato (30 Days)</strong></td>
+                        <td>30,000 solves</td>
+                        <td>$0.0012 / req</td>
+                    </tr>
+                    <tr>
+                        <td>99.00 USDT</td>
+                        <td><strong style="color:#ffe0a8;">Vince Enterprise (30 Days)</strong></td>
+                        <td>150,000 solves</td>
+                        <td>$0.0008 / req</td>
+                    </tr>
+                    <tr>
+                        <td>279.00 USDT</td>
+                        <td><strong style="color:#f6b8c8;">Annual Moderato (365 Days)</strong></td>
+                        <td>360,000 solves</td>
+                        <td>$0.0012 / req (2 mos free)</td>
+                    </tr>
+                    <tr>
+                        <td>949.00 USDT</td>
+                        <td><strong style="color:#ffe0a8;">Annual Vince (365 Days)</strong></td>
+                        <td>1,800,000 solves</td>
+                        <td>$0.0008 / req (2 mos free)</td>
+                    </tr>
+                    <tr>
+                        <td>Custom (&lt; $9)</td>
+                        <td><strong>Pay-as-you-go</strong></td>
+                        <td>500 solves / $1 USDT</td>
+                        <td>$0.0020 / req ($2/1k)</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top: 14px;">
+                <strong>Instant Credit Activation:</strong> Transfer USDT to the treasury wallet and paste your transaction hash in the console. Our backend validates on Solana mainnet RPC — credits are applied within seconds. First deposit permanently upgrades your account to Paid Tier.
+            </p>
+        </div>
+
+        <!-- SECTION 3: HTTP Authentication Protocol -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">3</span>
+                Authentication Protocols & Code Implementation
+            </h3>
+            <p>
+                Pass your API key in every HTTP request. Header authentication is strongly recommended:
+            </p>
+            <div class="code-snippet-box">
+                <div class="code-snippet-head">
+                    <span>Python Example (requests)</span>
+                </div>
+                <pre><code>import requests
+
+API_KEY = "xpk_your_secret_api_key_here"
+url = "https://xploithubcapctha.up.railway.app/v1/unlock"
+
+headers = {
+    "X-API-Key": API_KEY,
+    "Content-Type": "application/json"
+}
+
+payload = {
+    "url": "https://gitlab.com/users/sign_in",
+    "mode": "auto",       # "auto", "stealth", "fast"
+    "method": "GET"
+}
+
+response = requests.post(url, headers=headers, json=payload)
+data = response.json()
+
+if data.get("success"):
+    print("Page Title:", data["title"])
+    print("Captcha Detected & Solved:", data.get("captcha_detected"))
+    print("Cloudflare Clearance Token:", data.get("cf_clearance"))
+    print("Cookies Captured:", len(data["cookies"]))
+    print("Execution Duration:", data["duration_ms"], "ms")
+    print("Credits Remaining:", data["credits_remaining"])
+else:
+    print("Error:", data.get("error"))</code></pre>
+            </div>
+        </div>
+
+        <!-- SECTION 4: Status Codes & Error Handling -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">4</span>
+                HTTP Response Codes & Error Matrix
+            </h3>
+            <table class="guide-table">
+                <thead>
+                    <tr>
+                        <th>Status Code</th>
+                        <th>Meaning</th>
+                        <th>Resolution Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code style="color: #f6b8c8;">200 OK</code></td>
+                        <td>Challenge successfully cleared.</td>
+                        <td>DOM and cookies returned in JSON body. 1.0 credit deducted.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #9fd8ff;">202 Accepted</code></td>
+                        <td>Async scrape task queued.</td>
+                        <td>Poll <code>/v1/tasks/{task_id}</code> or await webhook POST.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #ff8a8a;">401 Unauthorized</code></td>
+                        <td>API Key missing or invalid.</td>
+                        <td>Check the <code>X-API-Key</code> header in your request.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #ffe0a8;">402 Payment Required</code></td>
+                        <td>Insufficient credits (balance &lt; 1.0).</td>
+                        <td>Top up via Solana USDT or claim free 500 credits with Discord promo.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #ffe0a8;">403 Forbidden</code></td>
+                        <td>Account restricted (5-hr cooldown active).</td>
+                        <td>Wait for cooldown period to elapse if promo link was removed.</td>
+                    </tr>
+                    <tr>
+                        <td><code style="color: #ff8a8a;">400 Bad Request</code></td>
+                        <td>Target host refused or timeout.</td>
+                        <td>No credit is debited on failed challenge attempts.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SECTION 5: Pricing Plans Summary -->
+        <div class="guide-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                <h3 style="margin:0;">
+                    <span class="step-num">5</span>
+                    Production Pricing Plans &amp; 24/7 Runners
+                </h3>
+                <a href="/plans/" class="btn-plans-cta" style="width:auto; padding:8px 18px;">
+                    <span>View Plan Pricing Page</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            </div>
+            <p>Bill only for successful solves. Comprehensive plan lineup from free integration testing to dedicated enterprise clusters:</p>
+
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-top:14px;">
+                <!-- FREE Plan -->
+                <div style="background:rgba(100,116,139,0.06); border:1px solid rgba(100,116,139,0.25); border-radius:8px; padding:16px;">
+                    <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">FREE</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:2px;">$0 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">/ forever</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">75 reqs/day • 3 slots</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+                        <li>• Turnstile + basic CAPTCHA</li>
+                        <li>• Shared worker queue</li>
+                        <li>• Resets UTC midnight</li>
+                    </ul>
+                </div>
+
+                <!-- STARTER Plan -->
+                <div style="background:rgba(159,216,255,0.06); border:1px solid rgba(159,216,255,0.3); border-radius:8px; padding:16px;">
+                    <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-cyan); font-weight:700; margin-bottom:6px;">STARTER</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:2px;">$9 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">/ month</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">5,000 solves/mo • 10 workers</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+                        <li>• $0.0025 overage rate</li>
+                        <li>• $1.80–$2.50 / 1k solves</li>
+                        <li>• 30-day credit rollover</li>
+                    </ul>
+                </div>
+
+                <!-- MODERATO Plan -->
+                <div style="background:rgba(246,184,200,0.06); border:1px solid rgba(246,184,200,0.4); border-radius:8px; padding:16px; position:relative;">
+                    <div style="position:absolute;top:-8px;right:8px;background:#f6b8c8;color:#000;font-size:8px;font-weight:800;padding:2px 6px;border-radius:4px;">POPULAR</div>
+                    <div style="font-family:var(--font-mono); font-size:10px; color:#f6b8c8; font-weight:700; margin-bottom:6px;">MODERATO</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:2px;">$29 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">/ mo ($279/yr)</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">30,000 solves/mo • 50 workers</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+                        <li>• <strong style="color:#f6b8c8;">$0.0012 overage rate</strong></li>
+                        <li>• 24/7 Dedicated Runners</li>
+                        <li>• Unlimited credit rollover</li>
+                    </ul>
+                </div>
+
+                <!-- VINCE Plan -->
+                <div style="background:rgba(255,224,168,0.06); border:1px solid rgba(255,224,168,0.4); border-radius:8px; padding:16px;">
+                    <div style="font-family:var(--font-mono); font-size:10px; color:#ffe0a8; font-weight:700; margin-bottom:6px;">VINCE</div>
+                    <div style="font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:2px;">$99 <span style="font-size:11px; font-weight:400; color:var(--text-muted);">/ mo ($949/yr)</span></div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">150,000 solves/mo • 150+ workers</div>
+                    <ul style="list-style:none; padding:0; margin:0; font-size:11px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+                        <li>• <strong style="color:#ffe0a8;">$0.0008 overage rate</strong></li>
+                        <li>• Dedicated Isolated Cluster</li>
+                        <li>• Premium Residential Proxies</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="margin-top:20px; text-align:center;">
+                <a href="/plans/" class="btn-plans-cta" style="display:inline-flex; width:auto; padding:12px 30px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>View Plan Pricing &amp; Comparison Matrix</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- SECTION 6: Undetectable Automation & Multi-CAPTCHA Engine (5th Edition) -->
+        <div class="guide-card">
+            <h3>
+                <span class="step-num">6</span>
+                Undetectable Automation Engine (5th Edition CDP Architecture)
+            </h3>
+            <p>
+                Xploit Unblocker is engineered on the breakthroughs of modern stealth automation — bypassing Cloudflare WAF, Turnstile, hCaptcha, reCAPTCHA, DataDome, and Friendly Captcha using raw Chrome DevTools Protocol (CDP) commands.
+            </p>
+
+            <!-- Feature 1: Why CDP vs JavaScript -->
+            <div style="background:rgba(159,216,255,0.05); border:1px solid rgba(159,216,255,0.25); border-radius:8px; padding:16px; margin:16px 0;">
+                <h4 style="margin:0 0 8px 0; color:var(--text-cyan); font-size:14px; font-weight:700;">
+                    1. Why CDP Mode Beats Standard JavaScript Injection
+                </h4>
+                <p style="margin:0; font-size:12.5px; line-height:1.6; color:var(--text-secondary);">
+                    Legacy scrapers (standard Puppeteer, Selenium WebDriver, vanilla Playwright) inject custom JavaScript shims into the DOM to mask <code>navigator.webdriver</code> or dispatch fake click events. Modern bot detectors (Cloudflare, DataDome, Kasada) inspect JavaScript execution contexts, prototype pollution, and event origin flags (<code>isTrusted: false</code>). In contrast, <strong>CDP Mode controls Chromium directly at the browser protocol socket</strong> — firing hardware-level dispatch events with genuine OS mouse coordinates and zero JavaScript footprint.
+                </p>
+            </div>
+
+            <!-- Feature 2: Universal Multi-CAPTCHA Matrix -->
+            <h4 style="margin:20px 0 10px 0; font-size:13px; color:var(--text-primary); text-transform:uppercase; letter-spacing:0.5px;">
+                Supported Anti-Bot &amp; Challenge Solvers
+            </h4>
+            <table class="guide-table" style="margin-bottom:16px;">
+                <thead>
+                    <tr>
+                        <th>Challenge / Bot Protection</th>
+                        <th>Bypass Method</th>
+                        <th>Stealth Mechanism</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Cloudflare Turnstile &amp; 5s Shield</strong></td>
+                        <td>Autonomous CDP Protocol Solver</td>
+                        <td>Hardware-level coordinate targeting, no synthetic event trigger.</td>
+                    </tr>
+                    <tr>
+                        <td><strong style="color:#9fd8ff;">hCaptcha (Checkbox &amp; Challenges)</strong></td>
+                        <td>Deep Frame Inspection Engine</td>
+                        <td>Direct iframe context traversal with native checkbox activation.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Google reCAPTCHA v2 / v3</strong></td>
+                        <td>Universal CDP solver pipeline</td>
+                        <td>Genuine desktop fingerprint, natural audio/canvas token generation.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DataDome &amp; GeeTest Sliders</strong></td>
+                        <td>Bezier Curve Trajectory Engine</td>
+                        <td>Human physiological acceleration, deceleration, and micro-tremor drag.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Friendly Captcha</strong></td>
+                        <td>Automatic Proof-of-Work runner</td>
+                        <td>Hardware-accelerated cryptographic PoW solver dispatch.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Feature 3: Reusable cf_clearance Security Token -->
+            <div style="background:rgba(246,184,200,0.05); border:1px solid rgba(246,184,200,0.3); border-radius:8px; padding:16px; margin-top:16px;">
+                <h4 style="margin:0 0 8px 0; color:#f6b8c8; font-size:14px; font-weight:700;">
+                    3. High-Speed Token Reuse: The <code>cf_clearance</code> Shortcut (50x Faster)
+                </h4>
+                <p style="margin:0 0 12px 0; font-size:12.5px; line-height:1.6; color:var(--text-secondary);">
+                    When Xploit Unblocker solves a Cloudflare challenge, it extracts the issued <code>cf_clearance</code> cookie and matching <code>User-Agent</code> into top-level response fields. You can cache and pass this clearance token into lightweight HTTP clients (such as <code>requests</code> or <code>curl</code>) to scrape thousands of pages at wire speed without re-triggering browser automation!
+                </p>
+                <div class="code-snippet-box" style="margin:0;">
+                    <div class="code-snippet-head">
+                        <span>Python Example: Reusing cf_clearance Token</span>
+                    </div>
+                    <pre><code>import requests
+
+# 1. Fetch unblocked clearance token from Xploit API once
+unblock_res = requests.post("https://xploithubcapctha.up.railway.app/v1/unlock", headers={
+    "X-API-Key": "xpk_your_api_key_here"
+}, json={"url": "https://target-site.com/protected-page", "mode": "stealth"}).json()
+
+cf_token = unblock_res.get("cf_clearance")
+user_agent = unblock_res.get("user_agent")
+
+# 2. Reuse clearance cookie directly in subsequent high-speed requests (50ms response)
+session = requests.Session()
+session.headers.update({"User-Agent": user_agent})
+session.cookies.set("cf_clearance", cf_token, domain="target-site.com")
+
+fast_page = session.get("https://target-site.com/api/data")
+print("High-speed response status:", fast_page.status_code)</code></pre>
+                </div>
+            </div>
+
+            <!-- Feature 4: Direct Captcha Token Solver API -->
+            <div style="background:rgba(56,189,248,0.05); border:1px solid rgba(56,189,248,0.3); border-radius:8px; padding:16px; margin-top:16px;">
+                <h4 style="margin:0 0 8px 0; color:#9fd8ff; font-size:14px; font-weight:700;">
+                    4. Direct Token Solver API (CapSolver / 2Captcha Alternative)
+                </h4>
+                <p style="margin:0 0 12px 0; font-size:12.5px; line-height:1.6; color:var(--text-secondary);">
+                    Building bots or account registration pipelines (e.g., Discord, Epic, Steam, CoinList)? Use the <code>/api/captcha/solve</code> endpoint to bypass Turnstile, hCaptcha, or reCAPTCHA and receive the pure response token payload:
+                </p>
+                <div class="code-snippet-box" style="margin:0;">
+                    <div class="code-snippet-head">
+                        <span>POST /api/captcha/solve — Direct Token Retrieval</span>
+                    </div>
+                    <pre><code>import requests
+
+res = requests.post(
+    "https://xploithubcapctha.up.railway.app/api/captcha/solve",
+    headers={"X-API-Key": "xpk_your_api_key_here"},
+    json={
+        "url": "https://discord.com/register",
+        "type": "hcaptcha"
+    }
+).json()
+
+# Extract the verified token string to submit directly into target registration APIs
+token = res.get("token")
+print("Solved Captcha Token:", token)
+# Submit token in registration payload: {"captcha_key": token, ...}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Footer -->
+    <footer class="app-footer">
+        <div class="footer-container">
+            <div class="footer-left">
+                <span>Developer Guide & API Authentication Standard</span>
+                <span class="footer-divider">|</span>
+                <span>Xploit Unblocker Infrastructure</span>
+            </div>
+            <div class="footer-links">
+                <a href="/">Console Workspace</a>
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener">Discord Support</a>
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener">Developer Community</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

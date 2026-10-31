@@ -1,0 +1,98 @@
+/* Xploit Unblocker FX layer: loads after style.css and each page's inline styles. */
+@property --ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes fxDrop { from { opacity: 0; translate: 0 -18px; } }
+@keyframes fxRise { from { opacity: 0; translate: 0 26px; } }
+@keyframes fxWipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes fxSpin { to { --ang: 360deg; } }
+@keyframes fxDrift { to { translate: 6vmax 4vmax; } }
+@keyframes fxBreath { 50% { opacity: .55; scale: 1.08; } }
+@keyframes fxBar { to { background-position: 16px 0; } }
+@keyframes fxPulse { 50% { filter: brightness(1.28); } }
+@keyframes fxFlash { 0% { box-shadow: 0 0 0 0 rgba(143,227,192,.7); } 100% { box-shadow: 0 0 0 18px rgba(143,227,192,0); } }
+
+/* 1. One orchestrated load sequence (runs once; no scroll-triggered effects) */
+.system-bar { animation: fxDrop .5s steps(5) backwards; }
+.navbar { animation: fxDrop .6s .1s steps(6) backwards; }
+.hero-top-row, .plans-badge { animation: fxRise .5s .35s backwards; }
+.hero-heading, .plans-title { animation: fxWipe 1s .5s steps(16) backwards; }
+.hero-lead, .plans-sub, .guide-subtitle { animation: fxRise .6s 1s backwards; }
+.hero-cta-group { animation: fxRise .6s 1.15s backwards; }
+.hero-metrics-bar { animation: fxRise .6s 1.3s backwards; }
+.target-defense-row { animation: fxRise .6s 1.45s backwards; }
+.panel-playground { animation: fxRise .7s 1.2s backwards; }
+.side-column .panel { animation: fxRise .7s backwards; animation-delay: calc(1.35s + var(--i, 0) * .12s); }
+.pricing-card, .guide-card, .admin-stat-card, .auth-card { animation: fxRise .7s backwards; animation-delay: calc(1s + var(--i, 0) * .12s); }
+.auth-card { animation-delay: .3s; }
+
+/* 2. Aurora + mouse parallax */
+.fx-blob { position: fixed; z-index: 0; width: 60vmax; height: 60vmax; border-radius: 50%; filter: blur(90px); opacity: .26; pointer-events: none; mix-blend-mode: screen;
+  transform: translate(calc(var(--px, 0) * var(--k) * 1px), calc(var(--py, 0) * var(--k) * 1px)); transition: transform .8s ease-out; animation: fxDrift 22s ease-in-out infinite alternate; }
+.fx-blob.a { left: -20vmax; top: -10vmax; background: #f6b8c8; --k: -40; }
+.fx-blob.b { right: -25vmax; top: 30vh; background: #6f8cff; --k: 55; animation-duration: 30s; }
+#fx-sky { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.section-hero { background: radial-gradient(520px circle at calc(50% + var(--px, 0) * 18%) calc(50% + var(--py, 0) * 30%), rgba(246,184,200,.10), transparent 70%); }
+.hero-heading { transform: translate(calc(var(--px, 0) * -5px), calc(var(--py, 0) * -3px)); transition: transform .5s ease-out; }
+
+/* 3. Pixel cursor trail */
+.fx-trail { position: fixed; left: 0; top: 0; z-index: 9998; pointer-events: none; background: #f6b8c8; margin: -3px;
+  width: calc(8px - var(--i) * .8px); height: calc(8px - var(--i) * .8px); opacity: calc(.85 - var(--i) * .1); }
+
+/* 4. Animated ring borders: auth card, featured plans, console while running */
+.fx-ring { position: absolute; inset: -2px; border-radius: inherit; padding: 2px; pointer-events: none;
+  background: conic-gradient(from var(--ang), transparent 0 55%, #f6b8c8 70%, #9fd8ff 85%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: fxSpin 5s linear infinite; }
+.panel-playground .fx-ring { opacity: 0; transition: opacity .3s; }
+.panel-playground.is-running .fx-ring { opacity: 1; }
+
+/* 5. Glass auth card, moon glow, focus glow */
+.auth-wrapper { position: relative; }
+.auth-wrapper::before { content: ''; position: absolute; top: -140px; left: 50%; translate: -50% 0; width: 440px; height: 440px; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,244,236,.22), transparent 65%); animation: fxBreath 6s ease-in-out infinite; }
+.auth-card { background: rgba(27,30,62,.6); backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2); }
+.auth-input:focus, .command-bar:focus-within, .tx-input-group input:focus, .lock-input:focus { box-shadow: 0 0 0 3px rgba(246,184,200,.16), 0 0 26px rgba(246,184,200,.28); }
+
+/* 6. Pricing: tilt, glow, ribbon pulse */
+.fx-tilt { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) !important; transition: transform .25s ease-out, border-color .2s; will-change: transform; }
+.price-val { text-shadow: 0 0 22px rgba(246,184,200,.35); }
+.featured-ribbon { animation: fxPulse 2.4s steps(4) infinite; }
+.feature-item { transition: translate .15s steps(3); }
+.feature-item:hover { translate: 4px 0; }
+.guide-card, .admin-stat-card, .admin-table-panel { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: border-color .2s; }
+.guide-card:hover, .admin-stat-card:hover { border-color: var(--text-accent); }
+
+/* 7. Buttons: pixel shine sweep */
+.btn-hero-primary, .btn-primary, .btn-plans-cta, .card-btn, .auth-submit-btn { position: relative; overflow: hidden; }
+.btn-hero-primary::after, .btn-primary::after, .btn-plans-cta::after, .card-btn::after, .auth-submit-btn::after { content: ''; position: absolute; inset: 0; pointer-events: none; translate: -120% 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.5) 50%, transparent 60%); }
+.btn-hero-primary:hover::after, .btn-primary:hover::after, .btn-plans-cta:hover::after, .card-btn:hover::after, .auth-submit-btn:hover::after { translate: 120% 0; transition: translate .5s steps(8); }
+
+/* 8. Console: syntax colors, scanlines, loading state */
+.terminal-container { position: relative; }
+.terminal-screen { position: relative; }
+.terminal-screen::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .06; background: repeating-linear-gradient(0deg, #fff 0 1px, transparent 1px 3px); }
+.tk-c { color: #7e86b8; font-style: italic; } .tk-k { color: #9fd8ff; } .tk-s { color: #f6b8c8; }
+.tk-n { color: #ffe0a8; } .tk-b { color: #8fe3c0; } .tk-t { color: #bcd0ff; }
+.run-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; opacity: 0; z-index: 2; background: repeating-linear-gradient(90deg, #f6b8c8 0 10px, transparent 10px 16px); animation: fxBar .5s linear infinite; }
+.run-steps { position: absolute; left: 12px; bottom: 10px; z-index: 2; opacity: 0; font: 600 11px var(--font-mono); padding: 4px 9px; color: var(--ink); background: #f6b8c8; box-shadow: 2px 2px 0 rgba(8,9,24,.6); }
+.terminal-container.is-running .run-bar, .terminal-container.is-running .run-steps { opacity: 1; }
+.terminal-container.fx-done { animation: fxFlash .8s ease-out; }
+
+/* Pixel touches */
+.fx-moon { display: inline-block; width: 13px; height: 13px; margin-left: 7px; vertical-align: -1px; border-radius: 50%; box-shadow: inset -4px -3px 0 0 #fff4ec; filter: drop-shadow(0 0 5px rgba(255,244,236,.7)); animation: fxPulse 3s ease-in-out infinite; }
+::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-track { background: #111227; }
+::-webkit-scrollbar-thumb { background: #434a8a; border: 2px solid #111227; } ::-webkit-scrollbar-thumb:hover { background: #f6b8c8; }
+@supports (-moz-appearance: none) { * { scrollbar-color: #434a8a #111227; scrollbar-width: thin; } }
+
+/* Mobile: hamburger nav + touch targets */
+.fx-burger { display: none; margin-left: auto; width: 40px; height: 40px; flex-direction: column; justify-content: center; gap: 5px; padding: 0 9px; cursor: pointer;
+  background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: 2px 2px 0 rgba(8,9,24,.6); }
+.fx-burger i { display: block; height: 2px; background: var(--text-accent); transition: transform .15s steps(3), opacity .15s; }
+.fx-burger.on i:nth-child(1) { transform: translateY(7px) rotate(45deg); } .fx-burger.on i:nth-child(2) { opacity: 0; } .fx-burger.on i:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+@media (max-width: 820px) {
+  .fx-burger { display: inline-flex; }
+  .nav-controls { display: none; width: 100%; flex-direction: column; align-items: stretch; }
+  .nav-controls.fx-open { display: flex; animation: fxRise .25s steps(4); }
+  .nav-controls > * { justify-content: center; }
+}
+@media (pointer: coarse) { .seg-btn, .tab-item, .field-btn, .snippet-lang-btn, .sub-tab, .nav-link-glow, .btn-secondary { min-height: 44px; } }
+@media (pointer: coarse), (prefers-reduced-motion: reduce) { .fx-trail { display: none; } }

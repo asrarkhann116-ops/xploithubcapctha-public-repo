@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plans &amp; Pricing — Xploit Unblocker Stealth API</title>
+    <meta name="description" content="Transparent, high-performance plans for anti-bot bypass. Bill only for successful solves. Free (75/day), Starter ($9/mo), Moderato ($29/mo), Vince ($99/mo), and Enterprise.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ══════════ FLUID ANIMATIONS & TRENDING STYLES ══════════ */
+        @keyframes orbFloat1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(40px, -30px) scale(1.1); }
+        }
+        @keyframes orbFloat2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-35px, 25px) scale(0.95); }
+        }
+        @keyframes neonPulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 25px rgba(246, 184, 200, 0.15), 0 0 50px rgba(159, 216, 255, 0.08), inset 0 0 15px rgba(246, 184, 200, 0.05);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(246, 184, 200, 0.28), 0 0 70px rgba(159, 216, 255, 0.16), inset 0 0 25px rgba(246, 184, 200, 0.1);
+            }
+        }
+        @keyframes vinceGlow {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(255, 224, 168, 0.18), 0 0 60px rgba(246, 184, 200, 0.12);
+            }
+            50% {
+                box-shadow: 0 0 45px rgba(255, 224, 168, 0.32), 0 0 90px rgba(246, 184, 200, 0.22);
+            }
+        }
+
+        .ambient-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .ambient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.35;
+        }
+        .orb-1 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(246, 184, 200, 0.35) 0%, transparent 70%);
+            top: 10%;
+            left: 15%;
+            animation: orbFloat1 18s ease-in-out infinite;
+        }
+        .orb-2 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(159, 216, 255, 0.3) 0%, transparent 70%);
+            top: 40%;
+            right: 10%;
+            animation: orbFloat2 22s ease-in-out infinite;
+        }
+        .orb-3 {
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle, rgba(255, 224, 168, 0.22) 0%, transparent 70%);
+            bottom: 5%;
+            left: 30%;
+            animation: orbFloat1 25s ease-in-out infinite reverse;
+        }
+
+        .plans-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 30px 20px 80px 20px;
+        }
+
+        /* Hero Header */
+        .plans-hero {
+            text-align: center;
+            margin-bottom: 36px;
+            padding-top: 10px;
+        }
+        .plans-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: var(--radius-pill);
+            background: rgba(246, 184, 200, 0.1);
+            border: 1px solid rgba(246, 184, 200, 0.3);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-accent);
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(8px);
+        }
+        .plans-title {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            line-height: 1.15;
+            color: var(--text-primary);
+            letter-spacing: -0.8px;
+            margin-bottom: 14px;
+        }
+        .plans-title .gradient-text {
+            background: linear-gradient(135deg, #fff4ec 30%, #f6b8c8 75%, #9fd8ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .plans-sub {
+            max-width: 720px;
+            margin: 0 auto 20px auto;
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        /* Guaranteed Solve Guarantee Pill */
+        .guarantee-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(246, 184, 200, 0.08);
+            border: 1px solid rgba(246, 184, 200, 0.3);
+            padding: 8px 20px;
+            border-radius: var(--radius-pill);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            margin-bottom: 28px;
+        }
+        .guarantee-banner strong {
+            color: #f6b8c8;
+        }
+
+        /* Billing Switcher (Monthly vs Annual) */
+        .billing-toggle-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+        .billing-toggle-btn {
+            background: rgba(13, 18, 32, 0.8);
+            border: 1px solid var(--border-subtle);
+            padding: 8px 18px;
+            border-radius: var(--radius-pill);
+            color: var(--text-secondary);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .billing-toggle-btn.active {
+            background: rgba(246, 184, 200, 0.18);
+            border-color: #f6b8c8;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(246, 184, 200, 0.3);
+        }
+        .discount-pill {
+            background: #f6b8c8;
+            color: #022c22;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: var(--radius-pill);
+            margin-left: 6px;
+        }
+
+        /* 4-Card Primary Grid */
+        .cards-grid-main {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+            align-items: stretch;
+        }
+
+        /* 2-Card Secondary Grid (Enterprise & Pay-as-you-go) */
+        .cards-grid-sub {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        .pricing-card {
+            background: rgba(13, 18, 32, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(39, 51, 77, 0.7);
+            border-radius: var(--radius-lg);
+            padding: 28px 22px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+            overflow: hidden;
+        }
+        .pricing-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+        .pricing-card:hover {
+            transform: translateY(-8px) scale(1.01);
+            border-color: rgba(159, 216, 255, 0.45);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(159, 216, 255, 0.15);
+        }
+
+        /* Free Card */
+        .card-free::before {
+            background: linear-gradient(90deg, #8189bd, transparent);
+        }
+
+        /* Starter Card */
+        .card-starter::before {
+            background: linear-gradient(90deg, #9fd8ff, transparent);
+        }
+
+        /* Moderato Card Specific (Featured) */
+        .card-moderato {
+            background: rgba(14, 23, 40, 0.88);
+            border: 1px solid rgba(246, 184, 200, 0.55);
+            animation: neonPulseGlow 4s ease-in-out infinite;
+            transform: scale(1.02);
+            z-index: 2;
+        }
+        .card-moderato::before {
+            background: linear-gradient(90deg, #f6b8c8, #9fd8ff);
+            height: 4px;
+        }
+        .card-moderato:hover {
+            transform: translateY(-10px) scale(1.03);
+            border-color: #f6b8c8;
+        }
+
+        /* Vince Card Specific (Best Value) */
+        .card-vince {
+            background: rgba(18, 20, 36, 0.88);
+            border: 1px solid rgba(255, 224, 168, 0.5);
+            animation: vinceGlow 4s ease-in-out infinite;
+        }
+        .card-vince::before {
+            background: linear-gradient(90deg, #ffe0a8, #f6b8c8);
+            height: 4px;
+        }
+        .card-vince:hover {
+            transform: translateY(-8px) scale(1.01);
+            border-color: #ffe0a8;
+        }
+
+        /* Badges */
+        .card-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .tag-free { color: var(--text-muted); }
+        .tag-starter { color: var(--text-cyan); }
+        .tag-moderato { color: #f6b8c8; }
+        .tag-vince { color: #ffe0a8; }
+        .tag-enterprise { color: #ec4899; }
+        .tag-payg { color: #f6b8c8; }
+
+        .featured-ribbon {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: linear-gradient(135deg, #f6b8c8, #e99bb0);
+            color: #022c22;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            letter-spacing: 0.6px;
+            box-shadow: 0 2px 10px rgba(246, 184, 200, 0.4);
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.45;
+            min-height: 34px;
+            margin-bottom: 16px;
+        }
+
+        /* Price block */
+        .price-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .price-val {
+            font-size: 34px;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -1px;
+            font-family: var(--font-sans);
+        }
+        .price-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .price-meta {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .price-meta .stat-highlight {
+            color: #f6b8c8;
+            font-weight: 700;
+        }
+
+        /* Features List */
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 24px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1;
+        }
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .feature-item.highlight {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .feature-icon-ok {
+            flex-shrink: 0;
+            width: 15px;
+            height: 15px;
+            margin-top: 1px;
+            color: #f6b8c8;
+        }
+        .feature-icon-cyan {
+            flex-shrink: 0;
+            width: 15px;
+            height: 15px;
+            margin-top: 1px;
+            color: #9fd8ff;
+        }
+        .feature-icon-gold {
+            flex-shrink: 0;
+            width: 15px;
+            height: 15px;
+            margin-top: 1px;
+            color: #ffe0a8;
+        }
+
+        /* Action Buttons */
+        .card-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: 1px solid transparent;
+        }
+        .btn-free-card {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border-color: var(--border-subtle);
+        }
+        .btn-free-card:hover {
+            background: rgba(159, 216, 255, 0.15);
+            border-color: var(--border-cyan);
+            color: var(--text-cyan);
+        }
+        .btn-starter-card {
+            background: rgba(159, 216, 255, 0.15);
+            color: var(--text-cyan);
+            border-color: rgba(159, 216, 255, 0.4);
+        }
+        .btn-starter-card:hover {
+            background: rgba(159, 216, 255, 0.25);
+            border-color: #9fd8ff;
+            color: #ffffff;
+        }
+        .btn-moderato-card {
+            background: linear-gradient(135deg, #f6b8c8 0%, #e99bb0 100%);
+            color: #022c22;
+            box-shadow: 0 4px 18px rgba(246, 184, 200, 0.35);
+        }
+        .btn-moderato-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(246, 184, 200, 0.55);
+            color: #000;
+        }
+        .btn-vince-card {
+            background: linear-gradient(135deg, #ffe0a8 0%, #d97706 100%);
+            color: #1f1202;
+            box-shadow: 0 4px 18px rgba(255, 224, 168, 0.35);
+        }
+        .btn-vince-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 224, 168, 0.55);
+            color: #000;
+        }
+
+        /* Instant Solana Settlement Section */
+        .instant-checkout-card {
+            background: rgba(14, 20, 34, 0.85);
+            border: 1px solid rgba(246, 184, 200, 0.3);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            backdrop-filter: blur(16px);
+            margin-bottom: 50px;
+        }
+        .checkout-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .checkout-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .checkout-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .checkout-mode-tabs {
+            display: inline-flex;
+            background: rgba(6, 8, 16, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-pill);
+            padding: 4px;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+        .checkout-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 7px 16px;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .checkout-tab-btn.active {
+            background: rgba(246, 184, 200, 0.2);
+            color: var(--text-accent);
+            border: 1px solid rgba(246, 184, 200, 0.4);
+            box-shadow: 0 0 15px rgba(246, 184, 200, 0.15);
+        }
+        .target-preset-chip {
+            padding: 7px 12px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-subtle);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .target-preset-chip:hover {
+            border-color: var(--border-strong);
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-1px);
+        }
+        .target-preset-chip.active {
+            border-color: #f6b8c8;
+            background: rgba(246, 184, 200, 0.18);
+            color: #f6b8c8;
+            box-shadow: 0 0 12px rgba(246, 184, 200, 0.2);
+        }
+        .target-preset-chip.gold.active {
+            border-color: #ffe0a8;
+            background: rgba(255, 224, 168, 0.18);
+            color: #ffe0a8;
+            box-shadow: 0 0 12px rgba(255, 224, 168, 0.2);
+        }
+        .checkout-summary-box {
+            background: rgba(6, 10, 20, 0.7);
+            border: 1px solid rgba(246, 184, 200, 0.25);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .calc-input-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 5px 10px;
+        }
+        .calc-input-wrap input {
+            width: 70px;
+            background: transparent;
+            border: none;
+            color: var(--text-accent);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            outline: none;
+        }
+
+        /* Full Table Comparison Matrix */
+        .matrix-card {
+            background: rgba(13, 18, 32, 0.85);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            backdrop-filter: blur(14px);
+            margin-bottom: 50px;
+            overflow-x: auto;
+        }
+        .matrix-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 18px;
+        }
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 900px;
+        }
+        .matrix-table th {
+            text-align: left;
+            padding: 12px 14px;
+            background: rgba(6, 8, 16, 0.65);
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.8px;
+            border-bottom: 1px solid var(--border-strong);
+        }
+        .matrix-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+        .matrix-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Toast feedback */
+        .toast-msg {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(246, 184, 200, 0.95);
+            color: #022c22;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @media (max-width: 1100px) {
+            .cards-grid-main {
+                grid-template-columns: 1fr 1fr;
+            }
+            .card-moderato {
+                transform: none;
+            }
+        }
+        @media (max-width: 700px) {
+            .cards-grid-main, .cards-grid-sub {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Ambient Canvas -->
+    <div class="ambient-canvas">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        <div class="ambient-orb orb-3"></div>
+    </div>
+
+    <!-- System Telemetry Bar -->
+    <div class="system-bar" style="position:relative; z-index:10;">
+        <div class="system-container">
+            <div class="sys-item">
+                <span class="pulse-indicator"></span>
+                <span class="sys-label">Billing policy:</span>
+                <span class="sys-val" style="color:#f6b8c8;">Bill only for successful solves (0 cost on failures)</span>
+            </div>
+            <div class="sys-item hide-mobile">
+                <span class="sys-label">Fleet status:</span>
+                <span class="sys-val">24/7 dedicated runners online</span>
+            </div>
+            <div class="sys-item">
+                <span class="sys-label">Settlement:</span>
+                <span class="sys-val text-accent">Instant solana USDT (SPL)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar" style="position:relative; z-index:10;">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" style="display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit;">
+                    <div class="brand-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <div class="brand-meta">
+                        <div class="brand-name">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div>
+                        <div class="brand-subtitle">PRICING &amp; TIERS</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="nav-controls">
+                <a href="/" class="btn-secondary" style="width:auto; padding:6px 14px; text-decoration:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>Developer Console</span>
+                </a>
+
+                <a href="/developer/api-key/guide" class="btn-secondary" style="width:auto; padding:6px 14px; text-decoration:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
+                    <span>Docs &amp; Guide</span>
+                </a>
+
+                <a href="/login" class="btn-primary" style="padding:6px 14px; text-decoration:none; font-size:12px;">
+                    <span>Sign In / Register</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="plans-wrapper">
+
+        <!-- Hero Header -->
+        <div class="plans-hero">
+            <div class="plans-badge">
+                <span class="pulse-indicator"></span>
+                <span>2026 UNBLOCKER BILLING SPECIFICATION</span>
+            </div>
+            <h1 class="plans-title">
+                Fair, Predictable Plans.<br>
+                <span class="gradient-text">Bill Only For Successful Solves.</span>
+            </h1>
+            <p class="plans-sub">
+                No charges for blocked requests or timeouts. Choose from our Free testing tier, <strong>Moderato ($29/mo)</strong> with 30,000 solves, or <strong>Vince ($99/mo)</strong> with 150,000 solves and dedicated residential proxies.
+            </p>
+
+            <div class="guarantee-banner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                <span><strong>Guarantee:</strong> If a challenge isn't cleared, <strong>0 credits</strong> are debited.</span>
+            </div>
+
+            <!-- Monthly vs Annual Switcher -->
+            <div class="billing-toggle-wrap">
+                <button class="billing-toggle-btn active" id="btn-monthly" onclick="switchBillingCycle('monthly')">
+                    Monthly Billing
+                </button>
+                <button class="billing-toggle-btn" id="btn-annual" onclick="switchBillingCycle('annual')">
+                    Annual Billing <span class="discount-pill">2 MONTHS FREE</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4 Core Plan Cards Grid -->
+        <div class="cards-grid-main">
+
+            <!-- 1. FREE -->
+            <div class="pricing-card card-free">
+                <div class="card-tag tag-free">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+                    <span>FREE FOREVER</span>
+                </div>
+                <h3 class="card-title">Free</h3>
+                <p class="card-desc">Lets developers test integration without risk.</p>
+
+                <div class="price-wrap">
+                    <span class="price-val">$0</span>
+                    <span class="price-sub">/ forever</span>
+                </div>
+                <div class="price-meta">
+                    <div>Included: <span class="stat-highlight">75 requests / day</span></div>
+                    <div>Effective: <strong>$0 / 1k</strong> • 3 slots</div>
+                </div>
+
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>75 requests/day</strong> (resets UTC midnight)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>3 Concurrency Slots</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Cloudflare Turnstile + basic CAPTCHAs</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Shared worker queue</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Community Discord support</span>
+                    </li>
+                </ul>
+
+                <a href="/login" class="card-btn btn-free-card">
+                    <span>Test Integration Free</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            </div>
+
+            <!-- 2. STARTER -->
+            <div class="pricing-card card-starter">
+                <div class="card-tag tag-starter">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+                    <span>HOBBY / STARTER</span>
+                </div>
+                <h3 class="card-title">Starter</h3>
+                <p class="card-desc">Low-risk first paid step for hobby and side projects.</p>
+
+                <div class="price-wrap">
+                    <span class="price-val" id="price-starter">$9</span>
+                    <span class="price-sub" id="sub-starter">/ month</span>
+                </div>
+                <div class="price-meta">
+                    <div>Included: <span class="stat-highlight">5,000 solves / month</span></div>
+                    <div>Overage: <strong>$0.0025/req</strong> • 10 workers</div>
+                </div>
+
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>5,000 successful solves/month</strong></span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Effective rate: <strong>$1.80–$2.50 / 1k</strong></span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>10 Worker Concurrency</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Turnstile + common CAPTCHAs</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>30-Day Credit Rollover</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Standard queue &amp; email support</span>
+                    </li>
+                </ul>
+
+                <button class="card-btn btn-starter-card" id="btn-starter-cta" onclick="scrollToCheckout('Starter', 9)">
+                    <span>Get Starter ($9)</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+
+            <!-- 3. MODERATO (MOST POPULAR) -->
+            <div class="pricing-card card-moderato">
+                <div class="featured-ribbon">MOST POPULAR • 6x VALUE</div>
+                <div class="card-tag tag-moderato">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>MODERATO TIER</span>
+                </div>
+                <h3 class="card-title">Moderato</h3>
+                <p class="card-desc">Major upgrade: 6x Starter credits for only 3.2x price. Built for 24/7 scraping.</p>
+
+                <div class="price-wrap">
+                    <span class="price-val" style="color:#f6b8c8;" id="price-moderato">$29</span>
+                    <span class="price-sub" id="sub-moderato">/ month</span>
+                </div>
+                <div class="price-meta">
+                    <div>Included: <span class="stat-highlight">30,000 solves / month</span></div>
+                    <div>Overage: <strong>$0.0012/req</strong> • 50 workers</div>
+                </div>
+
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>30,000 successful solves/month</strong></span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Effective rate: <strong>$0.97–$1.20 / 1k</strong></span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>50 Concurrent Workers</strong> (Priority Queue)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>24/7 Always Active Runners:</strong> Zero wait time</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>All CAPTCHA types + Cloudflare Challenge</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Full credit rollover &amp; Webhook queues</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Priority Discord VIP channel</span>
+                    </li>
+                </ul>
+
+                <button class="card-btn btn-moderato-card" id="btn-moderato-cta" onclick="scrollToCheckout('Moderato', 29)">
+                    <span>Activate Moderato ($29)</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+
+            <!-- 4. VINCE (BEST VALUE) -->
+            <div class="pricing-card card-vince">
+                <div class="featured-ribbon" style="background:linear-gradient(135deg, #ffe0a8, #b45309); color:#180b02;">BEST VALUE • UNLIMITED</div>
+                <div class="card-tag tag-vince">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                    <span>VINCE ENTERPRISE</span>
+                </div>
+                <h3 class="card-title">Vince</h3>
+                <p class="card-desc">High-volume users see immediate per-solve savings. Dedicated cluster &amp; proxies.</p>
+
+                <div class="price-wrap">
+                    <span class="price-val" style="color:#ffe0a8;" id="price-vince">$99</span>
+                    <span class="price-sub" id="sub-vince">/ month</span>
+                </div>
+                <div class="price-meta">
+                    <div>Included: <span class="stat-highlight">150,000 solves / month</span></div>
+                    <div>Overage: <strong>$0.0008/req</strong> • Unlimited workers</div>
+                </div>
+
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>150,000 successful solves/month</strong></span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Effective rate: <strong>$0.66–$0.80 / 1k ($0.0008/req)</strong></span>
+                    </li>
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>Unlimited / 150+ Concurrent Workers</strong></span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>Dedicated Isolated Cluster</strong> (No noisy neighbors)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span><strong>Premium Residential Proxies:</strong> Clean IP rotation</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Custom CDP browser fingerprints (Audio/WebGL/Canvas)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>DataDome, Kasada, Akamai &amp; 99.9% uptime target</span>
+                    </li>
+                </ul>
+
+                <button class="card-btn btn-vince-card" id="btn-vince-cta" onclick="scrollToCheckout('Vince', 99)">
+                    <span>Activate Vince ($99)</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- 2 Secondary Plans Grid (Enterprise & Pay-as-you-go) -->
+        <div class="cards-grid-sub">
+
+            <!-- PAY-AS-YOU-GO -->
+            <div class="pricing-card" style="border-color: rgba(246, 184, 200, 0.4);">
+                <div class="card-tag tag-payg">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+                    <span>NO SUBSCRIPTION • PAY AS YOU GO</span>
+                </div>
+                <h3 class="card-title">Pay-as-you-go</h3>
+                <p class="card-desc">For developers who dislike subscriptions. Deposit anytime, credits never expire.</p>
+                <div class="price-wrap">
+                    <span class="price-val" style="color:#f6b8c8;">$2.00</span>
+                    <span class="price-sub">/ 1,000 solves ($0.002/req)</span>
+                </div>
+                <div class="price-meta">
+                    <div>Concurrency: <strong>10 workers</strong> • Credits: <strong>Never Expire</strong></div>
+                </div>
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Top up any amount of USDT (1 USDT = 500 solves)</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>All standard CAPTCHA &amp; Cloudflare Turnstile solvers</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Credits remain indefinitely in your account</span>
+                    </li>
+                </ul>
+                <button class="card-btn" style="background:rgba(246,184,200,0.15); border-color:#f6b8c8; color:#f6b8c8;" onclick="scrollToCheckout('Pay-as-you-go', 5)">
+                    <span>Top Up Pay-As-You-Go</span>
+                </button>
+            </div>
+
+            <!-- ENTERPRISE -->
+            <div class="pricing-card" style="border-color: rgba(236, 72, 153, 0.4);">
+                <div class="card-tag tag-enterprise">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>ENTERPRISE CUSTOM</span>
+                </div>
+                <h3 class="card-title">Enterprise</h3>
+                <p class="card-desc">Captures massive scraping and data syndicates without capping revenue.</p>
+                <div class="price-wrap">
+                    <span class="price-val" style="color:#ec4899;">From $499</span>
+                    <span class="price-sub">/ month</span>
+                </div>
+                <div class="price-meta">
+                    <div>Credit pool: <span class="stat-highlight">Custom / Volume-based</span></div>
+                </div>
+                <ul class="features-list">
+                    <li class="feature-item highlight">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Private on-prem or isolated cloud cluster deployment</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Dedicated technical account manager &amp; reverse engineering team</span>
+                    </li>
+                    <li class="feature-item">
+                        <svg class="feature-icon-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>99.99% SLA, custom anti-bot targets, Wire/Crypto invoicing</span>
+                    </li>
+                </ul>
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener" class="card-btn" style="background:rgba(236,72,153,0.15); border-color:#ec4899; color:#ec4899;">
+                    <span>Contact Enterprise Architect</span>
+                </a>
+            </div>
+
+        </div>
+
+        <!-- FULL TECHNICAL COMPARISON TABLE (All Columns) -->
+        <div class="matrix-card">
+            <h2 class="matrix-title">Complete 2026 Tier Specification Matrix</h2>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>PLAN</th>
+                        <th>PRICE</th>
+                        <th>INCLUDED CREDITS</th>
+                        <th>OVERAGE RATE</th>
+                        <th>PRICE / 1K SOLVES</th>
+                        <th>CONCURRENCY</th>
+                        <th>WHAT'S INCLUDED</th>
+                        <th>VALUE PROPOSITION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Free</strong></td>
+                        <td><strong>$0 forever</strong></td>
+                        <td>75 requests / day</td>
+                        <td>—</td>
+                        <td>$0</td>
+                        <td>3 slots</td>
+                        <td>Turnstile + basic CAPTCHA, shared workers, Discord, no rollover</td>
+                        <td>Lets developers test integration without risk</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Starter</strong></td>
+                        <td><strong>$9 / month</strong></td>
+                        <td>5,000 solves / month</td>
+                        <td>$0.0025 / req</td>
+                        <td>$1.80–$2.50</td>
+                        <td>10 workers</td>
+                        <td>Turnstile + common CAPTCHAs, standard queue, email support, 30-day rollover</td>
+                        <td>Low-risk first paid step for hobby projects</td>
+                    </tr>
+                    <tr style="background:rgba(246,184,200,0.06);">
+                        <td><strong style="color:#f6b8c8;">Moderato (Most Popular)</strong></td>
+                        <td><strong style="color:#f6b8c8;">$29 / mo ($279/yr)</strong></td>
+                        <td><strong style="color:#f6b8c8;">30,000 solves / month</strong></td>
+                        <td><strong>$0.0012 / req</strong></td>
+                        <td><strong>$0.97–$1.20</strong></td>
+                        <td><strong>50 workers</strong></td>
+                        <td>All CAPTCHA types, Turnstile/CF Challenge, priority queue, 24/7 runners, API/webhooks, rollover, VIP Discord</td>
+                        <td>Feels like a major upgrade: 6x Starter credits for only 3.2x price</td>
+                    </tr>
+                    <tr style="background:rgba(255,224,168,0.06);">
+                        <td><strong style="color:#ffe0a8;">Vince (Best Value)</strong></td>
+                        <td><strong style="color:#ffe0a8;">$99 / mo ($949/yr)</strong></td>
+                        <td><strong style="color:#ffe0a8;">150,000 solves / month</strong></td>
+                        <td><strong>$0.0008 / req</strong></td>
+                        <td><strong>$0.66–$0.80</strong></td>
+                        <td><strong>Unlimited (150+)</strong></td>
+                        <td>Dedicated isolated cluster, premium residential proxies, custom CDP fingerprints, DataDome/Kasada/Akamai, async webhooks, 99.9% target</td>
+                        <td>High-volume users see immediate per-solve savings; $99 feels justified</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Enterprise</strong></td>
+                        <td>From $499 / month</td>
+                        <td>Custom credit pool</td>
+                        <td>Custom / volume-based</td>
+                        <td>Custom</td>
+                        <td>Custom (500+)</td>
+                        <td>Private infrastructure, dedicated account manager, custom anti-bot targets, SLA, invoicing, on-prem options</td>
+                        <td>Captures large scraping/data operations without capping revenue</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Annual Moderato</strong></td>
+                        <td><strong>$279 / year</strong></td>
+                        <td>30,000 credits / month (360k total)</td>
+                        <td>$0.0012 / req</td>
+                        <td>Same as monthly</td>
+                        <td>50 workers</td>
+                        <td>Everything in Moderato</td>
+                        <td>“2 months free” framing; locks in customers</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Annual Vince</strong></td>
+                        <td><strong>$949 / year</strong></td>
+                        <td>150,000 credits / month (1.8M total)</td>
+                        <td>$0.0008 / req</td>
+                        <td>Same as monthly</td>
+                        <td>Unlimited (150+)</td>
+                        <td>Everything in Vince</td>
+                        <td>Strong discount anchor for serious buyers</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pay-as-you-go</strong></td>
+                        <td>No subscription</td>
+                        <td>Buy credits anytime</td>
+                        <td>$0.002 / request</td>
+                        <td>$2.00</td>
+                        <td>10 workers</td>
+                        <td>Credits never expire, all standard CAPTCHA types</td>
+                        <td>Captures users who dislike subscriptions</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SOLANA SETTLEMENT WIZARD -->
+        <div class="instant-checkout-card" id="checkout-section">
+            <div class="checkout-header">
+                <div class="checkout-title-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                        <path d="M12 6v2m0 8v2"></path>
+                    </svg>
+                    <div>
+                        <h2 class="checkout-title">Instant On-Chain Checkout (Solana USDT / SPL)</h2>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            Zero KYC. No Stripe holds. Send USDT on Solana Mainnet — instantly verified in under 15 seconds.
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="status-badge-accent">MAINNET RPC</span>
+                </div>
+            </div>
+
+            <!-- Mode Selector Tabs: Subscriptions vs Pay-As-You-Go -->
+            <div class="checkout-mode-tabs">
+                <button class="checkout-tab-btn active" id="tab-checkout-subs" onclick="switchCheckoutTab('subs')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span>Subscription Plans (Monthly / Annual)</span>
+                </button>
+                <button class="checkout-tab-btn" id="tab-checkout-payg" onclick="switchCheckoutTab('payg')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>Pay-As-You-Go Top Up (Credits Never Expire)</span>
+                </button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:20px;">
+                <div class="info-block">
+                    <div class="info-label">Official solana treasury wallet (USDT SPL)</div>
+                    <div class="info-content-row">
+                        <code id="plans-solana-wallet" style="font-size:12px; color:var(--text-accent);">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
+                        <button class="field-btn" onclick="copyText('6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u', 'Solana Wallet Address')" title="Copy Wallet">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+                        Token: <strong>USDT (SPL)</strong> on Solana Network only.
+                    </div>
+                </div>
+
+                <!-- Targets Panel: Subscriptions View -->
+                <div class="info-block" id="panel-targets-subs">
+                    <div class="info-label">Select subscription target</div>
+                    <div style="margin-top:6px;">
+                        <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px;">MONTHLY (30 DAYS):</div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+                            <span class="target-preset-chip active" id="chip-starter-mo" data-target-key="starter" data-amount="9" onclick="selectCheckoutTarget('Starter Monthly', 9, '5,000 solves', '30 Days', 'starter')">9 USDT (Starter)</span>
+                            <span class="target-preset-chip" id="chip-moderato-mo" data-target-key="moderato" data-amount="29" onclick="selectCheckoutTarget('Moderato Monthly', 29, '30,000 solves', '30 Days', 'moderato')">29 USDT (Moderato)</span>
+                            <span class="target-preset-chip gold" id="chip-vince-mo" data-target-key="vince" data-amount="99" onclick="selectCheckoutTarget('Vince Monthly', 99, '150,000 solves', '30 Days', 'vince')">99 USDT (Vince)</span>
+                        </div>
+                        <div style="font-size:10px; color:var(--text-accent); font-family:var(--font-mono); margin-bottom:4px;">ANNUAL (2 MONTHS FREE • 365 DAYS):</div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <span class="target-preset-chip" id="chip-starter-yr" data-target-key="starter_annual" data-amount="89" onclick="selectCheckoutTarget('Starter Annual', 89, '60,000 solves', '365 Days', 'starter_annual')">89 USDT (Starter)</span>
+                            <span class="target-preset-chip" id="chip-moderato-yr" data-target-key="moderato_annual" data-amount="279" onclick="selectCheckoutTarget('Moderato Annual', 279, '360,000 solves', '365 Days', 'moderato_annual')">279 USDT (Moderato)</span>
+                            <span class="target-preset-chip gold" id="chip-vince-yr" data-target-key="vince_annual" data-amount="949" onclick="selectCheckoutTarget('Vince Annual', 949, '1.8M solves', '365 Days', 'vince_annual')">949 USDT (Vince)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Targets Panel: Pay-As-You-Go View -->
+                <div class="info-block" id="panel-targets-payg" style="display:none;">
+                    <div class="info-label">Select pay-as-you-go top up (never expires)</div>
+                    <div style="margin-top:6px;">
+                        <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px;">POPULAR AMOUNTS ($0.0020 / SOLVE):</div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+                            <span class="target-preset-chip" data-target-key="pay_as_you_go" data-amount="5" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 5, '2,500 solves', 'Never Expires', 'pay_as_you_go')">5 USDT (2.5k solves)</span>
+                            <span class="target-preset-chip" data-target-key="pay_as_you_go" data-amount="10" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 10, '5,000 solves', 'Never Expires', 'pay_as_you_go')">10 USDT (5k solves)</span>
+                            <span class="target-preset-chip" data-target-key="pay_as_you_go" data-amount="25" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 25, '12,500 solves', 'Never Expires', 'pay_as_you_go')">25 USDT (12.5k solves)</span>
+                            <span class="target-preset-chip" data-target-key="pay_as_you_go" data-amount="50" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 50, '25,000 solves', 'Never Expires', 'pay_as_you_go')">50 USDT (25k solves)</span>
+                            <span class="target-preset-chip gold" data-target-key="pay_as_you_go" data-amount="100" onclick="selectCheckoutTarget('Pay-As-You-Go Top Up', 100, '50,000 solves', 'Never Expires', 'pay_as_you_go')">100 USDT (50k solves)</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+                            <span style="font-size:11px; color:var(--text-muted);">Custom USDT:</span>
+                            <div class="calc-input-wrap">
+                                <input type="number" id="payg-custom-amount" value="25" min="1" step="1" oninput="onCustomPaygChange()">
+                                <span style="font-size:11px; color:var(--text-muted);">USDT</span>
+                            </div>
+                            <span id="payg-calc-yield" style="font-size:11px; color:var(--text-accent); font-family:var(--font-mono);"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Selected Target Summary -->
+            <div class="checkout-summary-box">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:rgba(246,184,200,0.15); display:flex; align-items:center; justify-content:center; color:#f6b8c8;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); text-transform:uppercase;">Selected Activation Target</div>
+                        <div id="summary-target-name" style="font-size:14px; font-weight:700; color:var(--text-primary); margin-top:2px;">Starter Monthly</div>
+                        <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                            <span id="summary-solves-desc" style="color:var(--text-accent); font-weight:600;">5,000 solves</span> • Validity: <span id="summary-expiry-desc">30 Days</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="text-align:right;">
+                        <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">EXACT AMOUNT TO SEND</div>
+                        <div style="font-size:18px; font-weight:800; color:#f6b8c8;" id="summary-amount-display">9 USDT</div>
+                    </div>
+                    <button class="field-btn" onclick="copySelectedAmount()" title="Copy Exact Amount" style="padding:8px 12px; height:auto; gap:6px; font-size:11px; color:var(--text-accent);">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <span>Copy Amount</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TX Hash Verification Input -->
+            <div class="tx-input-group">
+                <input type="text" id="plans-tx-hash" placeholder="Paste Solana Transaction Signature / TX Hash to verify and activate..." spellcheck="false" autocomplete="off">
+                <button class="btn-primary" onclick="verifyPlansDeposit()" style="white-space:nowrap;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>Confirm &amp; Activate</span>
+                </button>
+            </div>
+            <div id="plans-deposit-feedback" style="margin-top:12px; font-family:var(--font-mono); font-size:12px; display:none;"></div>
+        </div>
+
+    </main>
+
+    <!-- Application Footer -->
+    <footer class="app-footer" style="position:relative; z-index:10;">
+        <div class="footer-container">
+            <div class="footer-left">
+                <span>Xploit Unblocker Cloud Pricing Infrastructure</span>
+                <span class="footer-divider">|</span>
+                <span>Bill Only For Successful Solves</span>
+            </div>
+            <div class="footer-links">
+                <a href="/">Console</a>
+                <a href="/plans/">Plans &amp; Pricing</a>
+                <a href="/developer/api-key/guide">Docs &amp; Guide</a>
+                <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener">Discord VIP</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="plans-toast" class="toast-msg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span id="plans-toast-text">Copied to clipboard</span>
+    </div>
+
+    <script>
+        let currentCycle = 'monthly';
+
+        function showToast(msg) {
+            const t = document.getElementById('plans-toast');
+            const txt = document.getElementById('plans-toast-text');
+            if (!t || !txt) return;
+            txt.innerText = msg;
+            t.style.display = 'inline-flex';
+            setTimeout(() => { t.style.display = 'none'; }, 2500);
+        }
+
+        function copyText(str, label) {
+            navigator.clipboard.writeText(str).then(() => {
+                showToast(`Copied ${label}!`);
+            }).catch(() => {
+                showToast(`Copied!`);
+            });
+        }
+
+        function switchBillingCycle(cycle) {
+            currentCycle = cycle;
+            const btnM = document.getElementById('btn-monthly');
+            const btnA = document.getElementById('btn-annual');
+
+            if (cycle === 'annual') {
+                btnM.classList.remove('active');
+                btnA.classList.add('active');
+
+                // Update Starter
+                const priceStarter = document.getElementById('price-starter');
+                const subStarter = document.getElementById('sub-starter');
+                const btnStarter = document.getElementById('btn-starter-cta');
+                if (priceStarter) priceStarter.innerText = '$89';
+                if (subStarter) subStarter.innerText = '/ year ($7.41/mo)';
+                if (btnStarter) {
+                    const span = btnStarter.querySelector('span');
+                    if (span) span.innerText = 'Activate Annual Starter ($89)';
+                }
+
+                // Update Moderato
+                document.getElementById('price-moderato').innerText = '$279';
+                document.getElementById('sub-moderato').innerText = '/ year ($23.25/mo)';
+                document.getElementById('btn-moderato-cta').innerText = 'Activate Annual Moderato ($279)';
+
+                // Update Vince
+                document.getElementById('price-vince').innerText = '$949';
+                document.getElementById('sub-vince').innerText = '/ year ($79.08/mo)';
+                document.getElementById('btn-vince-cta').innerText = 'Activate Annual Vince ($949)';
+
+                showToast('Switched to Annual Billing (2 Months Free applied!)');
+            } else {
+                btnA.classList.remove('active');
+                btnM.classList.add('active');
+
+                // Reset Starter
+                const priceStarter = document.getElementById('price-starter');
+                const subStarter = document.getElementById('sub-starter');
+                const btnStarter = document.getElementById('btn-starter-cta');
+                if (priceStarter) priceStarter.innerText = '$9';
+                if (subStarter) subStarter.innerText = '/ month';
+                if (btnStarter) {
+                    const span = btnStarter.querySelector('span');
+                    if (span) span.innerText = 'Get Starter ($9)';
+                }
+
+                // Reset Moderato
+                document.getElementById('price-moderato').innerText = '$29';
+                document.getElementById('sub-moderato').innerText = '/ month';
+                document.getElementById('btn-moderato-cta').innerText = 'Activate Moderato ($29)';
+
+                // Reset Vince
+                document.getElementById('price-vince').innerText = '$99';
+                document.getElementById('sub-vince').innerText = '/ month';
+                document.getElementById('btn-vince-cta').innerText = 'Activate Vince ($99)';
+
+                showToast('Switched to Monthly Billing');
+            }
+        }
+
+        let currentCheckoutTab = 'subs';
+        let currentSelectedTarget = {
+            name: 'Starter Monthly',
+            amount: 9,
+            solves: '5,000 solves',
+            expiry: '30 Days',
+            planType: 'starter'
+        };
+
+        function switchCheckoutTab(tab) {
+            currentCheckoutTab = tab;
+            const btnSubs = document.getElementById('tab-checkout-subs');
+            const btnPayg = document.getElementById('tab-checkout-payg');
+            const panelSubs = document.getElementById('panel-targets-subs');
+            const panelPayg = document.getElementById('panel-targets-payg');
+
+            if (tab === 'payg') {
+                btnSubs.classList.remove('active');
+                btnPayg.classList.add('active');
+                panelSubs.style.display = 'none';
+                panelPayg.style.display = 'block';
+                onCustomPaygChange();
+            } else {
+                btnPayg.classList.remove('active');
+                btnSubs.classList.add('active');
+                panelPayg.style.display = 'none';
+                panelSubs.style.display = 'block';
+                selectCheckoutTarget('Starter Monthly', 9, '5,000 solves', '30 Days', 'starter');
+            }
+        }
+
+        function selectCheckoutTarget(name, amount, solvesDesc, expiryDesc, planTypeKey) {
+            currentSelectedTarget = {
+                name: name,
+                amount: amount,
+                solves: solvesDesc,
+                expiry: expiryDesc,
+                planType: planTypeKey
+            };
+
+            const summaryName = document.getElementById('summary-target-name');
+            const summarySolves = document.getElementById('summary-solves-desc');
+            const summaryExpiry = document.getElementById('summary-expiry-desc');
+            const summaryAmount = document.getElementById('summary-amount-display');
+
+            if (summaryName) summaryName.innerText = name;
+            if (summarySolves) summarySolves.innerText = solvesDesc;
+            if (summaryExpiry) summaryExpiry.innerText = expiryDesc;
+            if (summaryAmount) summaryAmount.innerText = `${amount} USDT`;
+
+            if (planTypeKey === 'pay_as_you_go') {
+                const input = document.getElementById('payg-custom-amount');
+                if (input && parseFloat(input.value) !== parseFloat(amount)) {
+                    input.value = amount;
+                }
+                const yieldEl = document.getElementById('payg-calc-yield');
+                if (yieldEl) {
+                    const solves = Math.round(parseFloat(amount) / 0.0020);
+                    yieldEl.innerText = `Yields ${solves.toLocaleString()} Solves (Never Expire)`;
+                }
+            }
+
+            // Highlight chip if matching exact target key and amount
+            document.querySelectorAll('.target-preset-chip').forEach(chip => {
+                const chipKey = chip.dataset.targetKey;
+                const chipAmount = parseFloat(chip.dataset.amount);
+                const isMatch = (chipKey === planTypeKey) && (chipAmount === parseFloat(amount));
+                chip.classList.toggle('active', Boolean(isMatch));
+            });
+        }
+
+        function onCustomPaygChange() {
+            const input = document.getElementById('payg-custom-amount');
+            const val = Math.max(1, parseFloat(input?.value) || 5);
+            const solves = Math.round(val / 0.0020);
+            const yieldEl = document.getElementById('payg-calc-yield');
+            if (yieldEl) yieldEl.innerText = `Yields ${solves.toLocaleString()} Solves (Never Expire)`;
+            selectCheckoutTarget('Pay-As-You-Go Top Up', val, `${solves.toLocaleString()} solves`, 'Never Expires', 'pay_as_you_go');
+        }
+
+        function copySelectedAmount() {
+            copyText(String(currentSelectedTarget.amount), `${currentSelectedTarget.amount} USDT Amount`);
+        }
+
+        function scrollToCheckout(tierName, amount) {
+            const el = document.getElementById('checkout-section');
+            if (!el) return;
+
+            if (tierName === 'Pay-as-you-go') {
+                switchCheckoutTab('payg');
+                selectCheckoutTarget('Pay-As-You-Go Top Up', 25, '12,500 solves', 'Never Expires', 'pay_as_you_go');
+            } else {
+                switchCheckoutTab('subs');
+                let finalAmount = amount;
+                let solves = '5,000 solves';
+                let expiry = (currentCycle === 'annual') ? '365 Days' : '30 Days';
+                let key = 'starter';
+
+                if (tierName === 'Starter') {
+                    finalAmount = (currentCycle === 'annual') ? 89 : 9;
+                    solves = (currentCycle === 'annual') ? '60,000 solves' : '5,000 solves';
+                    key = (currentCycle === 'annual') ? 'starter_annual' : 'starter';
+                } else if (tierName === 'Moderato') {
+                    finalAmount = (currentCycle === 'annual') ? 279 : 29;
+                    solves = (currentCycle === 'annual') ? '360,000 solves' : '30,000 solves';
+                    key = (currentCycle === 'annual') ? 'moderato_annual' : 'moderato';
+                } else if (tierName === 'Vince') {
+                    finalAmount = (currentCycle === 'annual') ? 949 : 99;
+                    solves = (currentCycle === 'annual') ? '1.8M solves' : '150,000 solves';
+                    key = (currentCycle === 'annual') ? 'vince_annual' : 'vince';
+                }
+                selectCheckoutTarget(`${tierName} (${currentCycle === 'annual' ? 'Annual' : 'Monthly'})`, finalAmount, solves, expiry, key);
+            }
+
+            el.scrollIntoView({ behavior: 'smooth' });
+            showToast(`Selected ${tierName} (${currentSelectedTarget.amount} USDT) — send payment & paste TX hash.`);
+        }
+
+        async function verifyPlansDeposit() {
+            const hashInput = document.getElementById('plans-tx-hash');
+            const feedback = document.getElementById('plans-deposit-feedback');
+            if (!hashInput || !hashInput.value.trim()) {
+                alert('Please enter your Solana transaction signature / TX hash.');
+                return;
+            }
+
+            feedback.style.display = 'block';
+            feedback.style.color = 'var(--text-cyan)';
+            feedback.innerText = 'Connecting to Solana Mainnet RPC node to verify transaction...';
+
+            try {
+                const res = await fetch('/api/deposit/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tx_hash: hashInput.value.trim(),
+                        plan_type: currentSelectedTarget.planType
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    feedback.style.color = '#f6b8c8';
+                    feedback.innerHTML = `<strong>Verification Successful!</strong> ${data.message} • New Balance: ${data.new_balance.toLocaleString()} solves!`;
+                    setTimeout(() => { window.location.href = '/'; }, 2400);
+                } else {
+                    feedback.style.color = '#ff8a8a';
+                    feedback.innerText = `Verification Error: ${data.message || data.error || data.detail || 'Transaction failed validation.'}`;
+                }
+            } catch (err) {
+                feedback.style.color = '#ff8a8a';
+                feedback.innerText = `Network error contacting server: ${err.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
