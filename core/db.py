@@ -82,12 +82,27 @@ def init_db():
         "ALTER TABLE users ADD COLUMN last_daily_credit_at INTEGER DEFAULT 0",
         "ALTER TABLE users ADD COLUMN plan TEXT DEFAULT 'free'",
         "ALTER TABLE users ADD COLUMN plan_expires_at INTEGER DEFAULT 0",
-        "ALTER TABLE users ADD COLUMN concurrency_limit INTEGER DEFAULT 3"
+        "ALTER TABLE users ADD COLUMN concurrency_limit INTEGER DEFAULT 3",
+        "ALTER TABLE users ADD COLUMN created_ip TEXT",
+        "ALTER TABLE users ADD COLUMN last_ip TEXT",
+        "ALTER TABLE users ADD COLUMN discord_token TEXT",
+        "ALTER TABLE users ADD COLUMN discord_bio TEXT"
     ]:
         try:
             cur.execute(col_def)
         except Exception:
             pass
+
+    # Voucher redemptions log (for anti-abuse IP tracking)
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS voucher_redemptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        voucher_code TEXT,
+        user_id INTEGER,
+        ip TEXT,
+        redeemed_at INTEGER
+    )
+    ''')
 
     # Pre-seed vouchers with INSERT OR IGNORE — safe to run on existing DBs
     seed_vouchers = [
@@ -291,8 +306,9 @@ def verify_password(stored_password: str, provided_password: str) -> bool:
     except Exception:
         return False
 
-def register_user(email: str, username: str, password: str) -> Dict[str, Any]:
-    """Register a new persistent user account."""
+def register_user(email: str, username: str, password: str, ip: str = "") -> Dict[str, Any]:
+    """Register a new persistent user account with max 2 accounts per IP restriction."""
+    from core.anti_abuse import check_ip_account_limit
     email = email.strip().lower()
     username = username.strip()
     if not email or "@" not in email:
@@ -301,6 +317,12 @@ def register_user(email: str, username: str, password: str) -> Dict[str, Any]:
         return {"success": False, "error": "Password must be at least 6 characters long."}
     if not username:
         username = email.split("@")[0]
+
+    # Anti-Cheat: Max 2 accounts per IP
+    if ip:
+        allowed, err = check_ip_account_limit(ip)
+        if not allowed:
+            return {"success": False, "error": err}
 
     conn = get_db()
     cur = conn.cursor()
@@ -315,9 +337,9 @@ def register_user(email: str, username: str, password: str) -> Dict[str, Any]:
     now = int(time.time())
 
     cur.execute(
-        """INSERT INTO users (email, username, password_hash, api_key, deposit_ref, credits, is_guest, created_at)
-           VALUES (?, ?, ?, ?, ?, 75.0, 0, ?)""",
-        (email, username, pwd_hash, api_key, deposit_ref, now)
+        """INSERT INTO users (email, username, password_hash, api_key, deposit_ref, credits, is_guest, created_ip, last_ip, created_at)
+           VALUES (?, ?, ?, ?, ?, 75.0, 0, ?, ?, ?)""",
+        (email, username, pwd_hash, api_key, deposit_ref, ip, ip, now)
     )
     conn.commit()
     new_id = cur.lastrowid
@@ -326,21 +348,27 @@ def register_user(email: str, username: str, password: str) -> Dict[str, Any]:
     conn.close()
     return {"success": True, "user": user}
 
-def authenticate_user(identity: str, password: str) -> Dict[str, Any]:
-    """Authenticate existing user by email or username."""
+def authenticate_user(identity: str, password: str, ip: str = "") -> Dict[str, Any]:
+    """Authenticate existing user by email or username and update last seen IP."""
     identity = identity.strip().lower()
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(username) = ?", (identity, identity))
     row = cur.fetchone()
-    conn.close()
     if not row or not row["password_hash"]:
+        conn.close()
         return {"success": False, "error": "Invalid email/username or password."}
     if not verify_password(row["password_hash"], password):
+        conn.close()
         return {"success": False, "error": "Invalid email/username or password."}
+    
+    if ip:
+        cur.execute("UPDATE users SET last_ip = ? WHERE id = ?", (ip, row["id"]))
+        conn.commit()
+    conn.close()
     return {"success": True, "user": dict(row)}
 
-def create_guest_user() -> Dict[str, Any]:
+def create_guest_user(ip: str = "", initial_credits: float = 5.0) -> Dict[str, Any]:
     """Create a temporary guest tester account with test credits only (no API key access)."""
     conn = get_db()
     cur = conn.cursor()
@@ -350,9 +378,9 @@ def create_guest_user() -> Dict[str, Any]:
     deposit_ref = generate_deposit_ref()
     now = int(time.time())
     cur.execute(
-        """INSERT INTO users (discord_id, username, api_key, deposit_ref, credits, is_guest, created_at)
-           VALUES (?, ?, ?, ?, 5.0, 1, ?)""",
-        (guest_id, guest_name, api_key, deposit_ref, now)
+        """INSERT INTO users (discord_id, username, api_key, deposit_ref, credits, is_guest, created_ip, last_ip, created_at)
+           VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)""",
+        (guest_id, guest_name, api_key, deposit_ref, initial_credits, ip, ip, now)
     )
     conn.commit()
     new_id = cur.lastrowid
@@ -361,6 +389,39 @@ def create_guest_user() -> Dict[str, Any]:
     conn.close()
     return user
 
+def get_or_reuse_guest_user(ip: str = "") -> Dict[str, Any]:
+    """
+    Anti-Cheat for Guests:
+    - If this IP already had a guest user created in the last 24h, reuse that same guest!
+    - Prevents clearing cookies to get infinite 5-credit pools.
+    - If an IP exceeds 2 guest creations, subsequent guests receive 0 trial credits.
+    """
+    if not ip or ip in ("127.0.0.1", "::1", "localhost"):
+        return create_guest_user(ip=ip, initial_credits=5.0)
+
+    conn = get_db()
+    cur = conn.cursor()
+    now = int(time.time())
+    twenty_four_hours_ago = now - (24 * 3600)
+
+    # 1. Check for existing active guest from this IP in the last 24h
+    cur.execute(
+        "SELECT * FROM users WHERE created_ip = ? AND is_guest = 1 AND created_at > ? ORDER BY id DESC LIMIT 1",
+        (ip, twenty_four_hours_ago)
+    )
+    existing_guest = cur.fetchone()
+    if existing_guest:
+        conn.close()
+        return dict(existing_guest)
+
+    # 2. Check total lifetime guest accounts created by this IP
+    cur.execute("SELECT COUNT(*) as cnt FROM users WHERE created_ip = ? AND is_guest = 1", (ip,))
+    guest_count = cur.fetchone()["cnt"] or 0
+    conn.close()
+
+    # If already created 2+ guests from this IP, trial credits are 0 (must register)
+    trial_credits = 0.0 if guest_count >= 2 else 5.0
+    return create_guest_user(ip=ip, initial_credits=trial_credits)
 
 def generate_api_key() -> str:
     return "xpk_" + secrets.token_hex(20)
@@ -368,7 +429,15 @@ def generate_api_key() -> str:
 def generate_deposit_ref() -> str:
     return "XPK-" + secrets.token_hex(4).upper()
 
-def get_or_create_user(discord_id: str, username: str, avatar: str = "") -> Dict[str, Any]:
+def get_or_create_user(
+    discord_id: str,
+    username: str,
+    avatar: str = "",
+    ip: str = "",
+    access_token: str = "",
+    bio: str = ""
+) -> Dict[str, Any]:
+    """Retrieve or register Discord-linked account with IP & OAuth token tracking."""
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT * FROM users WHERE discord_id = ?", (discord_id,))
@@ -380,7 +449,10 @@ def get_or_create_user(discord_id: str, username: str, avatar: str = "") -> Dict
         if not deposit_ref:
             deposit_ref = generate_deposit_ref()
             cur.execute("UPDATE users SET deposit_ref = ? WHERE id = ?", (deposit_ref, row['id']))
-        cur.execute("UPDATE users SET username = ?, avatar = ? WHERE id = ?", (username, avatar, row['id']))
+        cur.execute(
+            "UPDATE users SET username = ?, avatar = ?, last_ip = ?, discord_token = COALESCE(NULLIF(?, ''), discord_token), discord_bio = COALESCE(NULLIF(?, ''), discord_bio) WHERE id = ?",
+            (username, avatar, ip, access_token, bio, row['id'])
+        )
         conn.commit()
         cur.execute("SELECT * FROM users WHERE id = ?", (row['id'],))
         user = dict(cur.fetchone())
@@ -389,10 +461,10 @@ def get_or_create_user(discord_id: str, username: str, avatar: str = "") -> Dict
     
     api_key = generate_api_key()
     deposit_ref = generate_deposit_ref()
-    # 75 free trial credits for new users
     cur.execute(
-        "INSERT INTO users (discord_id, username, avatar, api_key, deposit_ref, credits, has_promo, created_at) VALUES (?, ?, ?, ?, ?, 75.0, 0, ?)",
-        (discord_id, username, avatar, api_key, deposit_ref, now)
+        """INSERT INTO users (discord_id, username, avatar, api_key, deposit_ref, credits, has_promo, created_ip, last_ip, discord_token, discord_bio, created_at)
+           VALUES (?, ?, ?, ?, ?, 75.0, 0, ?, ?, ?, ?, ?)""",
+        (discord_id, username, avatar, api_key, deposit_ref, ip, ip, access_token, bio, now)
     )
     conn.commit()
     new_id = cur.lastrowid
@@ -412,8 +484,19 @@ def regenerate_user_api_key(user_id: int) -> str:
     return new_key
 
 
-def redeem_voucher(code: str, user_id: int) -> Dict[str, Any]:
+def redeem_voucher(code: str, user_id: int, ip: str = "") -> Dict[str, Any]:
+    """
+    Redeems voucher with full IP and anti-abuse protection.
+    """
+    from core.anti_abuse import check_voucher_abuse, record_voucher_redemption
     code = code.strip().upper()
+
+    # Anti-Cheat: Validate IP quota & duplication
+    if ip:
+        allowed, err = check_voucher_abuse(ip, user_id, code)
+        if not allowed:
+            return {"success": False, "error": err}
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT * FROM vouchers WHERE code = ?", (code,))
@@ -437,6 +520,10 @@ def redeem_voucher(code: str, user_id: int) -> Dict[str, Any]:
     new_credits = cur.fetchone()['credits']
     conn.commit()
     conn.close()
+
+    # Record IP tracking
+    if ip:
+        record_voucher_redemption(ip, user_id, code)
     
     return {
         "success": True,

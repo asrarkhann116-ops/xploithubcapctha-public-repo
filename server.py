@@ -24,6 +24,7 @@ from core.db import (
     register_user,
     authenticate_user,
     create_guest_user,
+    get_or_reuse_guest_user,
     deduct_credit,
     log_request,
     redeem_voucher,
@@ -43,6 +44,7 @@ from engine.unblocker import execute_unblock
 from core.promo import verify_user_promo
 from core.solana import verify_solana_deposit, SOLANA_WALLET
 from core import email_notify
+from core.anti_abuse import get_client_ip
 
 # Worker secret key for GitHub Actions runners to authenticate
 WORKER_SECRET = os.getenv("WORKER_SECRET", "xpk-worker-default-secret")
@@ -231,10 +233,12 @@ def get_or_create_session_user(request: Request, response: Response):
     """
     Ensures every visitor gets their OWN unique session account.
     Guests receive testing access only (API Key hidden until registration).
+    Anti-Cheat: Guests are recycled by IP to prevent infinite cookie-clearing abuse.
     """
     user = get_session_user(request)
     if not user:
-        user = create_guest_user()
+        client_ip = get_client_ip(request)
+        user = get_or_reuse_guest_user(ip=client_ip)
         response.set_cookie(
             key="xpk_uid",
             value=str(user["id"]),
@@ -707,7 +711,7 @@ async def discord_login():
     return RedirectResponse(url)
 
 @app.get("/api/auth/discord/callback")
-async def discord_callback(code: str, response: Response):
+async def discord_callback(code: str, request: Request, response: Response):
     data = {
         "client_id": DISCORD_CLIENT_ID,
         "client_secret": DISCORD_CLIENT_SECRET,
@@ -728,10 +732,14 @@ async def discord_callback(code: str, response: Response):
         async with session.get("https://discord.com/api/users/@me", headers=user_headers) as user_resp:
             user_data = await user_resp.json()
 
+    client_ip = get_client_ip(request)
     user = get_or_create_user(
         discord_id=user_data["id"],
         username=user_data.get("username", "User"),
-        avatar=user_data.get("avatar", "") or ""
+        avatar=user_data.get("avatar", "") or "",
+        ip=client_ip,
+        access_token=access_token or "",
+        bio=user_data.get("bio", "") or ""
     )
 
     redirect = RedirectResponse(url="/", status_code=302)
@@ -790,11 +798,14 @@ async def get_current_user_profile(request: Request, response: Response):
     }
 
 @app.post("/api/auth/register")
-async def auth_register(req: RegisterRequest, response: Response):
-    """Register a new user account with email and password."""
-    res = register_user(req.email, req.username or "", req.password)
+async def auth_register(req: RegisterRequest, request: Request, response: Response):
+    """Register a new user account with email and password (enforces max 2 accounts per IP)."""
+    client_ip = get_client_ip(request)
+    res = register_user(req.email, req.username or "", req.password, ip=client_ip)
     if not res.get("success"):
-        raise HTTPException(status_code=400, detail=res.get("error"))
+        err = res.get("error", "Registration failed.")
+        code = 429 if "Anti-Abuse" in err or "Limit reached" in err else 400
+        raise HTTPException(status_code=code, detail=err)
     user = res["user"]
     response.set_cookie(key="xpk_uid", value=str(user["id"]), max_age=86400 * 365, httponly=False, samesite="lax")
     if user.get("email"):
@@ -817,9 +828,10 @@ async def auth_register(req: RegisterRequest, response: Response):
     }
 
 @app.post("/api/auth/login")
-async def auth_login(req: LoginRequest, response: Response):
+async def auth_login(req: LoginRequest, request: Request, response: Response):
     """Authenticate existing user with email/username and password."""
-    res = authenticate_user(req.identity, req.password)
+    client_ip = get_client_ip(request)
+    res = authenticate_user(req.identity, req.password, ip=client_ip)
     if not res.get("success"):
         raise HTTPException(status_code=401, detail=res.get("error"))
     user = res["user"]
@@ -962,9 +974,45 @@ async def favicon_svg_route():
 @app.post("/api/user/promo/verify")
 async def claim_promo(request: Request, response: Response):
     user = get_or_create_session_user(request, response)
+    client_ip = get_client_ip(request)
+
+    discord_id = user.get("discord_id")
+    # If user doesn't have a linked Discord ID yet, check if request body provides username/ID
+    if not discord_id:
+        try:
+            body = await request.json()
+            candidate = str(body.get("discord_id") or body.get("discord_tag") or body.get("username") or "").strip()
+            if candidate:
+                if candidate.isdigit() and len(candidate) >= 17:
+                    discord_id = candidate
+                else:
+                    bot_token = os.getenv("DISCORD_BOT_TOKEN")
+                    guild_id = os.getenv("DISCORD_GUILD_ID", "1459402620199374872")
+                    if bot_token:
+                        async with aiohttp.ClientSession() as session:
+                            search_url = f"https://discord.com/api/v10/guilds/{guild_id}/members/search?query={candidate}&limit=5"
+                            async with session.get(search_url, headers={"Authorization": f"Bot {bot_token}"}) as s_resp:
+                                if s_resp.status == 200:
+                                    s_data = await s_resp.json()
+                                    if s_data:
+                                        discord_id = s_data[0].get("user", {}).get("id")
+                if discord_id:
+                    conn = get_db()
+                    cur = conn.cursor()
+                    cur.execute("UPDATE users SET discord_id = ? WHERE id = ?", (discord_id, user["id"]))
+                    conn.commit()
+                    conn.close()
+                    user["discord_id"] = discord_id
+        except Exception:
+            pass
+
     if not user.get("discord_id"):
-        return {"success": False, "message": "Promo verification is only available for Discord-linked accounts."}
-    res = await verify_user_promo(user["discord_id"], user["id"])
+        return {
+            "success": False,
+            "message": "Promo verification is only available for Discord members. Please log in with Discord or link your Discord username."
+        }
+
+    res = await verify_user_promo(user["discord_id"], user["id"], client_ip=client_ip)
     return res
 
 @app.post("/api/deposit/verify")
@@ -989,8 +1037,11 @@ async def verify_deposit(req: DepositVerifyRequest, request: Request, response: 
 async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request, response: Response):
     user = get_or_create_session_user(request, response)
     if bool(user.get("is_guest", 0)):
-        raise HTTPException(status_code=403, detail="Please sign in or register an account to redeem vouchers.")
-    res = redeem_voucher(req.code, user["id"])
+        raise HTTPException(status_code=403, detail="Guests cannot redeem vouchers! Please register a free account to redeem gift codes.")
+    client_ip = get_client_ip(request)
+    res = redeem_voucher(req.code, user["id"], ip=client_ip)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
     return res
 
 @app.get("/api/analytics/metrics")
