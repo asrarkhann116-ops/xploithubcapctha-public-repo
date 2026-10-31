@@ -139,9 +139,15 @@ def check_low_credits_and_notify(user_before: dict, fresh_user: Optional[dict]):
 def authenticate_api_key(
     request: Request,
     x_api_key: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
     api_key: Optional[str] = Query(None)
 ):
     key = x_api_key or api_key
+    if not key and authorization:
+        if authorization.lower().startswith("bearer "):
+            key = authorization[7:].strip()
+        else:
+            key = authorization.strip()
     user = None
     if key:
         user = get_user_by_api_key(key)
