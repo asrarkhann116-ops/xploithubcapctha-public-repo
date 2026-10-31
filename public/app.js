@@ -95,6 +95,32 @@ async function loadUserProfile() {
             if (authBtnText) authBtnText.innerText = 'Sign Out';
         }
 
+        // ── Hero CTA Button State (Claim vs Copy Key) ─────────────
+        const heroClaimBtn = document.getElementById('btn-hero-claim');
+        if (heroClaimBtn) {
+            if (data.is_guest) {
+                heroClaimBtn.href = '/login';
+                heroClaimBtn.onclick = null;
+                const span = heroClaimBtn.querySelector('span');
+                if (span) span.innerText = 'Claim Free API Key';
+            } else {
+                heroClaimBtn.href = 'javascript:void(0)';
+                heroClaimBtn.onclick = (e) => {
+                    e.preventDefault();
+                    const keyCard = document.querySelector('.panel-auth');
+                    if (keyCard) {
+                        keyCard.scrollIntoView({ behavior: 'smooth' });
+                    }
+                    if (data.api_key) {
+                        navigator.clipboard.writeText(data.api_key);
+                        showToast('🔑 API Key copied to clipboard!', 'success');
+                    }
+                };
+                const span = heroClaimBtn.querySelector('span');
+                if (span) span.innerText = 'Copy My API Key';
+            }
+        }
+
         // ── Plan Badge & Concurrency Info ──────────────────────────
         const tierBadge = document.getElementById('tier-badge');
         const tierLabel = document.getElementById('tier-label');

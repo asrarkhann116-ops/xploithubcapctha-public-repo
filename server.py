@@ -475,15 +475,16 @@ async def solve_captcha_token_endpoint(
             url=req.url,
             mode="cdp",
             force_cdp=True,
-            proxy=req.proxy
+            proxy=req.proxy,
+            timeout=35
         )
 
     if not result or not result.get("success"):
-        # Local fallback execution
+        # Local fallback execution (run fast_tls - never run force_cdp on Railway container without display)
         result = await asyncio.to_thread(
             execute_unblock,
             req.url,
-            force_cdp=True,
+            force_cdp=False,
             proxy=req.proxy
         )
 
@@ -1040,8 +1041,11 @@ class WorkerResultPayload(BaseModel):
     headers: Optional[dict] = {}
     cf_clearance: Optional[str] = None
     cf_bm: Optional[str] = None
+    captcha_token: Optional[str] = None
+    token: Optional[str] = None
     user_agent: Optional[str] = None
-    captcha_detected: Optional[bool] = None
+    captcha_detected: Optional[Any] = None
+    duration_ms: Optional[int] = 0
     status_code: Optional[int] = 200
     error: Optional[str] = None
 
