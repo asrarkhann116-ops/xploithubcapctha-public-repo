@@ -62,6 +62,31 @@ active_user_concurrency = {}
 
 app = FastAPI(title="Xploit Unblocker API", version="2.0.0")
 
+# ── Discord status & showcase integration ───────────────────────────────────
+from core.discord_webhook import (
+    push_status_embed,
+    post_solve_showcase,
+    post_announcement as discord_post_announcement,
+    status_background_loop,
+    CHANNEL_SHOWCASE_KEY as _SHOWCASE_KEY,
+)
+from core.db import set_setting as _db_set_setting, get_setting as _db_get_setting
+
+_solve_counter = 0   # counts successful solves this process lifetime
+_SHOWCASE_EVERY = 5  # post to showcase every N-th solve
+
+@app.on_event("startup")
+async def _on_startup():
+    """Launch Discord status loop in FastAPI's own event loop on start."""
+    # Ensure showcase channel ID is in DB (set once from env or known value)
+    showcase_ch = _db_get_setting(_SHOWCASE_KEY)
+    if not showcase_ch:
+        sc = os.getenv("DISCORD_SHOWCASE_CHANNEL_ID", "")
+        if sc:
+            _db_set_setting(_SHOWCASE_KEY, sc)
+    asyncio.create_task(status_background_loop())
+    print("[SERVER] Discord status background loop started.")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -123,6 +148,39 @@ class CaptchaTokenSolveRequest(BaseModel):
 
 # Async tasks storage: {task_id: {"id": str, "status": str, "created_at": int, "result": dict, "error": str, "webhook_url": str}}
 async_tasks = {}
+
+def _detect_solver_type(result: dict) -> str:
+    """Heuristically name the solver type for the showcase embed."""
+    mode = (result.get("mode") or "").lower()
+    html = (result.get("html") or "").lower()
+    if "turnstile" in html:
+        return "Cloudflare Turnstile"
+    if "datadome" in html:
+        return "DataDome"
+    if "akamai" in html:
+        return "Akamai"
+    if "kasada" in html:
+        return "Kasada"
+    if "cf_clearance" in str(result.get("cookies", [])):
+        return "Cloudflare 5s"
+    return "Cloudflare / Anti-Bot"
+
+
+def _extract_token_preview(result: dict) -> str:
+    """Extract a preview of the most interesting token from the result."""
+    # Try cf_clearance first
+    cf = result.get("cf_clearance")
+    if cf:
+        return f'"cf_clearance": "{cf[:60]}..."'
+    # Try cookies list
+    for c in (result.get("cookies") or []):
+        if isinstance(c, dict):
+            name = c.get("name", "")
+            val  = c.get("value", "")
+            if name and val and len(val) > 10:
+                return f'"{name}": "{val[:60]}..."'
+    return ""
+
 
 def check_low_credits_and_notify(user_before: dict, fresh_user: Optional[dict]):
     """Send low-credits email warning when user balance drops below threshold."""
@@ -309,6 +367,7 @@ def has_active_workers():
 
 @app.post("/v1/unlock")
 async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_key)):
+    global _solve_counter
     user_id = user["id"]
     if float(user.get("credits", 0) or 0) < 1.0:
         raise HTTPException(
@@ -349,6 +408,18 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 check_low_credits_and_notify(user, fresh_user)
                 credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
                 log_request(user_id, req.url, result.get("mode", "worker"), 200, duration_ms, cost)
+                # Discord: update status embed + maybe showcase
+                _solve_counter += 1
+                asyncio.create_task(push_status_embed())
+                if _solve_counter % _SHOWCASE_EVERY == 0:
+                    asyncio.create_task(post_solve_showcase(
+                        target_url=req.url,
+                        mode=result.get("mode", "worker_cdp"),
+                        duration_ms=duration_ms,
+                        solver_type=_detect_solver_type(result),
+                        token_preview=_extract_token_preview(result),
+                        username=user.get("username", ""),
+                    ))
                 return {
                     "success": True,
                     "url": req.url,
@@ -397,6 +468,18 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
             check_low_credits_and_notify(user, fresh_user)
             credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
             log_request(user_id, req.url, result.get("mode", "auto"), status_code, duration_ms, cost)
+            # Discord: update status embed + maybe showcase
+            _solve_counter += 1
+            asyncio.create_task(push_status_embed())
+            if _solve_counter % _SHOWCASE_EVERY == 0:
+                asyncio.create_task(post_solve_showcase(
+                    target_url=req.url,
+                    mode=result.get("mode", "auto"),
+                    duration_ms=duration_ms,
+                    solver_type=_detect_solver_type(result),
+                    token_preview=_extract_token_preview(result),
+                    username=user.get("username", ""),
+                ))
             return {
                 "success": True,
                 "url": req.url,
@@ -1123,6 +1206,85 @@ async def admin_create_voucher_api(
     if not res.get("success"):
         raise HTTPException(status_code=400, detail=res.get("error"))
     return res
+
+
+# ── Announcement Pydantic models ──────────────────────────────────────────
+class AnnouncementCreateRequest(BaseModel):
+    title: str
+    message: str
+    version: Optional[str] = ""
+    post_discord: Optional[bool] = True   # if True, also sends to Discord updates channel
+
+
+# ── Public: latest active announcement (shown as non-intrusive banner) ─────
+@app.get("/api/announcements/latest")
+async def get_latest_announcement():
+    """Public endpoint — frontend polls this to show site-wide banners."""
+    from core.db import get_active_announcement
+    item = get_active_announcement()
+    return {"success": True, "announcement": item}
+
+
+# ── Admin: list all announcements ─────────────────────────────────────────
+@app.get("/api/admin/announcements")
+async def admin_list_announcements(
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None),
+):
+    verify_admin_key(x_admin_key, key)
+    from core.db import get_all_announcements
+    return {"success": True, "announcements": get_all_announcements()}
+
+
+# ── Admin: create & broadcast announcement ────────────────────────────────
+@app.post("/api/admin/announcements")
+async def admin_create_announcement(
+    req: AnnouncementCreateRequest,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None),
+):
+    verify_admin_key(x_admin_key, key)
+    from core.db import create_announcement
+
+    # Save to DB
+    item = create_announcement(req.title, req.message, req.version or "", posted_discord=0)
+
+    # Broadcast to Discord (fire-and-forget coroutine via asyncio)
+    discord_ok = False
+    if req.post_discord:
+        try:
+            from discord_bot import post_announcement_to_discord, client as discord_client
+            if discord_client.is_ready():
+                discord_ok = await post_announcement_to_discord(req.title, req.message, req.version or "")
+                if discord_ok:
+                    # Mark as posted in DB
+                    conn = __import__("core.db", fromlist=["get_db"]).get_db()
+                    conn.execute("UPDATE announcements SET posted_discord = 1 WHERE id = ?", (item["id"],))
+                    conn.commit()
+                    conn.close()
+                    item["posted_discord"] = 1
+        except Exception as e:
+            print(f"[ADMIN] Discord post failed: {e}")
+
+    return {
+        "success": True,
+        "announcement": item,
+        "discord_posted": discord_ok,
+    }
+
+
+# ── Admin: toggle announcement active/inactive ────────────────────────────
+@app.post("/api/admin/announcements/{announcement_id}/toggle")
+async def admin_toggle_announcement_api(
+    announcement_id: int,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None),
+    active: int = Query(1),
+):
+    verify_admin_key(x_admin_key, key)
+    from core.db import admin_toggle_announcement
+    admin_toggle_announcement(announcement_id, active)
+    return {"success": True, "id": announcement_id, "is_active": active}
 
 
 # ════════════════════════════════════════════

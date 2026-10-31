@@ -125,6 +125,7 @@
             <button class="admin-tab-btn" onclick="switchTab('deposits')">💳 Deposits &amp; Revenue</button>
             <button class="admin-tab-btn" onclick="switchTab('vouchers')">🎁 Voucher Generator</button>
             <button class="admin-tab-btn" onclick="switchTab('requests')"> Live Request Stream</button>
+            <button class="admin-tab-btn" onclick="switchTab('announcements')" id="tab-btn-announcements">📢 Announcements</button>
         </div>
 
         <!-- TAB 1: Users Management -->
@@ -220,6 +221,48 @@
                     </thead>
                     <tbody id="requests-table-body">
                         <tr><td colspan="7" style="text-align: center; color: #8189bd;">Loading request logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+        <!-- TAB 5: Announcements -->
+        <div id="tab-announcements" class="tab-content" style="display: none;">
+            <div class="admin-stat-card" style="margin-bottom: 20px;">
+                <h3 style="font-size: 15px; margin-bottom: 4px; font-weight: 700;">📢 Broadcast Announcement</h3>
+                <p style="font-size: 12px; color: #8189bd; margin-bottom: 14px;">Publishes to website banner AND Discord <code style="color:#9fd8ff;">#╰୧．api・updates</code> simultaneously.</p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input type="text" id="ann-title-input" placeholder="Announcement title (e.g. Engine v2.5 Released)" class="lock-input" style="flex: 3; margin: 0;">
+                        <input type="text" id="ann-version-input" placeholder="Version (optional, e.g. 2.5.0)" class="lock-input" style="flex: 1; margin: 0;">
+                    </div>
+                    <textarea id="ann-message-input" placeholder="Announcement body — supports Markdown-style formatting" class="lock-input" style="margin: 0; min-height: 90px; resize: vertical; font-family: var(--font-mono); font-size: 13px;"></textarea>
+                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #b9bfe6; cursor: pointer;">
+                            <input type="checkbox" id="ann-discord-toggle" checked style="accent-color: #9fd8ff;"> Post to Discord
+                        </label>
+                        <button onclick="publishAnnouncement()" class="btn-primary" style="padding: 8px 22px; font-size: 13px;">🚀 Publish</button>
+                        <span id="ann-status-msg" style="font-size: 12px; color: #8189bd;"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="admin-table-panel">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Version</th>
+                            <th>Discord</th>
+                            <th>Active</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="announcements-table-body">
+                        <tr><td colspan="7" style="text-align: center; color: #8189bd;">Loading announcements...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -463,6 +506,101 @@
                 alert("Error creating voucher: " + e.message);
             }
         }
+
+        // ── Announcements ──────────────────────────────────────────────────
+        async function fetchAnnouncements() {
+            const key = getSavedKey();
+            try {
+                const res  = await fetch(`/api/admin/announcements?key=${encodeURIComponent(key)}`);
+                const json = await res.json();
+                if (json.success) renderAnnouncements(json.announcements || []);
+            } catch(e) { console.error('Failed to load announcements', e); }
+        }
+
+        function renderAnnouncements(items) {
+            const tbody = document.getElementById('announcements-table-body');
+            if (!items || items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#8189bd;">No announcements yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(a => `
+                <tr>
+                    <td><code>#${a.id}</code></td>
+                    <td style="font-weight:600;max-width:260px;">${escapeHtml(a.title)}</td>
+                    <td><code style="color:#9fd8ff;">${a.version || '—'}</code></td>
+                    <td>${a.posted_discord ? '<span class="badge-pill badge-green">✅ Posted</span>' : '<span class="badge-pill badge-amber">⏸ Pending</span>'}</td>
+                    <td>${a.is_active ? '<span class="badge-pill badge-green">Active</span>' : '<span style="color:#8189bd;font-size:11px;">Inactive</span>'}</td>
+                    <td style="color:#8189bd;font-size:11px;">${new Date(a.created_at * 1000).toLocaleString()}</td>
+                    <td>
+                        <button class="btn-sm-action" onclick="toggleAnnouncement(${a.id}, ${a.is_active ? 0 : 1})">${a.is_active ? 'Deactivate' : 'Activate'}</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function toggleAnnouncement(id, newActive) {
+            const key = getSavedKey();
+            await fetch(`/api/admin/announcements/${id}/toggle?key=${encodeURIComponent(key)}&active=${newActive}`, { method: 'POST' });
+            fetchAnnouncements();
+        }
+
+        async function publishAnnouncement() {
+            const title   = document.getElementById('ann-title-input').value.trim();
+            const message = document.getElementById('ann-message-input').value.trim();
+            const version = document.getElementById('ann-version-input').value.trim();
+            const postDc  = document.getElementById('ann-discord-toggle').checked;
+            const status  = document.getElementById('ann-status-msg');
+
+            if (!title || !message) {
+                status.style.color = '#f87171';
+                status.innerText = '⚠ Title and message are required.';
+                return;
+            }
+
+            status.style.color = '#8189bd';
+            status.innerText = 'Publishing...';
+
+            const key = getSavedKey();
+            try {
+                const res  = await fetch(`/api/admin/announcements?key=${encodeURIComponent(key)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message, version, post_discord: postDc })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    const dcMsg = json.discord_posted ? ' · Discord ✅' : (postDc ? ' · Discord ❌ (bot offline?)' : '');
+                    status.style.color = '#6ee7b7';
+                    status.innerText = `✅ Published${dcMsg}`;
+                    document.getElementById('ann-title-input').value   = '';
+                    document.getElementById('ann-message-input').value = '';
+                    document.getElementById('ann-version-input').value = '';
+                    fetchAnnouncements();
+                } else {
+                    status.style.color = '#f87171';
+                    status.innerText = '❌ ' + (json.detail || 'Failed to publish.');
+                }
+            } catch(e) {
+                status.style.color = '#f87171';
+                status.innerText = '❌ Network error: ' + e.message;
+            }
+        }
+
+        // Load announcements whenever that tab becomes active
+        const _origSwitchTab = window.switchTab;
+        function switchTabExtended(tabId) {
+            if (typeof _origSwitchTab === 'function') _origSwitchTab(tabId);
+            if (tabId === 'announcements') fetchAnnouncements();
+        }
+        // Override the inline onclick references via a global alias
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.style.display = 'block';
+            event.target.classList.add('active');
+            if (tabId === 'announcements') fetchAnnouncements();
+        };
 
         function escapeHtml(str) {
             if (!str) return '';

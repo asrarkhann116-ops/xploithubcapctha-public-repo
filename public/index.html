@@ -34,7 +34,60 @@
     <link rel="stylesheet" href="/static/fx.css">
 </head>
 <body>
-    <!-- Top System Telemetry Bar -->
+    <!-- ── Announcement Banner (non-intrusive, auto-polls /api/announcements/latest) ── -->
+    <div id="ann-banner" style="
+        display: none;
+        position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+        background: linear-gradient(90deg, #0c4a6e 0%, #083344 100%);
+        border-bottom: 1px solid rgba(56,189,248,0.35);
+        padding: 9px 20px;
+        font-family: var(--font-mono, monospace);
+        font-size: 13px;
+        color: #bae6fd;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        animation: annSlideDown 0.35s ease;
+    ">
+        <span style="font-size:16px;">📢</span>
+        <span id="ann-banner-title" style="font-weight:700; color:#fff; white-space:nowrap;"></span>
+        <span style="color:rgba(186,230,253,0.5);">·</span>
+        <span id="ann-banner-msg" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;"></span>
+        <span id="ann-banner-ver" style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.35);border-radius:4px;padding:1px 6px;font-size:11px;color:#7dd3fc;"></span>
+        <button onclick="document.getElementById('ann-banner').style.display='none'" style="
+            background:transparent; border:none; color:#7dd3fc; font-size:18px;
+            cursor:pointer; padding:0 4px; line-height:1; margin-left:8px;
+        ">×</button>
+    </div>
+    <style>@keyframes annSlideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}</style>
+    <script>
+    (function() {
+        var lastAnnId = null;
+        function checkAnnouncement() {
+            fetch('/api/announcements/latest')
+                .then(r => r.json())
+                .then(j => {
+                    var a = j.announcement;
+                    if (a && a.id && a.id !== lastAnnId) {
+                        lastAnnId = a.id;
+                        document.getElementById('ann-banner-title').textContent = a.title || '';
+                        document.getElementById('ann-banner-msg').textContent   = a.message || '';
+                        var ver = document.getElementById('ann-banner-ver');
+                        ver.textContent = a.version ? 'v' + a.version : '';
+                        ver.style.display = a.version ? 'inline' : 'none';
+                        var banner = document.getElementById('ann-banner');
+                        banner.style.display = 'flex';
+                        // push page content down by banner height
+                        var h = banner.offsetHeight;
+                        document.body.style.paddingTop = h + 'px';
+                    }
+                }).catch(function(){});
+        }
+        checkAnnouncement();
+        setInterval(checkAnnouncement, 60000); // re-check every 60s
+    })();
+    </script>
+    <!-- ── Top System Telemetry Bar -->
     <div class="system-bar">
         <div class="system-container">
             <div class="sys-item">

@@ -104,6 +104,43 @@ def init_db():
     )
     ''')
 
+    # Announcements table (for flash updates on website and Discord)
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS announcements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        version TEXT DEFAULT '',
+        is_active INTEGER DEFAULT 1,
+        posted_discord INTEGER DEFAULT 0,
+        created_at INTEGER
+    )
+    ''')
+
+    # System settings table (stores persistent IDs like live discord status message id)
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS system_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT,
+        updated_at INTEGER
+    )
+    ''')
+
+    # Pre-seed persistent Discord status channel & message IDs
+    now_ts = int(time.time())
+    cur.execute(
+        "INSERT OR IGNORE INTO system_settings (key, value, updated_at) VALUES ('discord_status_channel_id', '1566195833240555791', ?)",
+        (now_ts,)
+    )
+    cur.execute(
+        "INSERT OR IGNORE INTO system_settings (key, value, updated_at) VALUES ('discord_status_message_id', '1566196058193662083', ?)",
+        (now_ts,)
+    )
+    cur.execute(
+        "INSERT OR IGNORE INTO system_settings (key, value, updated_at) VALUES ('discord_updates_channel_id', '1566195737786720286', ?)",
+        (now_ts,)
+    )
+
     # Pre-seed vouchers with INSERT OR IGNORE — safe to run on existing DBs
     seed_vouchers = [
         ("XPK-WELCOME-1000",  1000.0),   # existing welcome code
@@ -829,6 +866,69 @@ def admin_create_voucher(code: str, credits: float) -> dict:
     except Exception as e:
         conn.close()
         return {"success": False, "error": f"Code '{code}' already exists or DB error."}
+
+def get_setting(key: str, default: str = "") -> str:
+    """Retrieve persistent system setting."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT value FROM system_settings WHERE key = ?", (key,))
+    row = cur.fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+def set_setting(key: str, value: str):
+    """Update or insert persistent system setting."""
+    conn = get_db()
+    cur = conn.cursor()
+    now = int(time.time())
+    cur.execute(
+        "INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        (key, str(value), now)
+    )
+    conn.commit()
+    conn.close()
+
+def create_announcement(title: str, message: str, version: str = "", posted_discord: int = 0) -> dict:
+    """Create a new broadcast announcement."""
+    conn = get_db()
+    cur = conn.cursor()
+    now = int(time.time())
+    cur.execute(
+        "INSERT INTO announcements (title, message, version, is_active, posted_discord, created_at) VALUES (?, ?, ?, 1, ?, ?)",
+        (title.strip(), message.strip(), version.strip(), posted_discord, now)
+    )
+    conn.commit()
+    new_id = cur.lastrowid
+    cur.execute("SELECT * FROM announcements WHERE id = ?", (new_id,))
+    item = dict(cur.fetchone())
+    conn.close()
+    return item
+
+def get_active_announcement() -> Optional[dict]:
+    """Retrieve latest active announcement for website display."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM announcements WHERE is_active = 1 ORDER BY id DESC LIMIT 1")
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def get_all_announcements() -> list:
+    """Retrieve all announcements for admin panel."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM announcements ORDER BY id DESC LIMIT 30")
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+def admin_toggle_announcement(announcement_id: int, is_active: int):
+    """Activate or deactivate an announcement."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE announcements SET is_active = ? WHERE id = ?", (is_active, announcement_id))
+    conn.commit()
+    conn.close()
 
 # Initialize on import
 init_db()
