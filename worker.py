@@ -279,6 +279,23 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None, method="GET", headers=N
             except Exception:
                 pass
 
+            # Extract on-page captcha response token (Turnstile / hCaptcha / reCAPTCHA)
+            captcha_token = None
+            try:
+                captcha_token = sb.cdp.evaluate("""
+                    (() => {
+                        let c = document.querySelector('[name="cf-turnstile-response"]');
+                        if (c && c.value && c.value.length > 5) return c.value;
+                        let h = document.querySelector('[name="h-captcha-response"]');
+                        if (h && h.value && h.value.length > 5) return h.value;
+                        let g = document.querySelector('[name="g-recaptcha-response"]');
+                        if (g && g.value && g.value.length > 5) return g.value;
+                        return null;
+                    })()
+                """)
+            except Exception:
+                pass
+
             report_proxy_result(resolved_proxy, success=True)
             return {
                 "success": True,
@@ -288,6 +305,8 @@ def execute_cdp_bypass(url, force_cdp=False, proxy=None, method="GET", headers=N
                 "cookies": cookies,
                 "cf_clearance": cf_clearance,
                 "cf_bm": cf_bm,
+                "captcha_token": captcha_token,
+                "token": captcha_token or cf_clearance,
                 "user_agent": user_agent,
                 "captcha_detected": detected_captcha,
                 "duration_ms": duration,

@@ -113,6 +113,12 @@ class AdminVoucherCreateRequest(BaseModel):
     code: str
     credits: float
 
+class CaptchaTokenSolveRequest(BaseModel):
+    url: str
+    type: Optional[str] = "auto"
+    sitekey: Optional[str] = None
+    proxy: Optional[str] = None
+
 # Async tasks storage: {task_id: {"id": str, "status": str, "created_at": int, "result": dict, "error": str, "webhook_url": str}}
 async_tasks = {}
 
@@ -437,6 +443,77 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
         )
     finally:
         active_user_concurrency[user_id] = max(0, active_user_concurrency.get(user_id, 1) - 1)
+
+# ════════════════════════════════════════════
+#  2.1 DIRECT CAPTCHA TOKEN SOLVER ENDPOINT
+# ════════════════════════════════════════════
+@app.post("/api/captcha/solve")
+@app.post("/api/v1/solve")
+async def solve_captcha_token_endpoint(
+    req: CaptchaTokenSolveRequest,
+    user: dict = Depends(authenticate_api_key)
+):
+    """
+    Dedicated Captcha Token Solver API (CapSolver / 2Captcha alternative).
+    Solves Cloudflare Turnstile, hCaptcha, and reCAPTCHA, and returns the verified token string.
+    """
+    user_id = user["id"]
+    start_time = time.time()
+
+    # Rate & timeout restrictions
+    now = int(time.time())
+    if user.get("timeout_until", 0) > now:
+        remaining = (user["timeout_until"] - now) // 60
+        raise HTTPException(status_code=403, detail=f"Account restricted. Timeout active for {remaining}m.")
+
+    if user["credits"] < 1.0:
+        raise HTTPException(status_code=402, detail="Insufficient credits. Top up or redeem a voucher.")
+
+    result = None
+    if has_active_workers():
+        result = await dispatch_to_worker(
+            url=req.url,
+            mode="cdp",
+            force_cdp=True,
+            proxy=req.proxy
+        )
+
+    if not result or not result.get("success"):
+        # Local fallback execution
+        result = await asyncio.to_thread(
+            execute_unblock,
+            req.url,
+            force_cdp=True,
+            proxy=req.proxy
+        )
+
+    duration_ms = int((time.time() - start_time) * 1000)
+    if result and result.get("success"):
+        cost = get_request_cost(user)
+        deduct_credit(user_id, cost)
+        fresh_user = get_user_by_id(user_id)
+        check_low_credits_and_notify(user, fresh_user)
+        credits_remaining = fresh_user["credits"] if fresh_user else (user["credits"] - cost)
+        log_request(user_id, req.url, "token_solve", 200, duration_ms, cost)
+        token = result.get("captcha_token") or result.get("token") or result.get("cf_clearance") or ""
+        return {
+            "success": True,
+            "url": req.url,
+            "captcha_type": result.get("captcha_detected") or req.type or "Turnstile",
+            "token": token,
+            "cf_clearance": result.get("cf_clearance"),
+            "user_agent": result.get("user_agent"),
+            "duration_ms": duration_ms,
+            "credits_remaining": credits_remaining
+        }
+    else:
+        log_request(user_id, req.url, "token_solve_failed", 400, duration_ms, 0.0)
+        return JSONResponse(status_code=400, content={
+            "success": False,
+            "url": req.url,
+            "error": result.get("error", "Failed to solve captcha challenge"),
+            "duration_ms": duration_ms
+        })
 
 # ── Background Task Runner for Async Scrapes ───────────
 async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int):
