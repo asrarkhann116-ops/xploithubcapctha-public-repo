@@ -933,8 +933,21 @@ async def custom_404_handler(request: Request, exc):
     return HTMLResponse(content="<h1>404 Not Found</h1>", status_code=404)
 
 @app.get("/favicon.ico", include_in_schema=False)
+async def favicon_ico_route():
+    f = os.path.join(PUBLIC_DIR, "favicon.ico")
+    if os.path.exists(f):
+        return FileResponse(f, media_type="image/x-icon")
+    raise HTTPException(status_code=404)
+
+@app.get("/favicon.png", include_in_schema=False)
+async def favicon_png_route():
+    f = os.path.join(PUBLIC_DIR, "favicon.png")
+    if os.path.exists(f):
+        return FileResponse(f, media_type="image/png")
+    raise HTTPException(status_code=404)
+
 @app.get("/favicon.svg", include_in_schema=False)
-async def favicon_route():
+async def favicon_svg_route():
     f = os.path.join(PUBLIC_DIR, "favicon.svg")
     if os.path.exists(f):
         return FileResponse(f, media_type="image/svg+xml")
