@@ -46,7 +46,7 @@ from core import email_notify
 
 # Worker secret key for GitHub Actions runners to authenticate
 WORKER_SECRET = os.getenv("WORKER_SECRET", "xpk-worker-default-secret")
-ADMIN_SECRET = os.getenv("ADMIN_SECRET", "xpk-master-asrar-2026")
+ADMIN_SECRET = os.getenv("ADMIN_SECRET")  # Set ONLY via Railway env var — never hardcoded
 
 # In-memory task queue: pending tasks waiting for a worker
 task_queue = deque()
@@ -135,6 +135,23 @@ def check_low_credits_and_notify(user_before: dict, fresh_user: Optional[dict]):
             credits_remaining=new_c
         ))
 
+# Synthetic unlimited admin user — returned when ADMIN_SECRET key is used
+_ADMIN_USER = {
+    "id": 0,
+    "username": "admin",
+    "email": None,
+    "discord_id": None,
+    "is_guest": 0,
+    "is_admin": 1,
+    "credits": 999_999_999.0,
+    "plan": "admin",
+    "has_deposited": 1,
+    "timeout_until": 0,
+    "concurrency_limit": 999,
+    "deposit_ref": "ADMIN",
+    "api_key": "<ADMIN_SECRET>",
+}
+
 # Helper to get user from API Key or Web Session
 def authenticate_api_key(
     request: Request,
@@ -148,6 +165,11 @@ def authenticate_api_key(
             key = authorization[7:].strip()
         else:
             key = authorization.strip()
+
+    # Admin key (from Railway env only) — bypasses all limits
+    if key and ADMIN_SECRET and key == ADMIN_SECRET:
+        return _ADMIN_USER
+
     user = None
     if key:
         user = get_user_by_api_key(key)

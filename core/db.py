@@ -466,6 +466,8 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
     return dict(row) if row else None
 
 def deduct_credit(user_id: int, amount: float = 1.0) -> bool:
+    if user_id == 0:  # Admin synthetic user — unlimited, no deduction
+        return True
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT credits FROM users WHERE id = ?", (user_id,))
