@@ -1,18 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <defs>
-    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" />
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="46%" stop-color="#fde047" />
       <stop offset="50%" stop-color="#f472b6" />
-      <stop offset="100%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#f687b3" />
     </linearGradient>
-    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
-      <feGaussianBlur stdDeviation="1" result="blur" />
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="0.8" result="blur" />
       <feMerge>
         <feMergeNode in="blur" />
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
   </defs>
-  <rect width="32" height="32" rx="7" fill="#0b0c13" stroke="#222638" stroke-width="1" />
-  <path d="M18.5 3.5 L7.5 17 L15 17 L13 28.5 L24.5 14 L17 14 Z" fill="url(#boltGrad)" filter="url(#glow)" stroke="#ffffff" stroke-width="0.5" stroke-opacity="0.6" />
+  <!-- Background circular emblem matching brand -->
+  <circle cx="16" cy="16" r="14.5" fill="#161828" stroke="#3e4776" stroke-width="1.5" />
+  <!-- Iconic dual-tone retro lightning bolt -->
+  <path d="M18 3.5 L7.5 16.5 L15 16.5 L13 28.5 L24.5 14 L17 14 Z" fill="url(#boltGrad)" filter="url(#glow)" stroke="#ffffff" stroke-width="0.8" />
 </svg>
