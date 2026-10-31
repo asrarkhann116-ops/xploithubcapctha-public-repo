@@ -304,3 +304,53 @@
       $('#pm').textContent = b.join(', ') + '.'; }).catch(() => { $('#pm').textContent = 'Metrics are unavailable right now.'; });
     run(); setInterval(run, 10000); }
 })();
+
+/* ---- round 6: 7-day usage graph, solver mode split, my recent requests, error hints ---- */
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const MODE = m => /cdp|stealth|browser/i.test(m) ? 'Hardware CDP' : /fast|tls/i.test(m) ? 'Fast TLS' : String(m).replace(/_/g, ' ');
+
+  // status page: usage graph (#1) and mode split (#2) from /api/analytics/metrics
+  const side = $('#overall') && $('.side-column');
+  if (side) {
+    const pg = el('div', 'panel'), pm = el('div', 'panel');
+    pg.innerHTML = '<div class="panel-header"><h2>Last 7 days</h2></div><p class="panel-caption" id="fx-gcap">Loading...</p><div class="fx-bars" id="fx-bars" role="img" aria-label="Requests per day for the last 7 days"></div>';
+    pm.innerHTML = '<div class="panel-header"><h2>Solver modes</h2></div><p class="panel-caption" id="fx-mcap">Loading...</p><div class="fx-split" id="fx-split"></div><div class="fx-legend" id="fx-leg"></div>';
+    side.append(pg, pm);
+    const draw = () => fetch('/api/analytics/metrics', { cache: 'no-store' }).then(r => r.json()).then(j => {
+      const m = j.metrics || {}, by = {}; (m.daily_trends || []).forEach(d => by[d.date] = d);
+      const days = Array.from({ length: 7 }, (_, i) => { const dt = new Date(Date.now() - (6 - i) * 864e5), k = dt.toISOString().slice(0, 10); return { k, d: by[k] || null, w: dt.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }) }; });
+      const max = Math.max(1, ...days.map(x => x.d ? x.d.total : 0)), tot = days.reduce((a, x) => a + (x.d ? x.d.total : 0), 0);
+      $('#fx-gcap').textContent = tot ? tot.toLocaleString() + ' requests in the last 7 days (UTC days).' : 'No requests in the last 7 days.';
+      const bars = $('#fx-bars'); bars.replaceChildren(...days.map(x => { const c = el('div', 'fx-col'), b = el('i'); const n = x.d ? x.d.total : 0;
+        b.style.height = Math.max(n ? 8 : 2, n / max * 100) + '%'; if (x.d && x.d.success_rate < 90) b.className = 'warn';
+        c.title = x.k + ': ' + n + ' requests' + (x.d ? ', ' + x.d.success_rate.toFixed(1) + '% solved' : ''); c.append(b, el('span', '', x.w)); return c; }));
+      const md = m.mode_distribution || {}, ent = Object.entries(md), sum = ent.reduce((a, e) => a + e[1], 0);
+      $('#fx-mcap').textContent = sum ? 'How requests were solved.' : 'No solved requests yet.';
+      $('#fx-split').replaceChildren(...ent.map(([k, v], i) => { const s = el('i'); s.style.flex = v; s.dataset.i = i % 4; s.title = MODE(k) + ': ' + v; return s; }));
+      $('#fx-leg').replaceChildren(...ent.map(([k, v], i) => { const s = el('span', '', MODE(k) + ' ' + Math.round(v / sum * 100) + '% (' + v + ')'); s.dataset.i = i % 4; return s; }));
+    }).catch(() => { $('#fx-gcap').textContent = 'Usage data is unavailable right now.'; $('#fx-mcap').textContent = 'Unavailable right now.'; });
+    draw(); setInterval(draw, 30000);
+  }
+
+  // console: my recent requests (#3, saved in this browser only) and error hints (#4)
+  const term = $('#console-output');
+  if (term) {
+    const box = term.closest('.terminal-screen'), host = box && box.parentElement; if (!host) return;
+    let L = []; try { L = JSON.parse(localStorage.getItem('fx_hist') || '[]'); } catch (e) {}
+    const hint = el('div', 'fx-hint'); hint.hidden = true; host.after(hint);
+    const panel = el('div', 'panel fx-hist'); panel.innerHTML = '<div class="panel-header"><h2>My recent requests</h2><button type="button" class="fx-mini-btn" id="fx-clr">Clear</button></div><p class="panel-caption">Saved in this browser only. Your account history lives on the server.</p><div id="fx-rows"></div>'; hint.after(panel);
+    const rows = $('#fx-rows', panel), ago = t => { const s = (Date.now() - t) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + ' h ago' : new Date(t).toLocaleDateString(); };
+    const render = () => { rows.replaceChildren(...(L.length ? L.map(r => { const d = el('div', 'fx-row' + (r.ok ? '' : ' bad')); d.append(el('b', '', r.ok ? 'Solved' : 'Failed'), el('span', 'u', r.u), el('span', '', r.ms + ' ms'), el('span', '', ago(r.t))); return d; }) : [el('p', 'panel-caption', 'No requests yet. Run your first one above.')])); };
+    $('#fx-clr', panel).onclick = () => { L = []; try { localStorage.removeItem('fx_hist'); } catch (e) {} render(); }; render();
+    const H = { 400: 'The target refused or timed out. No credit was charged. Check the URL and try again.', 401: 'Your API key is missing or invalid. Send it in the X-API-Key header.', 402: 'Not enough credits. Top up or claim your free daily requests.', 403: 'This account is restricted by a cooldown. Wait for it to end, then retry.', 429: 'Too many requests. Wait a moment before retrying.' };
+    const show = c => { const t = H[c]; hint.hidden = !t; if (!t) return; hint.textContent = c + ': ' + t + ' '; if (c === 402) { const a = el('a', '', 'Top up'); a.href = '/plans/'; hint.append(a); } else if (c === 401 || c === 400) { const a = el('a', '', 'Read the docs'); a.href = '/guide/'; hint.append(a); } };
+    const f0 = window.fetch;
+    window.fetch = function (u, o) { const isRun = typeof u === 'string' && /\/v1\/unlock$/.test(u) && o && /post/i.test(o.method || ''); if (!isRun) return f0.apply(this, arguments);
+      let tgt = ''; try { const b = JSON.parse(o.body), x = new URL(b.url || b.target_url || b.target); tgt = x.host + (x.pathname === '/' ? '' : x.pathname); } catch (e) {}
+      const t0 = Date.now(); return f0.apply(this, arguments).then(res => { res.clone().json().then(d => { const ok = !!(d && d.success);
+        L.unshift({ u: tgt || 'unknown target', ok, ms: Math.round((d && d.duration_ms) || Date.now() - t0), t: Date.now() }); L = L.slice(0, 10);
+        try { localStorage.setItem('fx_hist', JSON.stringify(L)); } catch (e) {} render(); show(ok ? 0 : (res.status === 200 ? 400 : res.status)); }).catch(() => show(res.status)); return res; }); };
+  }
+})();

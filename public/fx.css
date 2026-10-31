@@ -228,3 +228,14 @@ pre.fx-ln{counter-reset:l;overflow-x:auto}.fx-ln .ln{counter-increment:l;display
 .fx-low.on{display:flex}.fx-low a{color:var(--text-accent);font-weight:700}.fx-low button{background:none;border:0;color:var(--text-muted);font-size:1.1rem;cursor:pointer}
 @media(max-width:600px){.fx-mini span{display:none}.fx-low{left:16px}}
 @media(prefers-reduced-motion:reduce){.fx-scrollhint::after,.fx-glitch{animation:none}}
+
+/* ---- round 6 ---- */
+.fx-bars{display:flex;gap:8px;align-items:flex-end;height:120px;margin-top:12px}.fx-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;text-align:center}
+.fx-col i{display:block;background:var(--text-ok);border-radius:var(--radius-xs) var(--radius-xs) 0 0;min-height:2px}.fx-col i.warn{background:var(--text-amber)}.fx-col span{font:600 .7rem var(--font-mono);color:var(--text-muted)}
+.fx-split{display:flex;height:14px;border-radius:var(--radius-pill);overflow:hidden;background:var(--bg-input);margin-top:12px}.fx-split i{min-width:4px}
+.fx-split i[data-i="0"],.fx-legend span[data-i="0"]::before{background:var(--text-cyan)}.fx-split i[data-i="1"],.fx-legend span[data-i="1"]::before{background:var(--text-accent)}.fx-split i[data-i="2"],.fx-legend span[data-i="2"]::before{background:var(--text-amber)}.fx-split i[data-i="3"],.fx-legend span[data-i="3"]::before{background:var(--text-ok)}
+.fx-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:.85rem;color:var(--text-secondary)}.fx-legend span::before{content:"";display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:2px}
+.fx-hint{margin:10px 0;padding:10px 14px;border:1px solid var(--text-amber);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-amber);font-size:.9rem}.fx-hint a{color:var(--text-accent);font-weight:700;margin-left:6px}
+.fx-hist{margin-top:14px}.fx-row{display:grid;grid-template-columns:70px 1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--border-subtle);font-size:.85rem;color:var(--text-secondary)}
+.fx-row b{color:var(--text-ok)}.fx-row.bad b{color:var(--text-danger)}.fx-row .u{font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:600px){.fx-row{grid-template-columns:60px 1fr auto}.fx-row span:last-child{display:none}}
