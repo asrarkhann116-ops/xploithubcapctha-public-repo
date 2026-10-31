@@ -101,6 +101,10 @@ def init_db():
             (code, credits, int(time.time()))
         )
 
+    # Auto-purge request logs older than 30 days to strictly enforce 30-day privacy retention
+    thirty_days_ago = int(time.time()) - (30 * 86400)
+    cur.execute("DELETE FROM request_logs WHERE created_at < ?", (thirty_days_ago,))
+
     conn.commit()
     conn.close()
 
@@ -502,10 +506,14 @@ def set_user_timeout(user_id: int, hours: int = 5):
 def log_request(user_id: int, target_url: str, mode: str, status_code: int, duration_ms: int, cost: float):
     conn = get_db()
     cur = conn.cursor()
+    now = int(time.time())
     cur.execute(
         "INSERT INTO request_logs (user_id, target_url, mode, status_code, duration_ms, cost, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (user_id, target_url, mode, status_code, duration_ms, cost, int(time.time()))
+        (user_id, target_url, mode, status_code, duration_ms, cost, now)
     )
+    # Opportunistic purge of logs older than 30 days (~every 50 requests) to honor 30-day privacy retention
+    if (now % 50) == 0:
+        cur.execute("DELETE FROM request_logs WHERE created_at < ?", (now - (30 * 86400),))
     conn.commit()
     conn.close()
 
