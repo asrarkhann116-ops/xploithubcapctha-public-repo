@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         /* ══════════ FLUID ANIMATIONS & TRENDING STYLES ══════════ */
         @keyframes orbFloat1 {
@@ -21,18 +21,18 @@
         }
         @keyframes neonPulseGlow {
             0%, 100% {
-                box-shadow: 0 0 25px rgba(16, 185, 129, 0.15), 0 0 50px rgba(6, 182, 212, 0.08), inset 0 0 15px rgba(16, 185, 129, 0.05);
+                box-shadow: 0 0 25px rgba(246, 184, 200, 0.15), 0 0 50px rgba(159, 216, 255, 0.08), inset 0 0 15px rgba(246, 184, 200, 0.05);
             }
             50% {
-                box-shadow: 0 0 35px rgba(16, 185, 129, 0.28), 0 0 70px rgba(6, 182, 212, 0.16), inset 0 0 25px rgba(16, 185, 129, 0.1);
+                box-shadow: 0 0 35px rgba(246, 184, 200, 0.28), 0 0 70px rgba(159, 216, 255, 0.16), inset 0 0 25px rgba(246, 184, 200, 0.1);
             }
         }
         @keyframes vinceGlow {
             0%, 100% {
-                box-shadow: 0 0 30px rgba(245, 158, 11, 0.18), 0 0 60px rgba(16, 185, 129, 0.12);
+                box-shadow: 0 0 30px rgba(255, 224, 168, 0.18), 0 0 60px rgba(246, 184, 200, 0.12);
             }
             50% {
-                box-shadow: 0 0 45px rgba(245, 158, 11, 0.32), 0 0 90px rgba(16, 185, 129, 0.22);
+                box-shadow: 0 0 45px rgba(255, 224, 168, 0.32), 0 0 90px rgba(246, 184, 200, 0.22);
             }
         }
 
@@ -55,7 +55,7 @@
         .orb-1 {
             width: 450px;
             height: 450px;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(246, 184, 200, 0.35) 0%, transparent 70%);
             top: 10%;
             left: 15%;
             animation: orbFloat1 18s ease-in-out infinite;
@@ -63,7 +63,7 @@
         .orb-2 {
             width: 500px;
             height: 500px;
-            background: radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(159, 216, 255, 0.3) 0%, transparent 70%);
             top: 40%;
             right: 10%;
             animation: orbFloat2 22s ease-in-out infinite;
@@ -71,7 +71,7 @@
         .orb-3 {
             width: 380px;
             height: 380px;
-            background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255, 224, 168, 0.22) 0%, transparent 70%);
             bottom: 5%;
             left: 30%;
             animation: orbFloat1 25s ease-in-out infinite reverse;
@@ -97,8 +97,8 @@
             gap: 8px;
             padding: 6px 16px;
             border-radius: var(--radius-pill);
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(246, 184, 200, 0.1);
+            border: 1px solid rgba(246, 184, 200, 0.3);
             font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 600;
@@ -116,7 +116,7 @@
             margin-bottom: 14px;
         }
         .plans-title .gradient-text {
-            background: linear-gradient(135deg, #f8fafc 30%, #10b981 75%, #06b6d4 100%);
+            background: linear-gradient(135deg, #fff4ec 30%, #f6b8c8 75%, #9fd8ff 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -134,8 +134,8 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            background: rgba(16, 185, 129, 0.08);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(246, 184, 200, 0.08);
+            border: 1px solid rgba(246, 184, 200, 0.3);
             padding: 8px 20px;
             border-radius: var(--radius-pill);
             color: var(--text-primary);
@@ -144,7 +144,7 @@
             margin-bottom: 28px;
         }
         .guarantee-banner strong {
-            color: #10b981;
+            color: #f6b8c8;
         }
 
         /* Billing Switcher (Monthly vs Annual) */
@@ -168,13 +168,13 @@
             transition: all 0.25s ease;
         }
         .billing-toggle-btn.active {
-            background: rgba(16, 185, 129, 0.18);
-            border-color: #10b981;
+            background: rgba(246, 184, 200, 0.18);
+            border-color: #f6b8c8;
             color: #ffffff;
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 15px rgba(246, 184, 200, 0.3);
         }
         .discount-pill {
-            background: #10b981;
+            background: #f6b8c8;
             color: #022c22;
             font-size: 10px;
             font-weight: 800;
@@ -225,50 +225,50 @@
         }
         .pricing-card:hover {
             transform: translateY(-8px) scale(1.01);
-            border-color: rgba(6, 182, 212, 0.45);
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(6, 182, 212, 0.15);
+            border-color: rgba(159, 216, 255, 0.45);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(159, 216, 255, 0.15);
         }
 
         /* Free Card */
         .card-free::before {
-            background: linear-gradient(90deg, #64748b, transparent);
+            background: linear-gradient(90deg, #8189bd, transparent);
         }
 
         /* Starter Card */
         .card-starter::before {
-            background: linear-gradient(90deg, #06b6d4, transparent);
+            background: linear-gradient(90deg, #9fd8ff, transparent);
         }
 
         /* Moderato Card Specific (Featured) */
         .card-moderato {
             background: rgba(14, 23, 40, 0.88);
-            border: 1px solid rgba(16, 185, 129, 0.55);
+            border: 1px solid rgba(246, 184, 200, 0.55);
             animation: neonPulseGlow 4s ease-in-out infinite;
             transform: scale(1.02);
             z-index: 2;
         }
         .card-moderato::before {
-            background: linear-gradient(90deg, #10b981, #06b6d4);
+            background: linear-gradient(90deg, #f6b8c8, #9fd8ff);
             height: 4px;
         }
         .card-moderato:hover {
             transform: translateY(-10px) scale(1.03);
-            border-color: #10b981;
+            border-color: #f6b8c8;
         }
 
         /* Vince Card Specific (Best Value) */
         .card-vince {
             background: rgba(18, 20, 36, 0.88);
-            border: 1px solid rgba(245, 158, 11, 0.5);
+            border: 1px solid rgba(255, 224, 168, 0.5);
             animation: vinceGlow 4s ease-in-out infinite;
         }
         .card-vince::before {
-            background: linear-gradient(90deg, #f59e0b, #10b981);
+            background: linear-gradient(90deg, #ffe0a8, #f6b8c8);
             height: 4px;
         }
         .card-vince:hover {
             transform: translateY(-8px) scale(1.01);
-            border-color: #f59e0b;
+            border-color: #ffe0a8;
         }
 
         /* Badges */
@@ -285,16 +285,16 @@
         }
         .tag-free { color: var(--text-muted); }
         .tag-starter { color: var(--text-cyan); }
-        .tag-moderato { color: #10b981; }
-        .tag-vince { color: #f59e0b; }
+        .tag-moderato { color: #f6b8c8; }
+        .tag-vince { color: #ffe0a8; }
         .tag-enterprise { color: #ec4899; }
-        .tag-payg { color: #10b981; }
+        .tag-payg { color: #f6b8c8; }
 
         .featured-ribbon {
             position: absolute;
             top: 12px;
             right: 14px;
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: linear-gradient(135deg, #f6b8c8, #e99bb0);
             color: #022c22;
             font-family: var(--font-mono);
             font-size: 9px;
@@ -302,7 +302,7 @@
             padding: 3px 8px;
             border-radius: var(--radius-pill);
             letter-spacing: 0.6px;
-            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 2px 10px rgba(246, 184, 200, 0.4);
         }
 
         .card-title {
@@ -349,7 +349,7 @@
             gap: 3px;
         }
         .price-meta .stat-highlight {
-            color: #10b981;
+            color: #f6b8c8;
             font-weight: 700;
         }
 
@@ -380,21 +380,21 @@
             width: 15px;
             height: 15px;
             margin-top: 1px;
-            color: #10b981;
+            color: #f6b8c8;
         }
         .feature-icon-cyan {
             flex-shrink: 0;
             width: 15px;
             height: 15px;
             margin-top: 1px;
-            color: #06b6d4;
+            color: #9fd8ff;
         }
         .feature-icon-gold {
             flex-shrink: 0;
             width: 15px;
             height: 15px;
             margin-top: 1px;
-            color: #f59e0b;
+            color: #ffe0a8;
         }
 
         /* Action Buttons */
@@ -420,45 +420,45 @@
             border-color: var(--border-subtle);
         }
         .btn-free-card:hover {
-            background: rgba(6, 182, 212, 0.15);
+            background: rgba(159, 216, 255, 0.15);
             border-color: var(--border-cyan);
             color: var(--text-cyan);
         }
         .btn-starter-card {
-            background: rgba(6, 182, 212, 0.15);
+            background: rgba(159, 216, 255, 0.15);
             color: var(--text-cyan);
-            border-color: rgba(6, 182, 212, 0.4);
+            border-color: rgba(159, 216, 255, 0.4);
         }
         .btn-starter-card:hover {
-            background: rgba(6, 182, 212, 0.25);
-            border-color: #06b6d4;
+            background: rgba(159, 216, 255, 0.25);
+            border-color: #9fd8ff;
             color: #ffffff;
         }
         .btn-moderato-card {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #f6b8c8 0%, #e99bb0 100%);
             color: #022c22;
-            box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+            box-shadow: 0 4px 18px rgba(246, 184, 200, 0.35);
         }
         .btn-moderato-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(16, 185, 129, 0.55);
+            box-shadow: 0 6px 25px rgba(246, 184, 200, 0.55);
             color: #000;
         }
         .btn-vince-card {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            background: linear-gradient(135deg, #ffe0a8 0%, #d97706 100%);
             color: #1f1202;
-            box-shadow: 0 4px 18px rgba(245, 158, 11, 0.35);
+            box-shadow: 0 4px 18px rgba(255, 224, 168, 0.35);
         }
         .btn-vince-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(245, 158, 11, 0.55);
+            box-shadow: 0 6px 25px rgba(255, 224, 168, 0.55);
             color: #000;
         }
 
         /* Instant Solana Settlement Section */
         .instant-checkout-card {
             background: rgba(14, 20, 34, 0.85);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(246, 184, 200, 0.3);
             border-radius: var(--radius-lg);
             padding: 30px;
             backdrop-filter: blur(16px);
@@ -510,10 +510,10 @@
             gap: 6px;
         }
         .checkout-tab-btn.active {
-            background: rgba(16, 185, 129, 0.2);
+            background: rgba(246, 184, 200, 0.2);
             color: var(--text-accent);
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(246, 184, 200, 0.4);
+            box-shadow: 0 0 15px rgba(246, 184, 200, 0.15);
         }
         .target-preset-chip {
             padding: 7px 12px;
@@ -536,20 +536,20 @@
             transform: translateY(-1px);
         }
         .target-preset-chip.active {
-            border-color: #10b981;
-            background: rgba(16, 185, 129, 0.18);
-            color: #10b981;
-            box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+            border-color: #f6b8c8;
+            background: rgba(246, 184, 200, 0.18);
+            color: #f6b8c8;
+            box-shadow: 0 0 12px rgba(246, 184, 200, 0.2);
         }
         .target-preset-chip.gold.active {
-            border-color: #f59e0b;
-            background: rgba(245, 158, 11, 0.18);
-            color: #f59e0b;
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+            border-color: #ffe0a8;
+            background: rgba(255, 224, 168, 0.18);
+            color: #ffe0a8;
+            box-shadow: 0 0 12px rgba(255, 224, 168, 0.2);
         }
         .checkout-summary-box {
             background: rgba(6, 10, 20, 0.7);
-            border: 1px solid rgba(16, 185, 129, 0.25);
+            border: 1px solid rgba(246, 184, 200, 0.25);
             border-radius: var(--radius-md);
             padding: 16px 20px;
             margin-bottom: 20px;
@@ -626,7 +626,7 @@
             position: fixed;
             bottom: 24px;
             right: 24px;
-            background: rgba(16, 185, 129, 0.95);
+            background: rgba(246, 184, 200, 0.95);
             color: #022c22;
             padding: 12px 20px;
             border-radius: var(--radius-sm);
@@ -668,16 +668,16 @@
         <div class="system-container">
             <div class="sys-item">
                 <span class="pulse-indicator"></span>
-                <span class="sys-label">BILLING POLICY:</span>
-                <span class="sys-val" style="color:#10b981;">BILL ONLY FOR SUCCESSFUL SOLVES (0 COST ON FAILURES)</span>
+                <span class="sys-label">Billing policy:</span>
+                <span class="sys-val" style="color:#f6b8c8;">Bill only for successful solves (0 cost on failures)</span>
             </div>
             <div class="sys-item hide-mobile">
-                <span class="sys-label">FLEET STATUS:</span>
-                <span class="sys-val">24/7 DEDICATED RUNNERS ONLINE</span>
+                <span class="sys-label">Fleet status:</span>
+                <span class="sys-val">24/7 dedicated runners online</span>
             </div>
             <div class="sys-item">
-                <span class="sys-label">SETTLEMENT:</span>
-                <span class="sys-val text-accent">INSTANT SOLANA USDT (SPL)</span>
+                <span class="sys-label">Settlement:</span>
+                <span class="sys-val text-accent">Instant solana USDT (SPL)</span>
             </div>
         </div>
     </div>
@@ -743,7 +743,7 @@
             </p>
 
             <div class="guarantee-banner">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
                 <span><strong>Guarantee:</strong> If a challenge isn't cleared, <strong>0 credits</strong> are debited.</span>
             </div>
 
@@ -870,7 +870,7 @@
                 <p class="card-desc">Major upgrade: 6x Starter credits for only 3.2x price. Built for 24/7 scraping.</p>
 
                 <div class="price-wrap">
-                    <span class="price-val" style="color:#10b981;" id="price-moderato">$29</span>
+                    <span class="price-val" style="color:#f6b8c8;" id="price-moderato">$29</span>
                     <span class="price-sub" id="sub-moderato">/ month</span>
                 </div>
                 <div class="price-meta">
@@ -917,7 +917,7 @@
 
             <!-- 4. VINCE (BEST VALUE) -->
             <div class="pricing-card card-vince">
-                <div class="featured-ribbon" style="background:linear-gradient(135deg, #f59e0b, #b45309); color:#180b02;">BEST VALUE • UNLIMITED</div>
+                <div class="featured-ribbon" style="background:linear-gradient(135deg, #ffe0a8, #b45309); color:#180b02;">BEST VALUE • UNLIMITED</div>
                 <div class="card-tag tag-vince">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
                     <span>VINCE ENTERPRISE</span>
@@ -926,7 +926,7 @@
                 <p class="card-desc">High-volume users see immediate per-solve savings. Dedicated cluster &amp; proxies.</p>
 
                 <div class="price-wrap">
-                    <span class="price-val" style="color:#f59e0b;" id="price-vince">$99</span>
+                    <span class="price-val" style="color:#ffe0a8;" id="price-vince">$99</span>
                     <span class="price-sub" id="sub-vince">/ month</span>
                 </div>
                 <div class="price-meta">
@@ -977,7 +977,7 @@
         <div class="cards-grid-sub">
 
             <!-- PAY-AS-YOU-GO -->
-            <div class="pricing-card" style="border-color: rgba(16, 185, 129, 0.4);">
+            <div class="pricing-card" style="border-color: rgba(246, 184, 200, 0.4);">
                 <div class="card-tag tag-payg">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
                     <span>NO SUBSCRIPTION • PAY AS YOU GO</span>
@@ -985,7 +985,7 @@
                 <h3 class="card-title">Pay-as-you-go</h3>
                 <p class="card-desc">For developers who dislike subscriptions. Deposit anytime, credits never expire.</p>
                 <div class="price-wrap">
-                    <span class="price-val" style="color:#10b981;">$2.00</span>
+                    <span class="price-val" style="color:#f6b8c8;">$2.00</span>
                     <span class="price-sub">/ 1,000 solves ($0.002/req)</span>
                 </div>
                 <div class="price-meta">
@@ -1005,7 +1005,7 @@
                         <span>Credits remain indefinitely in your account</span>
                     </li>
                 </ul>
-                <button class="card-btn" style="background:rgba(16,185,129,0.15); border-color:#10b981; color:#10b981;" onclick="scrollToCheckout('Pay-as-you-go', 5)">
+                <button class="card-btn" style="background:rgba(246,184,200,0.15); border-color:#f6b8c8; color:#f6b8c8;" onclick="scrollToCheckout('Pay-as-you-go', 5)">
                     <span>Top Up Pay-As-You-Go</span>
                 </button>
             </div>
@@ -1083,20 +1083,20 @@
                         <td>Turnstile + common CAPTCHAs, standard queue, email support, 30-day rollover</td>
                         <td>Low-risk first paid step for hobby projects</td>
                     </tr>
-                    <tr style="background:rgba(16,185,129,0.06);">
-                        <td><strong style="color:#10b981;">Moderato (Most Popular)</strong></td>
-                        <td><strong style="color:#10b981;">$29 / mo ($279/yr)</strong></td>
-                        <td><strong style="color:#10b981;">30,000 solves / month</strong></td>
+                    <tr style="background:rgba(246,184,200,0.06);">
+                        <td><strong style="color:#f6b8c8;">Moderato (Most Popular)</strong></td>
+                        <td><strong style="color:#f6b8c8;">$29 / mo ($279/yr)</strong></td>
+                        <td><strong style="color:#f6b8c8;">30,000 solves / month</strong></td>
                         <td><strong>$0.0012 / req</strong></td>
                         <td><strong>$0.97–$1.20</strong></td>
                         <td><strong>50 workers</strong></td>
                         <td>All CAPTCHA types, Turnstile/CF Challenge, priority queue, 24/7 runners, API/webhooks, rollover, VIP Discord</td>
                         <td>Feels like a major upgrade: 6x Starter credits for only 3.2x price</td>
                     </tr>
-                    <tr style="background:rgba(245,158,11,0.06);">
-                        <td><strong style="color:#f59e0b;">Vince (Best Value)</strong></td>
-                        <td><strong style="color:#f59e0b;">$99 / mo ($949/yr)</strong></td>
-                        <td><strong style="color:#f59e0b;">150,000 solves / month</strong></td>
+                    <tr style="background:rgba(255,224,168,0.06);">
+                        <td><strong style="color:#ffe0a8;">Vince (Best Value)</strong></td>
+                        <td><strong style="color:#ffe0a8;">$99 / mo ($949/yr)</strong></td>
+                        <td><strong style="color:#ffe0a8;">150,000 solves / month</strong></td>
                         <td><strong>$0.0008 / req</strong></td>
                         <td><strong>$0.66–$0.80</strong></td>
                         <td><strong>Unlimited (150+)</strong></td>
@@ -1151,7 +1151,7 @@
         <div class="instant-checkout-card" id="checkout-section">
             <div class="checkout-header">
                 <div class="checkout-title-wrap">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
                         <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
                         <path d="M12 6v2m0 8v2"></path>
@@ -1182,7 +1182,7 @@
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:20px;">
                 <div class="info-block">
-                    <div class="info-label">OFFICIAL SOLANA TREASURY WALLET (USDT SPL)</div>
+                    <div class="info-label">Official solana treasury wallet (USDT SPL)</div>
                     <div class="info-content-row">
                         <code id="plans-solana-wallet" style="font-size:12px; color:var(--text-accent);">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
                         <button class="field-btn" onclick="copyText('6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u', 'Solana Wallet Address')" title="Copy Wallet">
@@ -1196,7 +1196,7 @@
 
                 <!-- Targets Panel: Subscriptions View -->
                 <div class="info-block" id="panel-targets-subs">
-                    <div class="info-label">SELECT SUBSCRIPTION TARGET</div>
+                    <div class="info-label">Select subscription target</div>
                     <div style="margin-top:6px;">
                         <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px;">MONTHLY (30 DAYS):</div>
                         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
@@ -1215,7 +1215,7 @@
 
                 <!-- Targets Panel: Pay-As-You-Go View -->
                 <div class="info-block" id="panel-targets-payg" style="display:none;">
-                    <div class="info-label">SELECT PAY-AS-YOU-GO TOP UP (NEVER EXPIRES)</div>
+                    <div class="info-label">Select pay-as-you-go top up (never expires)</div>
                     <div style="margin-top:6px;">
                         <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px;">POPULAR AMOUNTS ($0.0020 / SOLVE):</div>
                         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
@@ -1240,7 +1240,7 @@
             <!-- Dynamic Selected Target Summary -->
             <div class="checkout-summary-box">
                 <div style="display:flex; align-items:center; gap:14px;">
-                    <div style="width:36px; height:36px; border-radius:50%; background:rgba(16,185,129,0.15); display:flex; align-items:center; justify-content:center; color:#10b981;">
+                    <div style="width:36px; height:36px; border-radius:50%; background:rgba(246,184,200,0.15); display:flex; align-items:center; justify-content:center; color:#f6b8c8;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     </div>
                     <div>
@@ -1255,7 +1255,7 @@
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="text-align:right;">
                         <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">EXACT AMOUNT TO SEND</div>
-                        <div style="font-size:18px; font-weight:800; color:#10b981;" id="summary-amount-display">9 USDT</div>
+                        <div style="font-size:18px; font-weight:800; color:#f6b8c8;" id="summary-amount-display">9 USDT</div>
                     </div>
                     <button class="field-btn" onclick="copySelectedAmount()" title="Copy Exact Amount" style="padding:8px 12px; height:auto; gap:6px; font-size:11px; color:var(--text-accent);">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -1521,15 +1521,15 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    feedback.style.color = '#10b981';
+                    feedback.style.color = '#f6b8c8';
                     feedback.innerHTML = `<strong>Verification Successful!</strong> ${data.message} • New Balance: ${data.new_balance.toLocaleString()} solves!`;
                     setTimeout(() => { window.location.href = '/'; }, 2400);
                 } else {
-                    feedback.style.color = '#ef4444';
+                    feedback.style.color = '#ff8a8a';
                     feedback.innerText = `Verification Error: ${data.message || data.error || data.detail || 'Transaction failed validation.'}`;
                 }
             } catch (err) {
-                feedback.style.color = '#ef4444';
+                feedback.style.color = '#ff8a8a';
                 feedback.innerText = `Network error contacting server: ${err.message}`;
             }
         }

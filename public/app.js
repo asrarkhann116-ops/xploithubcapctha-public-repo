@@ -26,11 +26,11 @@ function showToast(message, type = 'info') {
 
     let iconSvg = '';
     if (type === 'success') {
-        iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
     } else if (type === 'error') {
-        iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+        iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ff8a8a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
     } else {
-        iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+        iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fd8ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
     }
 
     toast.innerHTML = `${iconSvg}<span>${message}</span>`;
@@ -154,19 +154,19 @@ async function loadUserProfile() {
         if (costEl) {
             if (planKey === 'vince') {
                 costEl.textContent = '$0.0008 / solve';
-                costEl.style.color = '#f59e0b';
+                costEl.style.color = '#ffe0a8';
             } else if (planKey === 'moderato') {
                 costEl.textContent = '$0.0012 / solve';
-                costEl.style.color = '#10b981';
+                costEl.style.color = '#f6b8c8';
             } else if (planKey === 'starter') {
                 costEl.textContent = '$0.0025 / solve';
-                costEl.style.color = '#06b6d4';
+                costEl.style.color = '#9fd8ff';
             } else if (planKey === 'pay_as_you_go') {
                 costEl.textContent = '$0.0020 / solve';
-                costEl.style.color = '#10b981';
+                costEl.style.color = '#f6b8c8';
             } else {
                 costEl.textContent = '1.0 solve credit';
-                costEl.style.color = '#06b6d4';
+                costEl.style.color = '#9fd8ff';
             }
         }
         if (dailyInfoEl) {
@@ -196,9 +196,9 @@ async function loadUserProfile() {
         const promoMsg = document.getElementById('promo-status-msg');
         if (promoMsg) {
             if (data.timeout_active) {
-                promoMsg.innerHTML = `<span style="color: #f59e0b; font-weight: 600;">COOLDOWN ACTIVE:</span> ${data.timeout_minutes} minutes remaining. Invite link absent from profile.`;
+                promoMsg.innerHTML = `<span style="color: #ffe0a8; font-weight: 600;">COOLDOWN ACTIVE:</span> ${data.timeout_minutes} minutes remaining. Invite link absent from profile.`;
             } else if (data.has_promo) {
-                promoMsg.innerHTML = `<span style="color: #10b981; font-weight: 600;">ACTIVE PROMO:</span> 500 Credits claimed successfully.`;
+                promoMsg.innerHTML = `<span style="color: #f6b8c8; font-weight: 600;">ACTIVE PROMO:</span> 500 Credits claimed successfully.`;
             } else {
                 promoMsg.innerText = data.is_guest ? 'Sign in to claim Discord promo credits' : 'Verification status: Ready';
             }
@@ -627,10 +627,10 @@ async function verifyPromo() {
         const data = await res.json();
 
         if (data.success) {
-            msg.innerHTML = `<span style="color: #10b981; font-weight: 600;">${data.message}</span>`;
+            msg.innerHTML = `<span style="color: #f6b8c8; font-weight: 600;">${data.message}</span>`;
             showToast(data.message, 'success');
         } else {
-            msg.innerHTML = `<span style="color: #f59e0b; font-weight: 600;">${data.message}</span>`;
+            msg.innerHTML = `<span style="color: #ffe0a8; font-weight: 600;">${data.message}</span>`;
             showToast(data.message, 'error');
         }
         loadUserProfile();
@@ -654,7 +654,7 @@ async function verifyDeposit() {
         return;
     }
 
-    msg.innerHTML = '<span style="color: #94a3b8;">Verifying confirmation on Solana mainnet RPC...</span>';
+    msg.innerHTML = '<span style="color: #b9bfe6;">Verifying confirmation on Solana mainnet RPC...</span>';
     try {
         const res = await fetch('/api/deposit/verify', {
             method: 'POST',
@@ -664,12 +664,12 @@ async function verifyDeposit() {
         const data = await res.json();
 
         if (data.success) {
-            msg.innerHTML = `<span style="color: #10b981; font-weight: 600;">${data.message}</span>`;
+            msg.innerHTML = `<span style="color: #f6b8c8; font-weight: 600;">${data.message}</span>`;
             document.getElementById('tx-hash-input').value = '';
             loadUserProfile();
             showToast(data.message, 'success');
         } else {
-            msg.innerHTML = `<span style="color: #ef4444; font-weight: 600;">${data.error}</span>`;
+            msg.innerHTML = `<span style="color: #ff8a8a; font-weight: 600;">${data.error}</span>`;
             showToast(data.error, 'error');
         }
     } catch (e) {
@@ -690,7 +690,7 @@ async function redeemVoucherCode() {
         return;
     }
 
-    msg.innerHTML = '<span style="color: #94a3b8;">Validating code...</span>';
+    msg.innerHTML = '<span style="color: #b9bfe6;">Validating code...</span>';
     try {
         const res = await fetch('/api/voucher/redeem', {
             method: 'POST',
@@ -700,12 +700,12 @@ async function redeemVoucherCode() {
         const data = await res.json();
 
         if (data.success) {
-            msg.innerHTML = `<span style="color: #10b981; font-weight: 600;">${data.message}</span>`;
+            msg.innerHTML = `<span style="color: #f6b8c8; font-weight: 600;">${data.message}</span>`;
             document.getElementById('voucher-code-input').value = '';
             loadUserProfile();
             showToast(data.message, 'success');
         } else {
-            msg.innerHTML = `<span style="color: #ef4444; font-weight: 600;">${data.error}</span>`;
+            msg.innerHTML = `<span style="color: #ff8a8a; font-weight: 600;">${data.error}</span>`;
             showToast(data.error, 'error');
         }
     } catch (e) {

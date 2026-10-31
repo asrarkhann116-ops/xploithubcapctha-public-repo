@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Top System Telemetry Bar -->
@@ -16,20 +16,20 @@
         <div class="system-container">
             <div class="sys-item">
                 <span class="pulse-indicator"></span>
-                <span class="sys-label">INFRASTRUCTURE STATUS:</span>
-                <span class="sys-val" id="sys-status-text">OPERATIONAL</span>
+                <span class="sys-label">Infrastructure status:</span>
+                <span class="sys-val" id="sys-status-text">Operational</span>
             </div>
             <div class="sys-item hide-mobile">
-                <span class="sys-label">ENGINE:</span>
+                <span class="sys-label">Engine:</span>
                 <span class="sys-val">X-STEALTH CDP v2.4</span>
             </div>
             <div class="sys-item hide-mobile">
-                <span class="sys-label">LATENCY P95:</span>
+                <span class="sys-label">Latency p95:</span>
                 <span class="sys-val" id="telemetry-latency">1,840 ms</span>
             </div>
             <div class="sys-item">
-                <span class="sys-label">BILLING:</span>
-                <span class="sys-val text-accent">SUCCESSFUL SOLVES ONLY</span>
+                <span class="sys-label">Billing:</span>
+                <span class="sys-val text-accent">Successful solves only</span>
             </div>
         </div>
     </div>
@@ -45,7 +45,7 @@
                 </div>
                 <div class="brand-meta">
                     <div class="brand-name">XPLOIT<span class="brand-highlight">UNBLOCKER</span></div>
-                    <div class="brand-subtitle">STEALTH BYPASS API</div>
+                    <div class="brand-subtitle">Stealth bypass API</div>
                 </div>
             </div>
 
@@ -103,11 +103,10 @@
         <section class="section-hero">
             <div class="hero-top-row">
                 <div class="hero-chip glow-cyan">
-                    <span class="chip-accent">⚡ ENGINE v2.4</span>
+                    <span class="chip-accent">Engine v2.4</span>
                     <span>Automated Dual-Tier Evasion (Fast-TLS + Undetected CDP)</span>
                 </div>
                 <div class="hero-promo-badge">
-                    <span class="promo-icon">🎁</span>
                     <span>Use promo voucher <code class="promo-code-pill">LAUNCH10</code> for 10 free credits!</span>
                 </div>
             </div>
@@ -166,7 +165,7 @@
 
             <!-- Anti-Bot Target Badges -->
             <div class="target-defense-row">
-                <span class="defense-label">UNBLOCKS:</span>
+                <span class="defense-label">Unblocks:</span>
                 <span class="defense-tag"><span class="dot-green"></span>Cloudflare Turnstile</span>
                 <span class="defense-tag"><span class="dot-green"></span>DataDome Interstitial</span>
                 <span class="defense-tag"><span class="dot-green"></span>Akamai Bot Manager</span>
@@ -199,7 +198,7 @@
                 <!-- Mode Explanation Banner -->
                 <div class="mode-info-banner" id="mode-info-banner">
                     <div class="mode-info-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
                             <line x1="12" y1="16" x2="12" y2="12"></line>
                             <line x1="12" y1="8" x2="12.01" y2="8"></line>
@@ -229,19 +228,19 @@
                 <!-- Metrics Strip -->
                 <div class="telemetry-strip">
                     <div class="telemetry-cell">
-                        <div class="cell-label">STATUS</div>
+                        <div class="cell-label">Status</div>
                         <div class="cell-val text-muted" id="metric-status">Idle / Standby</div>
                     </div>
                     <div class="telemetry-cell">
-                        <div class="cell-label">EXECUTION TIME</div>
+                        <div class="cell-label">Execution time</div>
                         <div class="cell-val" id="metric-latency">-- ms</div>
                     </div>
                     <div class="telemetry-cell">
-                        <div class="cell-label">CHALLENGE CLEARANCE</div>
+                        <div class="cell-label">Challenge clearance</div>
                         <div class="cell-val" id="metric-bypass">Unexecuted</div>
                     </div>
                     <div class="telemetry-cell">
-                        <div class="cell-label">DEBIT</div>
+                        <div class="cell-label">Debit</div>
                         <div class="cell-val text-accent">1.0 Credit ($0.1)</div>
                     </div>
                 </div>
@@ -371,15 +370,15 @@
 
                     <div class="tier-stat-grid">
                         <div class="tier-stat-cell">
-                            <div class="tier-stat-label">RATE PER SOLVE</div>
+                            <div class="tier-stat-label">Rate per solve</div>
                             <div class="tier-stat-val" id="cost-per-req">1.0 solve credit</div>
                         </div>
                         <div class="tier-stat-cell">
-                            <div class="tier-stat-label">CONCURRENCY</div>
+                            <div class="tier-stat-label">Concurrency</div>
                             <div class="tier-stat-val" id="daily-info">3 worker slots</div>
                         </div>
                         <div class="tier-stat-cell" style="grid-column: 1 / -1;">
-                            <div class="tier-stat-label">NEXT DAILY REFRESH (UTC)</div>
+                            <div class="tier-stat-label">Next daily refresh (UTC)</div>
                             <div class="tier-stat-val" style="font-size:20px; font-family: var(--font-mono); color: var(--text-accent);" id="reset-timer">--:--:--</div>
                         </div>
                     </div>
@@ -419,7 +418,7 @@
                     </p>
 
                     <div class="info-block">
-                        <div class="info-label">INVITE LINK</div>
+                        <div class="info-label">Invite link</div>
                         <div class="info-content-row">
                             <code id="promo-link-text">discord.gg/3fb9Q7ucSN</code>
                             <button class="field-btn" onclick="copyPromoLink()" title="Copy link">
@@ -477,7 +476,7 @@
                         <p class="panel-caption">Send USDT (SPL) to our official Solana treasury. Need 24/7 dedicated unblockers? <a href="/plans/" style="color:var(--text-accent); font-weight:600; text-decoration:underline;">View Plan Pricing</a></p>
 
                         <div class="info-block">
-                            <div class="info-label">SOLANA TREASURY WALLET</div>
+                            <div class="info-label">Solana treasury wallet</div>
                             <div class="info-content-row">
                                 <code id="solana-wallet-val">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
                                 <button class="field-btn" onclick="copySolanaWallet()" title="Copy wallet address">
@@ -490,7 +489,7 @@
                         </div>
 
                         <div class="info-block">
-                            <div class="info-label">YOUR UNIQUE DEPOSIT REFERENCE ID</div>
+                            <div class="info-label">Your unique deposit reference ID</div>
                             <div class="info-content-row">
                                 <code id="user-deposit-ref" class="text-accent">XPK-REF</code>
                                 <button class="field-btn" onclick="copyDepositRef()" title="Copy reference memo">
