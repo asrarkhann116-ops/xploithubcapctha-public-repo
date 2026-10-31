@@ -905,6 +905,34 @@ async def guide_html_page():
             return f.read()
     return RedirectResponse("/")
 
+@app.get("/status", response_class=HTMLResponse)
+@app.get("/status/", response_class=HTMLResponse)
+async def status_html_page():
+    f = os.path.join(PUBLIC_DIR, "status.html")
+    return open(f, "r", encoding="utf-8").read() if os.path.exists(f) else RedirectResponse("/")
+
+@app.get("/legal", response_class=HTMLResponse)
+@app.get("/legal/", response_class=HTMLResponse)
+@app.get("/privacy", response_class=HTMLResponse)
+@app.get("/terms", response_class=HTMLResponse)
+async def legal_html_page():
+    f = os.path.join(PUBLIC_DIR, "legal.html")
+    return open(f, "r", encoding="utf-8").read() if os.path.exists(f) else RedirectResponse("/")
+
+@app.get("/404", response_class=HTMLResponse)
+async def not_found_page():
+    f = os.path.join(PUBLIC_DIR, "404.html")
+    return open(f, "r", encoding="utf-8").read() if os.path.exists(f) else RedirectResponse("/")
+
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, exc):
+    f = os.path.join(PUBLIC_DIR, "404.html")
+    if os.path.exists(f):
+        content = open(f, "r", encoding="utf-8").read()
+        return HTMLResponse(content=content, status_code=404)
+    return HTMLResponse(content="<h1>404 Not Found</h1>", status_code=404)
+
+
 # ════════════════════════════════════════════
 #  5. PROMO VERIFICATION, SOLANA & VOUCHERS
 # ════════════════════════════════════════════
