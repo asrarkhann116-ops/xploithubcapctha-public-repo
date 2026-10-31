@@ -229,8 +229,13 @@
   if (home && h1 && !RM) setTimeout(() => { h1.classList.add('fx-glitch'); setTimeout(() => h1.classList.remove('fx-glitch'), 700); }, 1400);
   if (home) {
     const hint = mk('div', 'fx-scrollhint', 'Scroll'); hint.setAttribute('aria-hidden', 'true'); document.body.append(hint);
-    const bar = mk('div', 'fx-mini', '<span>75 free solves every day. No card needed.</span><a class="btn-hero-primary" href="/register">Create account</a>'); document.body.append(bar);
-    addEventListener('scroll', () => { const y = scrollY; hint.classList.toggle('gone', y > 80); bar.classList.toggle('on', y > 700); }, { passive: true });
+    const bar = mk('div', 'fx-mini', '<span>75 free solves every day. No card needed.</span><a class="btn-hero-primary" href="/login">Create account</a>'); document.body.append(bar);
+    addEventListener('scroll', () => {
+      const y = scrollY;
+      hint.classList.toggle('gone', y > 80);
+      const isLogged = $('#btn-auth-text') && /sign out/i.test($('#btn-auth-text').textContent);
+      bar.classList.toggle('on', y > 700 && !isLogged);
+    }, { passive: true });
   }
 
   // #34 console Raw / Pretty toggle
@@ -353,4 +358,43 @@
         L.unshift({ u: tgt || 'unknown target', ok, ms: Math.round((d && d.duration_ms) || Date.now() - t0), t: Date.now() }); L = L.slice(0, 10);
         try { localStorage.setItem('fx_hist', JSON.stringify(L)); } catch (e) {} render(); show(ok ? 0 : (res.status === 200 ? 400 : res.status)); }).catch(() => show(res.status)); return res; }); };
   }
+})();
+
+/* ---- round 7: mobile navbar + keyboard and screen-reader pass ---- */
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+  // display options (theme, code theme, sound) collapse into one "Display" menu
+  const prefs = $$('.nav-container .fx-theme');
+  if (prefs.length) {
+    const d = mk('details', 'fx-prefs'), s = mk('summary', '', 'Display'), m = mk('div', 'fx-prefs-menu');
+    prefs[0].before(d); m.append(...prefs); d.append(s, m);
+    const close = () => { d.open = false; };
+    document.addEventListener('click', e => { if (!d.contains(e.target)) close(); });
+    d.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); s.focus(); } });
+  }
+
+  // skip link and main landmark
+  const main = $('main') || $('.page-container');
+  if (main) { main.id = main.id || 'fx-main'; main.tabIndex = -1; if (!$('.fx-skip')) { const a = mk('a', 'fx-skip', 'Skip to main content'); a.href = '#' + main.id; document.body.prepend(a); } }
+
+  // decorative layers are hidden from assistive tech
+  $$('#fx-sky, .fx-blob, .fx-trail, .fx-veil').forEach(e => e.setAttribute('aria-hidden', 'true'));
+
+  // live regions
+  const tc = $('#toast-container'); if (tc) { tc.setAttribute('role', 'status'); tc.setAttribute('aria-live', 'polite'); }
+  const ov = $('#overall'); if (ov) ov.setAttribute('aria-live', 'polite');
+  $$('.fx-low, .fx-hint').forEach(e => e.setAttribute('role', 'status'));
+
+  // scrollable console reachable by keyboard
+  const co = $('#console-output'); if (co) { co.tabIndex = 0; co.setAttribute('role', 'region'); co.setAttribute('aria-label', 'Console output'); }
+
+  // names for icon-only controls and unlabeled inputs
+  $$('button, a').forEach(e => { if (!e.textContent.trim() && !e.getAttribute('aria-label') && !e.getAttribute('aria-labelledby')) { const t = e.title || e.id.replace(/^btn-|-/g, ' ').trim(); if (t) e.setAttribute('aria-label', t); } });
+  $$('input, select, textarea').forEach(e => { if (e.type === 'hidden' || e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || (e.id && $(`label[for="${e.id}"]`)) || e.closest('label')) return;
+    const t = e.placeholder || e.title || e.name || e.id.replace(/-/g, ' '); if (t) e.setAttribute('aria-label', t); });
+
+  // mode switch buttons expose their state
+  $$('.seg-btn').forEach(b => { const sync = () => b.setAttribute('aria-pressed', b.classList.contains('active') || b.classList.contains('on')); sync(); new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['class'] }); });
 })();
