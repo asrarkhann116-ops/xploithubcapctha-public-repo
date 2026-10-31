@@ -273,3 +273,34 @@
     document.addEventListener('click', e => { if (on && e.target.closest('button,a.btn-hero-primary,a.btn-hero-secondary')) beep(520); });
   }
 })();
+
+/* ---- round 5: live platform metrics from /api/analytics/metrics (hero + status page) ---- */
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const num = v => { const n = typeof v === 'string' ? parseFloat(v) : v; return typeof n === 'number' && isFinite(n) ? n : null; };
+  const read = j => { const m = (j && j.metrics) || {}, t = num(m.total_requests), s = num(m.successful_requests);
+    let ok = num(m.success_rate_percent); if (ok === null && t > 0 && s !== null) ok = s / t * 100;
+    return { ok: t > 0 ? ok : null, ms: t > 0 ? num(m.avg_latency_ms) : null, total: t, users: num(m.active_users_24h) }; };
+  const fmtMs = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + 's' : Math.round(ms) + ' ms';
+  const fetchM = () => fetch('/api/analytics/metrics', { cache: 'no-store' }).then(r => { if (!r.ok) throw 0; return r.json(); }).then(read);
+
+  // hero: measured values with honest labels and the sample size; "n/a" when there is no data
+  const nums = document.querySelectorAll('.hero-metrics-bar .metric-num');
+  if (nums.length >= 2) {
+    const put = (el, txt, label) => { el.textContent = txt; const d = el.parentElement && el.parentElement.querySelector('.metric-desc'); if (d && label) d.textContent = label; };
+    fetchM().then(m => { const n = m.total || 0, s = ' (' + n.toLocaleString() + ' request' + (n === 1 ? '' : 's') + ')';
+      put(nums[0], m.ok === null ? 'n/a' : m.ok.toFixed(1) + '%', 'Overall solve rate' + s);
+      put(nums[1], m.ms === null ? 'n/a' : fmtMs(m.ms), 'Average clearance latency' + s); })
+    .catch(() => { put(nums[0], 'n/a'); put(nums[1], 'n/a'); });
+  }
+
+  // status page: live platform-metrics panel
+  if ($('#overall') && $('.side-column')) {
+    const p = document.createElement('div'); p.className = 'panel';
+    p.innerHTML = '<div class="panel-header"><h2>Platform metrics</h2></div><p class="panel-caption" id="pm">Loading...</p>'; $('.side-column').prepend(p);
+    const run = () => fetchM().then(m => { const b = [];
+      if (m.ok !== null) b.push('Solve rate ' + m.ok.toFixed(1) + '%'); if (m.ms !== null) b.push('Average latency ' + fmtMs(m.ms));
+      b.push((m.total || 0).toLocaleString() + ' requests handled'); if (m.users !== null) b.push(m.users + ' active user' + (m.users === 1 ? '' : 's') + ' in 24 hours');
+      $('#pm').textContent = b.join(', ') + '.'; }).catch(() => { $('#pm').textContent = 'Metrics are unavailable right now.'; });
+    run(); setInterval(run, 10000); }
+})();
