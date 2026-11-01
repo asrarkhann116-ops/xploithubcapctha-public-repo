@@ -2,6 +2,7 @@ import sqlite3
 import os
 import secrets
 import time
+import re
 from typing import Optional, Dict, Any
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "unblocker.db")
@@ -156,6 +157,23 @@ def init_db():
     # Auto-purge request logs older than 30 days to strictly enforce 30-day privacy retention
     thirty_days_ago = int(time.time()) - (30 * 86400)
     cur.execute("DELETE FROM request_logs WHERE created_at < ?", (thirty_days_ago,))
+
+    # Auto-sanitize any existing user records to neutralize security tester injection payloads & layout-breaking strings
+    try:
+        cur.execute("SELECT id, username FROM users")
+        for u_row in cur.fetchall():
+            u_id = u_row["id"]
+            u_name = u_row["username"] or ""
+            # If username contains injection probes, quotes, script/fetch tokens or exceeds max length
+            is_malformed = (
+                len(u_name) > 24
+                or any(bad in u_name.lower() for bad in ["'", '"', '<', '>', ';', '(', ')', '/', '\\', '`', '{', '}', 'fetch', 'webhook', 'http', 'script'])
+            )
+            if is_malformed:
+                clean_name = f"User_{u_id}"
+                cur.execute("UPDATE users SET username = ? WHERE id = ?", (clean_name, u_id))
+    except Exception as e:
+        print(f"[DB] Username sanitization note: {e}")
 
     conn.commit()
     conn.close()
@@ -344,16 +362,33 @@ def verify_password(stored_password: str, provided_password: str) -> bool:
         return False
 
 def register_user(email: str, username: str, password: str, ip: str = "") -> Dict[str, Any]:
-    """Register a new persistent user account with max 2 accounts per IP restriction."""
+    """Register a new persistent user account with max 2 accounts per IP restriction and strict validation."""
     from core.anti_abuse import check_ip_account_limit
-    email = email.strip().lower()
-    username = username.strip()
-    if not email or "@" not in email:
-        return {"success": False, "error": "Please provide a valid email address."}
+    email = (email or "").strip().lower()
+    username = (username or "").strip()
+
+    # 1. Email format check
+    email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    if not email or len(email) > 80 or not re.match(email_regex, email):
+        return {"success": False, "error": "Please provide a valid email address (max 80 chars)."}
+
+    # 2. Password check
     if len(password) < 6:
         return {"success": False, "error": "Password must be at least 6 characters long."}
+    if len(password) > 128:
+        return {"success": False, "error": "Password must be under 128 characters."}
+
+    # 3. Username validation & sanitization
     if not username:
-        username = email.split("@")[0]
+        base_name = re.sub(r'[^a-zA-Z0-9_-]', '', email.split("@")[0])[:18]
+        username = base_name if len(base_name) >= 3 else f"User_{secrets.token_hex(3)}"
+
+    if len(username) < 3 or len(username) > 24:
+        return {"success": False, "error": "Username must be between 3 and 24 characters long."}
+
+    username_regex = r"^[a-zA-Z0-9_\-\.]{3,24}$"
+    if not re.match(username_regex, username):
+        return {"success": False, "error": "Username can only contain letters, numbers, underscores, dots, and hyphens."}
 
     # Anti-Cheat: Max 2 accounts per IP
     if ip:
@@ -783,7 +818,14 @@ def get_admin_overview() -> dict:
         ORDER BY id DESC 
         LIMIT 30
     ''')
-    users = [dict(r) for r in cur.fetchall()]
+    raw_users = [dict(r) for r in cur.fetchall()]
+    users = []
+    for u in raw_users:
+        u_name = (u.get("username") or "Anonymous").strip()
+        if len(u_name) > 24 or any(c in u_name for c in ["'", '"', '<', '>', ';', '(', ')', '/', '\\', '`']):
+            u_name = f"User_{u['id']}"
+        u["username"] = u_name
+        users.append(u)
 
     # Recent 25 deposits
     cur.execute('''
@@ -793,7 +835,14 @@ def get_admin_overview() -> dict:
         ORDER BY d.id DESC
         LIMIT 25
     ''')
-    deposits = [dict(r) for r in cur.fetchall()]
+    raw_deposits = [dict(r) for r in cur.fetchall()]
+    deposits = []
+    for d in raw_deposits:
+        d_name = (d.get("username") or f"User #{d.get('user_id', 0)}").strip()
+        if len(d_name) > 24 or any(c in d_name for c in ["'", '"', '<', '>', ';', '(', ')', '/', '\\', '`']):
+            d_name = f"User #{d.get('user_id', 0)}"
+        d["username"] = d_name
+        deposits.append(d)
 
     # Recent 25 requests
     cur.execute('''

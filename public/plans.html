@@ -1540,7 +1540,7 @@
                 const data = await res.json();
                 if (data.success) {
                     feedback.style.color = '#f6b8c8';
-                    feedback.innerHTML = `<strong>Verification Successful!</strong> ${data.message} • New Balance: ${data.new_balance.toLocaleString()} solves!`;
+                    feedback.textContent = `Verification Successful! ${data.message} • New Balance: ${Number(data.new_balance || 0).toLocaleString()} solves!`;
                     setTimeout(() => { window.location.href = '/'; }, 2400);
                 } else {
                     feedback.style.color = '#ff8a8a';

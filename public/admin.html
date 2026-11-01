@@ -32,10 +32,10 @@
         .admin-tab-btn.active { color: #9fd8ff; border-bottom-color: #9fd8ff; }
 
         /* Table Panels */
-        .admin-table-panel { background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(31, 41, 55, 0.9); border-radius: 12px; overflow: hidden; }
-        .admin-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
-        .admin-table th { background: rgba(17, 18, 39, 0.9); color: #8189bd; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); }
-        .admin-table td { padding: 12px 16px; border-bottom: 1px solid rgba(31, 41, 55, 0.6); color: #fff4ec; }
+        .admin-table-panel { background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(31, 41, 55, 0.9); border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .admin-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: auto; }
+        .admin-table th { background: rgba(17, 18, 39, 0.9); color: #8189bd; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); white-space: nowrap; }
+        .admin-table td { padding: 12px 16px; border-bottom: 1px solid rgba(31, 41, 55, 0.6); color: #fff4ec; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: break-word; }
         .admin-table tr:hover { background: rgba(30, 41, 59, 0.4); }
 
         /* Badges */
@@ -358,19 +358,30 @@
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #8189bd;">No users found.</td></tr>';
                 return;
             }
-            tbody.innerHTML = users.map(u => `
+            tbody.innerHTML = users.map(u => {
+                const safeId = Number(u.id);
+                const safeUsername = escapeHtml(u.username || 'Anonymous');
+                const safeEmail = escapeHtml(u.email || (u.discord_id ? 'Discord Linked' : '—'));
+                const safePlan = escapeHtml(u.plan || 'free');
+                const safeCredits = Number(u.credits || 0).toLocaleString();
+                const depositBadge = u.has_deposited 
+                    ? '<span class="badge-pill badge-green">PAID DEPOSIT</span>' 
+                    : '<span style="color:#8189bd; font-size:11px;">FREE TIER</span>';
+
+                return `
                 <tr>
-                    <td><code>#${u.id}</code></td>
-                    <td style="font-weight: 600;">${escapeHtml(u.username || 'Anonymous')}</td>
-                    <td><span style="color: #b9bfe6;">${escapeHtml(u.email || (u.discord_id ? 'Discord Linked' : '—'))}</span></td>
-                    <td><span class="badge-pill badge-blue">${escapeHtml(u.plan || 'free')}</span></td>
-                    <td><strong style="color: #9fd8ff;">${Number(u.credits || 0).toLocaleString()}</strong></td>
-                    <td>${u.has_deposited ? '<span class="badge-pill badge-green">PAID DEPOSIT</span>' : '<span style="color:#8189bd; font-size:11px;">FREE TIER</span>'}</td>
+                    <td><code>#${safeId}</code></td>
+                    <td style="font-weight: 600; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${safeUsername}">${safeUsername}</td>
+                    <td><span style="color: #b9bfe6; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;" title="${safeEmail}">${safeEmail}</span></td>
+                    <td><span class="badge-pill badge-blue">${safePlan}</span></td>
+                    <td><strong style="color: #9fd8ff;">${safeCredits}</strong></td>
+                    <td>${depositBadge}</td>
                     <td>
-                        <button class="btn-sm-action" onclick="openCreditModal(${u.id}, '${escapeHtml(u.username || '')}', ${u.credits || 0})">± Credits</button>
+                        <button class="btn-sm-action" onclick="openCreditModal(${safeId})">± Credits</button>
                     </td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function filterUsers() {
@@ -390,17 +401,22 @@
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #8189bd;">No on-chain deposits yet.</td></tr>';
                 return;
             }
-            tbody.innerHTML = deposits.map(d => `
+            tbody.innerHTML = deposits.map(d => {
+                const safeUsername = escapeHtml(d.username || 'User #' + d.user_id);
+                const safeTx = escapeHtml((d.tx_hash || '').slice(0, 18));
+                const safeStatus = escapeHtml(d.status || 'verified');
+                return `
                 <tr>
-                    <td><code>#${d.id}</code></td>
-                    <td><strong>${escapeHtml(d.username || 'User #' + d.user_id)}</strong></td>
+                    <td><code>#${Number(d.id)}</code></td>
+                    <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${safeUsername}</strong></td>
                     <td style="color: #f6b8c8; font-weight: 700;">+${Number(d.amount_usdt || 0).toFixed(2)} USDT</td>
                     <td><span style="color: #9fd8ff;">+${Number(d.credits_added || 0).toLocaleString()}</span></td>
-                    <td><code style="font-size: 11px; color: #8189bd;">${(d.tx_hash || '').slice(0, 18)}...</code></td>
-                    <td><span class="badge-pill badge-green">${escapeHtml(d.status || 'verified')}</span></td>
+                    <td><code style="font-size: 11px; color: #8189bd;">${safeTx}...</code></td>
+                    <td><span class="badge-pill badge-green">${safeStatus}</span></td>
                     <td style="color: #8189bd; font-size: 11px;">${new Date((d.created_at || 0) * 1000).toLocaleString()}</td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function renderVouchers(vouchers) {
@@ -414,7 +430,7 @@
                     <td><code style="color: #ffe0a8; font-weight: 700; font-size: 13px;">${escapeHtml(v.code)}</code></td>
                     <td><strong>${Number(v.credits || 0).toLocaleString()} Credits</strong></td>
                     <td>${v.is_used ? '<span class="badge-pill badge-amber">REDEEMED</span>' : '<span class="badge-pill badge-green">ACTIVE</span>'}</td>
-                    <td>${v.used_by ? '#' + v.used_by : '—'}</td>
+                    <td>${v.used_by ? '#' + Number(v.used_by) : '—'}</td>
                     <td style="color: #8189bd; font-size: 11px;">${v.used_at ? new Date(v.used_at * 1000).toLocaleString() : '—'}</td>
                 </tr>
             `).join('');
@@ -426,17 +442,26 @@
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #8189bd;">No recent request logs.</td></tr>';
                 return;
             }
-            tbody.innerHTML = reqs.map(r => `
+            tbody.innerHTML = reqs.map(r => {
+                const safeUser = escapeHtml(r.username || 'User #' + r.user_id);
+                const safeUrl = escapeHtml(r.target_url || '');
+                const safeUrlShort = escapeHtml((r.target_url || '').slice(0, 45));
+                const safeMode = escapeHtml(r.mode || 'auto');
+                const statusCodeBadge = r.status_code === 200 
+                    ? '<span class="badge-pill badge-green">200 OK</span>' 
+                    : '<span class="badge-pill badge-amber">' + Number(r.status_code) + '</span>';
+                return `
                 <tr>
-                    <td><code>#${r.id}</code></td>
-                    <td>${escapeHtml(r.username || 'User #' + r.user_id)}</td>
-                    <td><span style="font-family: var(--font-mono); font-size: 12px; color: #b9bfe6;" title="${escapeHtml(r.target_url || '')}">${escapeHtml((r.target_url || '').slice(0, 45))}...</span></td>
-                    <td><code>${escapeHtml(r.mode || 'auto')}</code></td>
-                    <td>${r.status_code === 200 ? '<span class="badge-pill badge-green">200 OK</span>' : '<span class="badge-pill badge-amber">' + r.status_code + '</span>'}</td>
-                    <td>${r.duration_ms} ms</td>
-                    <td style="color: #8189bd;">${r.cost} cr</td>
+                    <td><code>#${Number(r.id)}</code></td>
+                    <td style="max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeUser}</td>
+                    <td><span style="font-family: var(--font-mono); font-size: 12px; color: #b9bfe6; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;" title="${safeUrl}">${safeUrlShort}...</span></td>
+                    <td><code>${safeMode}</code></td>
+                    <td>${statusCodeBadge}</td>
+                    <td>${Number(r.duration_ms)} ms</td>
+                    <td style="color: #8189bd;">${Number(r.cost)} cr</td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function switchTab(tabId) {
@@ -447,8 +472,11 @@
             event.target.classList.add('active');
         }
 
-        function openCreditModal(userId, username, currentCredits) {
-            selectedUserId = userId;
+        function openCreditModal(userId) {
+            selectedUserId = Number(userId);
+            const u = (rawAdminData && rawAdminData.users) ? rawAdminData.users.find(x => x.id === selectedUserId) : null;
+            const username = u ? (u.username || 'Anonymous') : ('User #' + selectedUserId);
+            const currentCredits = u ? (u.credits || 0) : 0;
             document.getElementById('modal-user-info').innerText = `User: ${username} (Current: ${currentCredits} credits)`;
             document.getElementById('modal-amount-input').value = '100';
             document.getElementById('credit-modal').style.display = 'flex';
@@ -603,8 +631,15 @@
         };
 
         function escapeHtml(str) {
-            if (!str) return '';
-            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/`/g, '&#96;')
+                .replace(/\//g, '&#x2F;');
         }
 
         // Auto unlock if key already stored

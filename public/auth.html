@@ -227,11 +227,11 @@
             <form id="form-login" onsubmit="handleLogin(event)">
                 <div class="auth-field">
                     <label class="auth-label">EMAIL OR USERNAME</label>
-                    <input type="text" id="login-identity" class="auth-input" placeholder="e.g. operator@domain.com" required autocomplete="username">
+                    <input type="text" id="login-identity" class="auth-input" placeholder="e.g. operator@domain.com" required maxlength="80" autocomplete="username">
                 </div>
                 <div class="auth-field">
                     <label class="auth-label">PASSWORD</label>
-                    <input type="password" id="login-password" class="auth-input" placeholder="Enter password" required autocomplete="current-password">
+                    <input type="password" id="login-password" class="auth-input" placeholder="Enter password" required maxlength="128" autocomplete="current-password">
                 </div>
                 <button type="submit" class="auth-submit-btn" id="btn-login-submit">
                     <span>Sign In & Unlock API Key</span>
@@ -243,15 +243,15 @@
             <form id="form-register" style="display: none;" onsubmit="handleRegister(event)">
                 <div class="auth-field">
                     <label class="auth-label">EMAIL ADDRESS</label>
-                    <input type="email" id="reg-email" class="auth-input" placeholder="operator@domain.com" required autocomplete="email">
+                    <input type="email" id="reg-email" class="auth-input" placeholder="operator@domain.com" required maxlength="80" autocomplete="email">
                 </div>
                 <div class="auth-field">
                     <label class="auth-label">DESIRED USERNAME</label>
-                    <input type="text" id="reg-username" class="auth-input" placeholder="e.g. ShadowOperator" required autocomplete="username">
+                    <input type="text" id="reg-username" class="auth-input" placeholder="e.g. ShadowOperator" required minlength="3" maxlength="24" pattern="^[a-zA-Z0-9_\-\.]{3,24}$" title="3-24 characters, letters, numbers, underscores, and dashes only" autocomplete="username">
                 </div>
                 <div class="auth-field">
                     <label class="auth-label">PASSWORD (MIN 6 CHARS)</label>
-                    <input type="password" id="reg-password" class="auth-input" placeholder="Choose a strong password" required minlength="6" autocomplete="new-password">
+                    <input type="password" id="reg-password" class="auth-input" placeholder="Choose a strong password" required minlength="6" maxlength="128" autocomplete="new-password">
                 </div>
                 <button type="submit" class="auth-submit-btn" id="btn-register-submit">
                     <span>Create Account & Get 10 Credits</span>

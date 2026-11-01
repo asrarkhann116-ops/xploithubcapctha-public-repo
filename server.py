@@ -10,7 +10,7 @@ from fastapi import FastAPI, Header, Query, HTTPException, Request, Response, De
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -95,6 +95,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # Defense-in-depth: Anti-XSS, anti-sniffing, anti-clickjacking, and restrictive CSP
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    # CSP: Disallows exfiltration webhooks (e.g., webhook.site) and prevents unsafe script execution
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://discord.com https://*.railway.app; "
+        "frame-ancestors 'none';"
+    )
+    return response
+
 # Mount static files
 PUBLIC_DIR = os.path.join(os.path.dirname(__file__), "public")
 os.makedirs(PUBLIC_DIR, exist_ok=True)
@@ -114,31 +134,31 @@ class AsyncUnlockRequest(UnlockRequest):
     webhook_url: Optional[str] = None
 
 class RegisterRequest(BaseModel):
-    email: str
-    username: Optional[str] = None
-    password: str
+    email: str = Field(..., min_length=5, max_length=80)
+    username: Optional[str] = Field(None, max_length=24)
+    password: str = Field(..., min_length=6, max_length=128)
 
 class LoginRequest(BaseModel):
-    identity: str
-    password: str
+    identity: str = Field(..., min_length=1, max_length=80)
+    password: str = Field(..., min_length=1, max_length=128)
 
 class PromoVerifyRequest(BaseModel):
-    discord_id: str
+    discord_id: str = Field(..., min_length=10, max_length=25)
 
 class DepositVerifyRequest(BaseModel):
-    tx_hash: str
+    tx_hash: str = Field(..., min_length=10, max_length=128)
     plan_type: Optional[str] = None
 
 class VoucherRedeemRequest(BaseModel):
-    code: str
+    code: str = Field(..., min_length=3, max_length=64)
 
 class AdminCreditAdjustRequest(BaseModel):
-    user_id: int
-    amount: float
+    user_id: int = Field(..., gt=0)
+    amount: float = Field(...)
 
 class AdminVoucherCreateRequest(BaseModel):
-    code: str
-    credits: float
+    code: str = Field(..., min_length=3, max_length=64)
+    credits: float = Field(..., gt=0)
 
 class CaptchaTokenSolveRequest(BaseModel):
     url: str
@@ -1210,9 +1230,9 @@ async def admin_create_voucher_api(
 
 # ── Announcement Pydantic models ──────────────────────────────────────────
 class AnnouncementCreateRequest(BaseModel):
-    title: str
-    message: str
-    version: Optional[str] = ""
+    title: str = Field(..., min_length=1, max_length=120)
+    message: str = Field(..., min_length=1, max_length=2000)
+    version: Optional[str] = Field("", max_length=30)
     post_discord: Optional[bool] = True   # if True, also sends to Discord updates channel
 
 
