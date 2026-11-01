@@ -28,10 +28,17 @@ print("Response:", res)
 assert not res["success"], "FAILED: Malicious email should have been rejected!"
 print(">>> PASS: Malformed email was rejected:", res.get("error"))
 
-# Test 4: Valid Registration
-print("\n[Test 4] Testing valid user registration...")
+# Test 3.5: Temp-Mail / Non-Gmail Rejection Probe
+print("\n[Test 3.5] Testing temp-mail / non-gmail rejection...")
+res = register_user("hacker@temp-mail.org", "tempuser", "password123")
+print("Response:", res)
+assert not res["success"], "FAILED: Temp-mail should have been rejected!"
+print(">>> PASS: Non-Gmail was blocked:", res.get("error"))
+
+# Test 4: Valid Registration (Gmail only)
+print("\n[Test 4] Testing valid user registration with genuine @gmail.com...")
 clean_uname = f"sec_user_{os.urandom(2).hex()}"
-clean_email = f"{clean_uname}@testcorp.io"
+clean_email = f"{clean_uname}@gmail.com"
 res = register_user(clean_email, clean_uname, "securePass!234")
 print("Response success:", res.get("success"))
 assert res.get("success"), f"FAILED: Valid registration failed: {res.get('error')}"

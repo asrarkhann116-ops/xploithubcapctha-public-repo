@@ -172,6 +172,9 @@ def init_db():
             if is_malformed:
                 clean_name = f"User_{u_id}"
                 cur.execute("UPDATE users SET username = ? WHERE id = ?", (clean_name, u_id))
+
+        # Auto-delete junk test accounts created with @example.com or disposable domains
+        cur.execute("DELETE FROM users WHERE email LIKE '%@example.com' OR email LIKE '%@temp-mail.%' OR email LIKE '%@mailinator.com'")
     except Exception as e:
         print(f"[DB] Username sanitization note: {e}")
 
@@ -367,10 +370,10 @@ def register_user(email: str, username: str, password: str, ip: str = "") -> Dic
     email = (email or "").strip().lower()
     username = (username or "").strip()
 
-    # 1. Email format check
-    email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    # 1. Email format check — Strictly enforce genuine Google Mail accounts (@gmail.com)
+    email_regex = r"^[a-zA-Z0-9_.+-]+@(gmail\.com|googlemail\.com)$"
     if not email or len(email) > 80 or not re.match(email_regex, email):
-        return {"success": False, "error": "Please provide a valid email address (max 80 chars)."}
+        return {"success": False, "error": "Only genuine Google Mail accounts (@gmail.com) are allowed. Temporary and disposable emails are strictly blocked."}
 
     # 2. Password check
     if len(password) < 6:

@@ -245,8 +245,8 @@
             <!-- Register Form (hidden by default) -->
             <form id="form-register" style="display: none;" onsubmit="handleRegister(event)">
                 <div class="auth-field">
-                    <label class="auth-label">EMAIL ADDRESS</label>
-                    <input type="email" id="reg-email" class="auth-input" placeholder="operator@domain.com" required maxlength="80" autocomplete="email">
+                    <label class="auth-label">GOOGLE MAIL ADDRESS (@GMAIL.COM ONLY)</label>
+                    <input type="email" id="reg-email" class="auth-input" placeholder="operator@gmail.com" required maxlength="80" pattern="^[a-zA-Z0-9_.+-]+@(gmail\.com|googlemail\.com)$" title="Only genuine @gmail.com accounts are allowed. Disposable and temporary emails are strictly blocked." autocomplete="email">
                 </div>
                 <div class="auth-field">
                     <label class="auth-label">DESIRED USERNAME</label>
