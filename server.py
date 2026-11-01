@@ -3,6 +3,8 @@ import time
 import asyncio
 import uuid
 import secrets
+import hmac
+import hashlib
 import aiohttp
 from typing import Optional, Any, Dict, List, Union
 from collections import deque
@@ -44,7 +46,13 @@ from engine.unblocker import execute_unblock
 from core.promo import verify_user_promo
 from core.solana import verify_solana_deposit, SOLANA_WALLET
 from core import email_notify
-from core.anti_abuse import get_client_ip
+from core.anti_abuse import (
+    get_client_ip,
+    check_login_rate_limit,
+    record_failed_login,
+    clear_failed_logins
+)
+from core.turnstile import verify_turnstile_token
 
 # Worker secret key for GitHub Actions runners to authenticate
 WORKER_SECRET = os.getenv("WORKER_SECRET", "xpk-worker-default-secret")
@@ -60,7 +68,13 @@ active_workers = {}
 # Concurrency tracking per user {user_id: active_count}
 active_user_concurrency = {}
 
-app = FastAPI(title="Xploit Unblocker API", version="2.0.0")
+app = FastAPI(
+    title="Xploit Unblocker API",
+    version="2.0.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None
+)
 
 # ── Discord status & showcase integration ───────────────────────────────────
 from core.discord_webhook import (
@@ -87,9 +101,22 @@ async def _on_startup():
     asyncio.create_task(status_background_loop())
     print("[SERVER] Discord status background loop started.")
 
+# Allowed Origins for CORS — restricts arbitrary domain reflection and credential theft
+ALLOWED_ORIGINS = [
+    "https://xploithubcapctha.up.railway.app",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+env_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_origins:
+    ALLOWED_ORIGINS.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https://.*\.railway\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,19 +125,22 @@ app.add_middleware(
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
-    # Defense-in-depth: Anti-XSS, anti-sniffing, anti-clickjacking, and restrictive CSP
+    # Defense-in-depth: Anti-XSS, anti-sniffing, anti-clickjacking, HSTS, and restrictive CSP
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    # CSP: Disallows exfiltration webhooks (e.g., webhook.site) and prevents unsafe script execution
+    # CSP: Disallows exfiltration webhooks while allowing Cloudflare Turnstile bot verification
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com data:; "
         "img-src 'self' data: https:; "
-        "connect-src 'self' https://discord.com https://*.railway.app; "
+        "frame-src https://challenges.cloudflare.com; "
+        "connect-src 'self' https://discord.com https://*.railway.app https://challenges.cloudflare.com; "
         "frame-ancestors 'none';"
     )
     return response
@@ -137,10 +167,12 @@ class RegisterRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=80)
     username: Optional[str] = Field(None, max_length=24)
     password: str = Field(..., min_length=6, max_length=128)
+    cf_turnstile_response: Optional[str] = None
 
 class LoginRequest(BaseModel):
     identity: str = Field(..., min_length=1, max_length=80)
     password: str = Field(..., min_length=1, max_length=128)
+    cf_turnstile_response: Optional[str] = None
 
 class PromoVerifyRequest(BaseModel):
     discord_id: str = Field(..., min_length=10, max_length=25)
@@ -295,14 +327,49 @@ def authenticate_api_key(
 
     return user
 
-# Helper to get current web session user from cookie
+# Cryptographic Session Cookie Security (HMAC-SHA256)
+SESSION_SECRET = os.getenv("SESSION_SECRET") or os.getenv("ADMIN_SECRET") or "xpk-secure-session-key-sign-2026-prod"
+
+def sign_session_uid(uid: int) -> str:
+    """Cryptographically sign a user ID with HMAC-SHA256 to prevent cookie-forgery IDOR."""
+    sig = hmac.new(SESSION_SECRET.encode(), str(uid).encode(), hashlib.sha256).hexdigest()[:24]
+    return f"{uid}.{sig}"
+
+def verify_session_uid(cookie_val: Optional[str]) -> Optional[int]:
+    """Verify an HMAC-signed session cookie. Strictly rejects forged or raw unsigned user IDs."""
+    if not cookie_val or not isinstance(cookie_val, str):
+        return None
+    parts = cookie_val.split(".", 1)
+    if len(parts) != 2:
+        return None
+    uid_str, sig = parts
+    if not uid_str.isdigit():
+        return None
+    expected = hmac.new(SESSION_SECRET.encode(), uid_str.encode(), hashlib.sha256).hexdigest()[:24]
+    if hmac.compare_digest(sig, expected):
+        return int(uid_str)
+    return None
+
+def set_session_cookie(response: Response, user_id: int):
+    """Sets a hardened, cryptographically signed session cookie with HttpOnly and Secure flags."""
+    response.set_cookie(
+        key="xpk_uid",
+        value=sign_session_uid(user_id),
+        max_age=86400 * 365,
+        httponly=True,
+        secure=True,
+        samesite="lax"
+    )
+
+# Helper to get current web session user from signed cookie
 def get_session_user(request: Request):
-    user_id = request.cookies.get("xpk_uid")
-    if not user_id:
+    raw_cookie = request.cookies.get("xpk_uid")
+    uid = verify_session_uid(raw_cookie)
+    if not uid:
         return None
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    cur.execute("SELECT * FROM users WHERE id = ?", (uid,))
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -317,13 +384,7 @@ def get_or_create_session_user(request: Request, response: Response):
     if not user:
         client_ip = get_client_ip(request)
         user = get_or_reuse_guest_user(ip=client_ip)
-        response.set_cookie(
-            key="xpk_uid",
-            value=str(user["id"]),
-            max_age=86400 * 365,
-            httponly=False,
-            samesite="lax"
-        )
+        set_session_cookie(response, user["id"])
     return user
 
 
@@ -573,7 +634,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 "url": req.url,
                 "error": f"Server error: {str(exc)}",
                 "duration_ms": duration_ms,
-                "hint": "CDP mode requires an active GitHub Actions worker. Check /api/workers/status"
+                "hint": "CDP mode requires an active solver node. Check /api/workers/status"
             }
         )
     finally:
@@ -776,8 +837,17 @@ async def get_task_status(task_id: str):
     return task
 
 @app.get("/v1/tasks")
-async def list_recent_tasks():
-    """Returns the most recent 25 async tasks in reverse chronological order."""
+async def list_recent_tasks(
+    request: Request,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    """Returns the most recent 25 async tasks (requires authenticated user session or admin key)."""
+    admin_ok = bool(ADMIN_SECRET and (x_admin_key or key) == ADMIN_SECRET)
+    user = get_session_user(request)
+    if not admin_ok and (not user or bool(user.get("is_guest", 0))):
+        raise HTTPException(status_code=401, detail="Authentication required to view task history.")
+
     sorted_tasks = sorted(
         [
             {
@@ -846,14 +916,8 @@ async def discord_callback(code: str, request: Request, response: Response):
     )
 
     redirect = RedirectResponse(url="/", status_code=302)
-    # Match guest cookie expiry (365 days) so real user session persists properly
-    redirect.set_cookie(
-        key="xpk_uid",
-        value=str(user["id"]),
-        max_age=86400 * 365,
-        httponly=False,
-        samesite="lax"
-    )
+    # Set cryptographically signed session cookie
+    set_session_cookie(redirect, user["id"])
     return redirect
 
 # ════════════════════════════════════════════
@@ -904,13 +968,18 @@ async def get_current_user_profile(request: Request, response: Response):
 async def auth_register(req: RegisterRequest, request: Request, response: Response):
     """Register a new user account with email and password (enforces max 2 accounts per IP)."""
     client_ip = get_client_ip(request)
+    if req.cf_turnstile_response:
+        turnstile_ok, turnstile_err = await verify_turnstile_token(req.cf_turnstile_response, client_ip)
+        if not turnstile_ok:
+            raise HTTPException(status_code=403, detail=turnstile_err)
+
     res = register_user(req.email, req.username or "", req.password, ip=client_ip)
     if not res.get("success"):
         err = res.get("error", "Registration failed.")
         code = 429 if "Anti-Abuse" in err or "Limit reached" in err else 400
         raise HTTPException(status_code=code, detail=err)
     user = res["user"]
-    response.set_cookie(key="xpk_uid", value=str(user["id"]), max_age=86400 * 365, httponly=False, samesite="lax")
+    set_session_cookie(response, user["id"])
     if user.get("email"):
         asyncio.create_task(email_notify.welcome_email(
             to=user["email"],
@@ -932,13 +1001,25 @@ async def auth_register(req: RegisterRequest, request: Request, response: Respon
 
 @app.post("/api/auth/login")
 async def auth_login(req: LoginRequest, request: Request, response: Response):
-    """Authenticate existing user with email/username and password."""
+    """Authenticate existing user with email/username and password with brute-force protection."""
     client_ip = get_client_ip(request)
+    allowed, rate_err = check_login_rate_limit(client_ip)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=rate_err)
+
+    if req.cf_turnstile_response:
+        turnstile_ok, turnstile_err = await verify_turnstile_token(req.cf_turnstile_response, client_ip)
+        if not turnstile_ok:
+            raise HTTPException(status_code=403, detail=turnstile_err)
+
     res = authenticate_user(req.identity, req.password, ip=client_ip)
     if not res.get("success"):
+        record_failed_login(client_ip)
         raise HTTPException(status_code=401, detail=res.get("error"))
+
+    clear_failed_logins(client_ip)
     user = res["user"]
-    response.set_cookie(key="xpk_uid", value=str(user["id"]), max_age=86400 * 365, httponly=False, samesite="lax")
+    set_session_cookie(response, user["id"])
     return {
         "success": True,
         "message": f"Welcome back, {user['username']}!",
@@ -1372,21 +1453,26 @@ async def worker_submit_result(payload: WorkerResultPayload, _auth = Depends(ver
 
 @app.get("/api/workers/status")
 async def get_workers_status():
-    """Public endpoint: shows how many worker nodes are online."""
+    """Public endpoint: shows how many worker nodes are online without leaking internal runner IDs."""
     now = time.time()
     online = {wid: info for wid, info in active_workers.items() if now - info["last_seen"] < 90}
+    nodes = [
+        {"id": f"node-{idx}", "tasks_completed": info["tasks_completed"], "last_seen_ago": int(now - info["last_seen"])}
+        for idx, (wid, info) in enumerate(online.items(), 1)
+    ]
     return {
         "workers_online": len(online),
         "queue_depth": len(task_queue),
-        "nodes": [
-            {"id": wid, "tasks_completed": info["tasks_completed"], "last_seen_ago": int(now - info["last_seen"])}
-            for wid, info in online.items()
-        ]
+        "nodes": nodes
     }
 
 @app.get("/api/proxies/status")
-async def get_proxies_status_endpoint():
-    """Returns proxy pool configuration and health stats."""
+async def get_proxies_status_endpoint(
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    """Returns proxy pool configuration and health stats (Admin restricted)."""
+    verify_admin_key(x_admin_key, key)
     from engine.proxies import get_proxy_stats
     return get_proxy_stats()
 

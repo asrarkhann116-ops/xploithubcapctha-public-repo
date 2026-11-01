@@ -298,7 +298,9 @@
             if (!key) return;
 
             try {
-                const res = await fetch(`/api/admin/overview?key=${encodeURIComponent(key)}`);
+                const res = await fetch(`/api/admin/overview`, {
+                    headers: { 'X-Admin-Key': key }
+                });
                 const json = await res.json();
                 if (json.success) {
                     localStorage.setItem('xpk_admin_key', key);
@@ -323,7 +325,9 @@
             const key = getSavedKey();
             if (!key) return;
             try {
-                const res = await fetch(`/api/admin/overview?key=${encodeURIComponent(key)}`);
+                const res = await fetch(`/api/admin/overview`, {
+                    headers: { 'X-Admin-Key': key }
+                });
                 const json = await res.json();
                 if (json.success) {
                     rawAdminData = json.data;
@@ -492,9 +496,9 @@
             if (!selectedUserId || isNaN(amount)) return;
             const key = getSavedKey();
             try {
-                const res = await fetch(`/api/admin/users/credits?key=${encodeURIComponent(key)}`, {
+                const res = await fetch(`/api/admin/users/credits`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'X-Admin-Key': key},
                     body: JSON.stringify({ user_id: selectedUserId, amount: amount })
                 });
                 const json = await res.json();
@@ -518,9 +522,9 @@
             }
             const key = getSavedKey();
             try {
-                const res = await fetch(`/api/admin/vouchers/create?key=${encodeURIComponent(key)}`, {
+                const res = await fetch(`/api/admin/vouchers/create`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'X-Admin-Key': key},
                     body: JSON.stringify({ code: code, credits: credits })
                 });
                 const json = await res.json();
@@ -539,7 +543,9 @@
         async function fetchAnnouncements() {
             const key = getSavedKey();
             try {
-                const res  = await fetch(`/api/admin/announcements?key=${encodeURIComponent(key)}`);
+                const res  = await fetch(`/api/admin/announcements`, {
+                    headers: { 'X-Admin-Key': key }
+                });
                 const json = await res.json();
                 if (json.success) renderAnnouncements(json.announcements || []);
             } catch(e) { console.error('Failed to load announcements', e); }
@@ -568,7 +574,10 @@
 
         async function toggleAnnouncement(id, newActive) {
             const key = getSavedKey();
-            await fetch(`/api/admin/announcements/${id}/toggle?key=${encodeURIComponent(key)}&active=${newActive}`, { method: 'POST' });
+            await fetch(`/api/admin/announcements/${id}/toggle?active=${newActive}`, {
+                method: 'POST',
+                headers: { 'X-Admin-Key': key }
+            });
             fetchAnnouncements();
         }
 
@@ -590,9 +599,9 @@
 
             const key = getSavedKey();
             try {
-                const res  = await fetch(`/api/admin/announcements?key=${encodeURIComponent(key)}`, {
+                const res  = await fetch(`/api/admin/announcements`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': key },
                     body: JSON.stringify({ title, message, version, post_discord: postDc })
                 });
                 const json = await res.json();

@@ -25,6 +25,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         .auth-wrapper {
             min-height: calc(100vh - 120px);
@@ -233,6 +234,8 @@
                     <label class="auth-label">PASSWORD</label>
                     <input type="password" id="login-password" class="auth-input" placeholder="Enter password" required maxlength="128" autocomplete="current-password">
                 </div>
+                <!-- Cloudflare Turnstile Bot Protection -->
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAAFu_fx2cckZBeDAW" data-theme="dark" style="margin-bottom: 16px; display: flex; justify-content: center;"></div>
                 <button type="submit" class="auth-submit-btn" id="btn-login-submit">
                     <span>Sign In & Unlock API Key</span>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
@@ -253,6 +256,8 @@
                     <label class="auth-label">PASSWORD (MIN 6 CHARS)</label>
                     <input type="password" id="reg-password" class="auth-input" placeholder="Choose a strong password" required minlength="6" maxlength="128" autocomplete="new-password">
                 </div>
+                <!-- Cloudflare Turnstile Bot Protection -->
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAAFu_fx2cckZBeDAW" data-theme="dark" style="margin-bottom: 16px; display: flex; justify-content: center;"></div>
                 <button type="submit" class="auth-submit-btn" id="btn-register-submit">
                     <span>Create Account & Get 10 Credits</span>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -309,6 +314,9 @@
             const btn = document.getElementById('btn-login-submit');
             const errBox = document.getElementById('auth-error');
 
+            const turnstileInput = document.querySelector('#form-login [name="cf-turnstile-response"]');
+            const cfToken = turnstileInput ? turnstileInput.value : '';
+
             btn.disabled = true;
             errBox.style.display = 'none';
 
@@ -316,7 +324,7 @@
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identity, password })
+                    body: JSON.stringify({ identity, password, cf_turnstile_response: cfToken })
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
@@ -324,6 +332,7 @@
                 } else {
                     errBox.innerText = data.detail || data.error || 'Authentication failed.';
                     errBox.style.display = 'block';
+                    if (window.turnstile) { turnstile.reset('#form-login'); }
                 }
             } catch (err) {
                 errBox.innerText = 'Network error contacting authentication server.';
@@ -341,6 +350,9 @@
             const btn = document.getElementById('btn-register-submit');
             const errBox = document.getElementById('auth-error');
 
+            const turnstileInput = document.querySelector('#form-register [name="cf-turnstile-response"]');
+            const cfToken = turnstileInput ? turnstileInput.value : '';
+
             btn.disabled = true;
             errBox.style.display = 'none';
 
@@ -348,7 +360,7 @@
                 const res = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, username, password })
+                    body: JSON.stringify({ email, username, password, cf_turnstile_response: cfToken })
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
@@ -356,6 +368,7 @@
                 } else {
                     errBox.innerText = data.detail || data.error || 'Registration failed.';
                     errBox.style.display = 'block';
+                    if (window.turnstile) { turnstile.reset('#form-register'); }
                 }
             } catch (err) {
                 errBox.innerText = 'Network error contacting authentication server.';
@@ -369,6 +382,34 @@
         if (window.location.pathname.includes('register')) {
             switchAuthTab('register');
         }
+
+        // ── Anti-Reverse Engineering & Anti-DevTools Protection ──
+        (function() {
+            // Disable inspection hotkeys
+            document.addEventListener('keydown', function(e) {
+                if (e.keyCode === 123 || 
+                    (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+                    (e.ctrlKey && e.keyCode === 85)) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            // Disable right-click context menu (except form inputs)
+            document.addEventListener('contextmenu', function(e) {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                }
+            });
+            // Timing debugger trap for automated headless injection & REA scrapers
+            setInterval(function() {
+                const start = performance.now();
+                debugger;
+                const duration = performance.now() - start;
+                if (duration > 100) {
+                    try { console.clear(); } catch(err){}
+                }
+            }, 2000);
+        })();
     </script>
     <script src="/static/fx.js" defer></script>
 </body>

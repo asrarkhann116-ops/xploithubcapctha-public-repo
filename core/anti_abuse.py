@@ -61,6 +61,26 @@ def check_rate_limit(store: dict, ip: str, limit: int, window_seconds: int) -> b
     return True
 
 
+LOGIN_ATTEMPT_LIMIT = 5  # Max 5 failed attempts in 60 seconds per IP
+
+def check_login_rate_limit(ip: str) -> Tuple[bool, str]:
+    """Check if IP is currently blocked due to repeated failed login attempts."""
+    now = time.time()
+    cutoff = now - 60
+    failures = [t for t in _FAILED_LOGINS.get(ip, []) if t > cutoff]
+    _FAILED_LOGINS[ip] = failures
+    if len(failures) >= LOGIN_ATTEMPT_LIMIT:
+        return False, "Too many failed login attempts. Please wait 60 seconds before trying again."
+    return True, ""
+
+def record_failed_login(ip: str):
+    """Record a failed login attempt for brute-force tracking."""
+    _FAILED_LOGINS[ip].append(time.time())
+
+def clear_failed_logins(ip: str):
+    """Clear failed login history on successful authentication."""
+    _FAILED_LOGINS.pop(ip, None)
+
 def check_ip_account_limit(ip: str) -> Tuple[bool, str]:
     """
     Verifies that this IP has not exceeded the maximum of 2 registered accounts.
