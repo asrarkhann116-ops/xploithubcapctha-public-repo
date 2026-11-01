@@ -1310,7 +1310,67 @@ async def admin_create_voucher_api(
 
 
 # ── Announcement Pydantic models ──────────────────────────────────────────
+class AdminUserActionRequest(BaseModel):
+    user_id: int
+
+class AdminSetCreditsRequest(BaseModel):
+    user_id: int
+    credits: float
+
+@app.post("/api/admin/users/ban")
+async def admin_ban_user_api(
+    req: AdminUserActionRequest,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    verify_admin_key(x_admin_key, key)
+    from core.db import admin_ban_user
+    res = admin_ban_user(req.user_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
+@app.post("/api/admin/users/unban")
+async def admin_unban_user_api(
+    req: AdminUserActionRequest,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    verify_admin_key(x_admin_key, key)
+    from core.db import admin_unban_user
+    res = admin_unban_user(req.user_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
+@app.delete("/api/admin/users/delete")
+async def admin_delete_user_api(
+    req: AdminUserActionRequest,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    verify_admin_key(x_admin_key, key)
+    from core.db import admin_delete_user
+    res = admin_delete_user(req.user_id)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
+@app.post("/api/admin/users/set-credits")
+async def admin_set_credits_api(
+    req: AdminSetCreditsRequest,
+    x_admin_key: Optional[str] = Header(None),
+    key: Optional[str] = Query(None)
+):
+    verify_admin_key(x_admin_key, key)
+    from core.db import admin_set_user_credits
+    res = admin_set_user_credits(req.user_id, req.credits)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
 class AnnouncementCreateRequest(BaseModel):
+
     title: str = Field(..., min_length=1, max_length=120)
     message: str = Field(..., min_length=1, max_length=2000)
     version: Optional[str] = Field("", max_length=30)

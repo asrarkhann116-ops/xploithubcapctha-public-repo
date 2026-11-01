@@ -816,7 +816,7 @@ def get_admin_overview() -> dict:
 
     # Recent 30 registered users
     cur.execute('''
-        SELECT id, username, email, discord_id, credits, plan, has_deposited, is_guest, created_at 
+        SELECT id, username, email, discord_id, credits, plan, has_deposited, is_guest, timeout_until, created_at 
         FROM users 
         ORDER BY id DESC 
         LIMIT 30
@@ -973,6 +973,74 @@ def get_all_announcements() -> list:
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     return rows
+
+def admin_ban_user(user_id: int, reason: str = "") -> dict:
+    """Permanently ban a user — zeroes credits, sets timeout to year 9999."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username FROM users WHERE id = ?", (user_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return {"success": False, "error": f"User #{user_id} not found."}
+    # timeout_until = far future epoch (year 2099) acts as a permanent ban
+    ban_until = 4102444800  # 2100-01-01 00:00:00 UTC
+    cur.execute(
+        "UPDATE users SET timeout_until = ?, credits = 0 WHERE id = ?",
+        (ban_until, user_id)
+    )
+    conn.commit()
+    conn.close()
+    return {"success": True, "user_id": user_id, "username": row["username"], "banned": True}
+
+def admin_unban_user(user_id: int) -> dict:
+    """Remove ban from a user — resets timeout_until to 0."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username FROM users WHERE id = ?", (user_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return {"success": False, "error": f"User #{user_id} not found."}
+    cur.execute("UPDATE users SET timeout_until = 0 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True, "user_id": user_id, "username": row["username"], "banned": False}
+
+def admin_delete_user(user_id: int) -> dict:
+    """Hard delete a user and all their associated logs from the DB."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username FROM users WHERE id = ?", (user_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return {"success": False, "error": f"User #{user_id} not found."}
+    username = row["username"]
+    # Cascade delete related records
+    cur.execute("DELETE FROM request_logs WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM deposits WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM voucher_redemptions WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True, "user_id": user_id, "username": username, "deleted": True}
+
+def admin_set_user_credits(user_id: int, credits: float) -> dict:
+    """Set user credits to exact value (override, not delta)."""
+    if credits < 0:
+        return {"success": False, "error": "Credits cannot be negative."}
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username FROM users WHERE id = ?", (user_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return {"success": False, "error": f"User #{user_id} not found."}
+    cur.execute("UPDATE users SET credits = ? WHERE id = ?", (credits, user_id))
+    conn.commit()
+    conn.close()
+    return {"success": True, "user_id": user_id, "username": row["username"], "credits": credits}
 
 def admin_toggle_announcement(announcement_id: int, is_active: int):
     """Activate or deactivate an announcement."""
