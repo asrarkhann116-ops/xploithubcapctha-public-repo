@@ -90,7 +90,8 @@
 .fx-burger.on i:nth-child(1) { transform: translateY(7px) rotate(45deg); } .fx-burger.on i:nth-child(2) { opacity: 0; } .fx-burger.on i:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 @media (max-width: 820px) {
   .fx-burger { display: inline-flex; }
-  .nav-controls { display: none; width: 100%; flex-direction: column; align-items: stretch; }
+  .nav-container > .fx-theme { display: none !important; }
+  .nav-controls { display: none; width: 100%; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 10px; }
   .nav-controls.fx-open { display: flex; animation: fxRise .25s steps(4); }
   .nav-controls > * { justify-content: center; }
 }
@@ -224,9 +225,9 @@ body{line-height:1.6;font-size:var(--t-body)}h2{font-size:var(--t-h2);line-heigh
 .fx-mini-btn:focus-visible,.fx-low button:focus-visible{outline:2px solid var(--border-cyan);outline-offset:2px}
 pre.fx-ln{counter-reset:l;overflow-x:auto}.fx-ln .ln{counter-increment:l;display:inline-block;width:2.4em;margin-right:12px;text-align:right;color:var(--text-muted);user-select:none;opacity:.7}.fx-ln .ln::before{content:counter(l)}
 [data-code=mono] pre:not(#console-output){background:#0b0c10;color:#e6e6e6}[data-code=paper] pre:not(#console-output){background:#f4efe6;color:#2a2438}[data-code=paper] .fx-ln .ln{color:#8a8398}
-.fx-low{position:fixed;right:16px;bottom:16px;display:none;gap:12px;align-items:center;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border-accent);border-radius:var(--radius-md);box-shadow:var(--shadow-panel);z-index:50;font-size:var(--t-small)}
+.fx-low{position:fixed;right:16px;bottom:16px;display:none;gap:12px;align-items:center;padding:10px 14px;background:var(--bg-panel);border:1px solid var(--border-accent);border-radius:var(--radius-md);box-shadow:var(--shadow-panel);z-index:50;font-size:var(--t-small);max-width:calc(100vw - 32px);box-sizing:border-box}
 .fx-low.on{display:flex}.fx-low a{color:var(--text-accent);font-weight:700}.fx-low button{background:none;border:0;color:var(--text-muted);font-size:1.1rem;cursor:pointer}
-@media(max-width:600px){.fx-mini span{display:none}.fx-low{left:16px}}
+@media(max-width:600px){.fx-mini span{display:none}.fx-low{left:12px;right:12px;width:calc(100% - 24px);max-width:calc(100vw - 24px);justify-content:space-between;box-sizing:border-box}}
 @media(prefers-reduced-motion:reduce){.fx-scrollhint::after,.fx-glitch{animation:none}}
 
 /* ---- round 6 ---- */
