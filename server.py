@@ -63,8 +63,9 @@ task_queue = deque()
 # Completed results keyed by task_id, with asyncio Events for waiting
 task_results = {}
 task_events = {}
-# Active worker nodes registry {worker_id: {last_seen, tasks_completed}}
+# Active worker nodes registry {worker_id: {last_seen, tasks_completed, engine_version}}
 active_workers = {}
+MIN_ENGINE_VERSION = int(os.getenv("MIN_ENGINE_VERSION", "1"))
 # Concurrency tracking per user {user_id: active_count}
 active_user_concurrency = {}
 
@@ -1460,6 +1461,14 @@ def verify_worker_auth(x_worker_secret: Optional[str] = Header(None)):
         raise HTTPException(status_code=403, detail="Invalid worker secret.")
     return True
 
+@app.get("/api/worker/engine.py")
+def get_worker_engine():
+    """Serves the latest worker.py script dynamically to all worker nodes across all repos."""
+    worker_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "worker.py")
+    if os.path.exists(worker_path):
+        return FileResponse(worker_path, media_type="text/plain", filename="worker.py")
+    raise HTTPException(status_code=404, detail="worker.py not found on hub")
+
 @app.post("/api/worker/heartbeat")
 async def worker_heartbeat(request: Request, _auth = Depends(verify_worker_auth)):
     """Worker sends heartbeat every 30s to stay in the active pool."""
@@ -1468,8 +1477,14 @@ async def worker_heartbeat(request: Request, _auth = Depends(verify_worker_auth)
     active_workers[worker_id] = {
         "last_seen": time.time(),
         "tasks_completed": body.get("tasks_completed", 0),
+        "engine_version": body.get("engine_version", 1),
     }
-    return {"status": "ok", "registered": True, "queue_depth": len(task_queue)}
+    return {
+        "status": "ok",
+        "registered": True,
+        "queue_depth": len(task_queue),
+        "min_engine_version": MIN_ENGINE_VERSION
+    }
 
 @app.get("/api/worker/poll")
 async def worker_poll_task(_auth = Depends(verify_worker_auth)):

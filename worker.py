@@ -19,6 +19,7 @@ HUB_URL = os.getenv("HUB_URL", "http://localhost:8000")
 WORKER_SECRET = os.getenv("WORKER_SECRET", "xpk-worker-default-secret")
 WORKER_ID = os.getenv("WORKER_ID", f"gh-{uuid.uuid4().hex[:8]}")
 DURATION_MINUTES = int(os.getenv("DURATION_MINUTES", "350"))
+ENGINE_VERSION = 1
 
 HEADERS = {
     "X-Worker-Secret": WORKER_SECRET,
@@ -36,12 +37,23 @@ def heartbeat_loop():
             resp = requests.post(
                 f"{HUB_URL}/api/worker/heartbeat",
                 headers=HEADERS,
-                json={"worker_id": WORKER_ID, "tasks_completed": tasks_completed},
+                json={
+                    "worker_id": WORKER_ID,
+                    "tasks_completed": tasks_completed,
+                    "engine_version": ENGINE_VERSION
+                },
                 timeout=10
             )
             data = resp.json()
             queue_depth = data.get("queue_depth", 0)
             print(f"[HEARTBEAT] OK | Queue: {queue_depth} | Completed: {tasks_completed}")
+
+            # Hot-reload trigger: if Hub demands newer version, exit cleanly so runner restarts with fresh code
+            min_ver = data.get("min_engine_version", 1)
+            if min_ver > ENGINE_VERSION:
+                print(f"[HOT-RELOAD] Newer engine version requested by Hub (Hub requires v{min_ver}, local is v{ENGINE_VERSION}).")
+                print("[HOT-RELOAD] Gracefully exiting so GitHub Actions pulls the latest engine.py...")
+                os._exit(0)
         except Exception as e:
             print(f"[HEARTBEAT] Failed: {e}")
         time.sleep(30)

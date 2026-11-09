@@ -1,0 +1,75 @@
+# ═══════════════════════════════════════════════════════════════
+# Xploit Unblocker — Satellite Solver Node (Zero-Maintenance)
+#
+# How to use on ANY other GitHub account / repository:
+# 1. Create a repo (public or private).
+# 2. Add Secrets in Repo Settings -> Secrets & Variables -> Actions:
+#      HUB_URL = https://xploithubcapctha.up.railway.app
+#      WORKER_SECRET = <your-worker-secret>
+# 3. Save this file as .github/workflows/worker.yml
+# 4. That's it! It will automatically fetch the latest engine
+#    from the Hub on boot and spin up parallel CDP solvers.
+# ═══════════════════════════════════════════════════════════════
+
+name: Xploit Satellite Fleet
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+    - cron: "0 3,9,15,21 * * *"
+  workflow_dispatch:
+    inputs:
+      duration_minutes:
+        description: "Duration in minutes (max 350)"
+        required: false
+        default: "350"
+
+jobs:
+  solver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # 10 Parallel Solvers per repo!
+
+    concurrency:
+      group: xploit-sat-slot-${{ matrix.slot }}-${{ github.event.schedule || 'active' }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq wget gnupg ca-certificates
+          wget -qO /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i /tmp/chrome.deb || sudo dpkg -i --force-depends /tmp/chrome.deb || sudo apt-get install -f -y -qq
+          google-chrome --version
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install seleniumbase curl_cffi requests
+
+      - name: Launch Dynamic Solver Node
+        env:
+          HUB_URL: ${{ secrets.HUB_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+          WORKER_ID: "sat-${{ github.repository_owner }}-s${{ matrix.slot }}-${{ github.run_id }}"
+          DURATION_MINUTES: ${{ github.event.inputs.duration_minutes || '350' }}
+          DISPLAY: ":99"
+        run: |
+          echo "Connecting Satellite Solver to $HUB_URL as $WORKER_ID..."
+          
+          # Fetch latest engine directly from Railway Hub
+          curl -sSL -f "$HUB_URL/api/worker/engine.py" -o worker.py
+          
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 1
+
+          python worker.py

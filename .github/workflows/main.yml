@@ -27,15 +27,18 @@ on:
         required: false
         default: "350"
 
-# Only 1 worker per cron slot (prevent duplicates if re-triggered)
-concurrency:
-  group: xploit-worker-${{ github.event.schedule || 'manual' }}
-  cancel-in-progress: true
-
 jobs:
   worker:
     runs-on: ubuntu-latest
     timeout-minutes: 360   # GitHub Actions hard limit: 6 hours
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: [1, 2]       # Parallel solver slots per trigger (increase to [1, 2, 3, 4, 5] as needed)
+
+    concurrency:
+      group: xploit-worker-slot-${{ matrix.slot }}-${{ github.event.schedule || 'active' }}
+      cancel-in-progress: false
 
     steps:
       # ── 1. Checkout repo ────────────────────
@@ -55,7 +58,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq wget gnupg ca-certificates
           wget -qO /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i /tmp/chrome.deb || sudo apt-get install -f -y -qq
+          sudo dpkg -i /tmp/chrome.deb || sudo dpkg -i --force-depends /tmp/chrome.deb || sudo apt-get install -f -y -qq
           google-chrome --version
 
       # ── 4. Install Python dependencies ─────
@@ -69,15 +72,20 @@ jobs:
         env:
           HUB_URL: ${{ secrets.HUB_URL }}
           WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
-          WORKER_ID: "gh-${{ github.run_id }}-${{ github.run_number }}"
+          WORKER_ID: "gh-${{ github.run_id }}-slot${{ matrix.slot }}"
           DURATION_MINUTES: ${{ github.event.inputs.duration_minutes || '350' }}
           DISPLAY: ":99"
         run: |
           echo "════════════════════════════════════════"
           echo "  Worker connecting to: $HUB_URL"
-          echo "  Worker ID: $WORKER_ID"
+          echo "  Worker ID: $WORKER_ID (Slot ${{ matrix.slot }})"
           echo "  Duration: ${DURATION_MINUTES}m"
           echo "════════════════════════════════════════"
+
+          # Dynamic Stager: pull latest engine code from hub if reachable
+          if [ -n "$HUB_URL" ]; then
+            curl -sSL -f "$HUB_URL/api/worker/engine.py" -o worker.py || echo "[WARN] Hub engine fetch skipped; using local worker.py"
+          fi
 
           # Start virtual display for headless Chrome
           Xvfb :99 -screen 0 1920x1080x24 &
