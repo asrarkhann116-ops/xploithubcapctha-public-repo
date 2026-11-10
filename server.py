@@ -394,8 +394,14 @@ def get_or_create_session_user(request: Request, response: Response):
 
 
 # ════════════════════════════════════════════
-#  1. WEB INTERFACE (Developer Console)
+#  1. WEB INTERFACE (Developer Console) & HEALTH CHECKS
 # ════════════════════════════════════════════
+@app.get("/healthz")
+@app.get("/health")
+async def health_check():
+    """Render/Kubernetes standard health check endpoint."""
+    return {"status": "ok", "service": "xploit-unblocker-api"}
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
     html_file = os.path.join(PUBLIC_DIR, "index.html")
