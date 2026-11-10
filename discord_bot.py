@@ -32,7 +32,7 @@ from core.solana import verify_solana_deposit, SOLANA_WALLET
 
 TOKEN    = os.getenv("DISCORD_BOT_TOKEN")
 GUILD_ID = int(os.getenv("DISCORD_GUILD_ID", "1459402620199374872"))
-BASE_URL = os.getenv("BASE_URL", "https://xploithubcapctha.up.railway.app")
+BASE_URL = os.getenv("BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or "https://xploithubcapctha.up.railway.app"
 
 # ─── DB setting keys ───────────────────────────────────────────────────────
 CHANNEL_STATUS_KEY  = "discord_status_channel_id"

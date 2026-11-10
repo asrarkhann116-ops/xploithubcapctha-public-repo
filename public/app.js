@@ -299,7 +299,7 @@ function updateSnippetDisplay() {
     const targetUrl = (document.getElementById('target-url')?.value.trim()) || 'https://gitlab.com/users/sign_in';
     const method = (document.getElementById('target-method')?.value) || 'GET';
     const proxy = (document.getElementById('target-proxy')?.value.trim()) || '';
-    const host = window.location.origin || 'https://xploithubcapctha.up.railway.app';
+    const host = window.location.origin;
 
     if (currentSnippetLang === 'curl') {
         const proxyField = proxy ? `,\n    "proxy": "${proxy}"` : '';

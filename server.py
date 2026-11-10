@@ -104,12 +104,15 @@ async def _on_startup():
 
 # Allowed Origins for CORS — restricts arbitrary domain reflection and credential theft
 ALLOWED_ORIGINS = [
-    "https://xploithubcapctha.up.railway.app",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+base_domain = os.getenv("BASE_URL") or os.getenv("RENDER_EXTERNAL_URL")
+if base_domain and base_domain not in ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS.append(base_domain.rstrip("/"))
+
 env_origins = os.getenv("ALLOWED_ORIGINS", "")
 if env_origins:
     ALLOWED_ORIGINS.extend([o.strip() for o in env_origins.split(",") if o.strip()])
@@ -117,7 +120,7 @@ if env_origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^https://.*\.railway\.app$",
+    allow_origin_regex=r"^https://.*(\.railway\.app|\.onrender\.com)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -141,7 +144,7 @@ async def add_security_headers(request: Request, call_next):
         "font-src 'self' https://fonts.gstatic.com data:; "
         "img-src 'self' data: https:; "
         "frame-src https://challenges.cloudflare.com; "
-        "connect-src 'self' https://discord.com https://*.railway.app https://challenges.cloudflare.com; "
+        "connect-src 'self' https://discord.com https://*.railway.app https://*.onrender.com https://challenges.cloudflare.com; "
         "frame-ancestors 'none';"
     )
     return response
@@ -1045,7 +1048,11 @@ async def auth_html_page():
     auth_file = os.path.join(PUBLIC_DIR, "auth.html")
     if os.path.exists(auth_file):
         with open(auth_file, "r", encoding="utf-8") as f:
-            return f.read()
+            content = f.read()
+            site_key = os.getenv("CLOUDFLARE_TURNSTILE_SITE_KEY", "0x4AAAAAAFu_fx2cckZBeDAW")
+            if site_key:
+                content = content.replace("0x4AAAAAAFu_fx2cckZBeDAW", site_key)
+            return content
     return RedirectResponse("/")
 
 @app.post("/api/user/regenerate-key")

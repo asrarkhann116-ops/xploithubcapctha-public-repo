@@ -23,7 +23,7 @@ from core.db import (
 
 DISCORD_API = "https://discord.com/api/v10"
 BOT_TOKEN   = os.getenv("DISCORD_BOT_TOKEN", "")
-BASE_URL    = os.getenv("BASE_URL", "https://xploithubcapctha.up.railway.app")
+BASE_URL    = os.getenv("BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or "https://xploithubcapctha.up.railway.app"
 
 # ─── DB keys ───────────────────────────────────────────────────────────────
 CHANNEL_STATUS_KEY   = "discord_status_channel_id"

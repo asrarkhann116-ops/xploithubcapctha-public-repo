@@ -4,7 +4,7 @@
 # How to use on ANY other GitHub account / repository:
 # 1. Create a repo (public or private).
 # 2. Add Secrets in Repo Settings -> Secrets & Variables -> Actions:
-#      HUB_URL = https://xploithubcapctha.up.railway.app
+#      HUB_URL = https://your-app-name.onrender.com (or your domain)
 #      WORKER_SECRET = <your-worker-secret>
 # 3. Save this file as .github/workflows/worker.yml
 # 4. That's it! It will automatically fetch the latest engine
@@ -73,3 +73,4 @@ jobs:
           sleep 1
 
           python worker.py
+

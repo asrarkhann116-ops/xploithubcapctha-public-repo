@@ -18,7 +18,7 @@ log = logging.getLogger("email_notify")
 RESEND_API_KEY      = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM          = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
 EMAIL_FROM_NAME     = os.getenv("EMAIL_FROM_NAME", "Xploit Unblocker")
-BASE_URL            = os.getenv("BASE_URL", "https://xploithubcapctha.up.railway.app")
+BASE_URL            = os.getenv("BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or "https://xploithubcapctha.up.railway.app"
 LOW_CREDITS_THRESHOLD = 50  # warn when credits fall below this
 
 RESEND_ENDPOINT = "https://api.resend.com/emails"
