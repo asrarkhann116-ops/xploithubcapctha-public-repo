@@ -398,11 +398,14 @@ def get_or_create_session_user(request: Request, response: Response):
 # ════════════════════════════════════════════
 @app.get("/healthz")
 @app.get("/health")
+@app.head("/healthz")
+@app.head("/health")
 async def health_check():
     """Render/Kubernetes standard health check endpoint."""
     return {"status": "ok", "service": "xploit-unblocker-api"}
 
 @app.get("/", response_class=HTMLResponse)
+@app.head("/")
 async def index():
     html_file = os.path.join(PUBLIC_DIR, "index.html")
     if os.path.exists(html_file):
