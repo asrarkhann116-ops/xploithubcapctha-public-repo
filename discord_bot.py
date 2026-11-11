@@ -130,6 +130,21 @@ def validate_tx_hash(tx_hash: Optional[str]) -> Tuple[bool, str]:
     return True, ""
 
 
+def format_discord_cost_field(user: dict) -> str:
+    """
+    Format unambiguous solve cost string bound to active user plan.
+    Prevents user confusion between credit counts and USD amounts.
+    """
+    if "plan" not in user and "tier" in user:
+        user = dict(user, plan=user["tier"])
+    plan_meta = get_user_plan_meta(user)
+    rate = plan_meta.get("overage_rate", 0.0)
+    plan_name = plan_meta.get("name", "Free")
+    if rate > 0:
+        return f"1 Solve (≈ ${rate:.4f} on {plan_name})"
+    return "1 Solve Credit (Free Tier)"
+
+
 # ═══════════════════════════════════════════════════════
 #  LIVE STATUS EMBED  (updates on startup + every 5 min)
 # ═══════════════════════════════════════════════════════
@@ -288,7 +303,7 @@ async def unblock_command(interaction: discord.Interaction, url: str):
         embed = discord.Embed(
             title="❌ Insufficient Credits",
             description=(
-                "You need at least 1 credit ($0.1) to unblock a URL.\n\n"
+                "You need at least 1 solve credit to unblock a URL.\n\n"
                 "• Use `/promo` to claim **500 FREE credits** (put server link in bio)\n"
                 "• Use `/topup` to deposit Solana USDT"
             ),
@@ -306,12 +321,15 @@ async def unblock_command(interaction: discord.Interaction, url: str):
         raw_html  = result.get("html", "")[:400].replace("\n", " ")
         html_snip = sanitize_discord_text(raw_html, max_len=300)
 
+        remaining_credits = max(0.0, user["credits"] - 1.0)
+        cost_display = format_discord_cost_field(user)
+
         embed = discord.Embed(title=f"✅ Unblocked: {title}", url=url.strip(), color=0x00ff99)
         embed.add_field(name="⚡ Engine Mode",  value=f"`{mode}`",              inline=True)
         embed.add_field(name="⏱️ Duration",     value=f"`{dur}ms`",             inline=True)
-        embed.add_field(name="💰 Cost",         value="`$0.1 (1 Credit)`",      inline=True)
+        embed.add_field(name="💰 Cost",         value=f"`{cost_display}`",      inline=True)
         embed.add_field(name="📄 HTML Snippet", value=f"```{html_snip}```",    inline=False)
-        embed.set_footer(text=f"Credits Remaining: {user['credits'] - 1.0:.1f} | Xploit Unblocker")
+        embed.set_footer(text=f"Credits Remaining: {remaining_credits:,.1f} Solves | Xploit Unblocker")
         await interaction.followup.send(embed=embed)
     else:
         err = sanitize_discord_text(result.get("error", "Challenge solve timeout"), max_len=200)
@@ -366,9 +384,11 @@ async def balance_command(interaction: discord.Interaction):
         interaction.user.avatar.url if interaction.user.avatar else ""
     )
     plan_meta = get_user_plan_meta(user)
+    rate      = plan_meta.get("overage_rate", 0.0)
+    rate_str  = f" · ≈ ${rate:.4f}/solve" if rate > 0 else " · Free Tier"
     embed     = discord.Embed(title="⚡ Xploit Unblocker Account Balance", color=0x06b6d4)
-    embed.add_field(name="💰 Available Balance",  value=f"**{user['credits']:,.1f} Credits**",                                          inline=True)
-    embed.add_field(name="🛡️ Tier Plan",         value=f"`{plan_meta['name']}`",                                                       inline=True)
+    embed.add_field(name="💰 Available Balance",  value=f"**{user['credits']:,.1f} Solves** ({user['credits']:,.1f} Credits)",         inline=True)
+    embed.add_field(name="🛡️ Tier Plan",         value=f"`{plan_meta['name']}`{rate_str}",                                             inline=True)
     embed.add_field(name="⚡ Concurrency Limit",  value=f"`{user.get('concurrency_limit') or plan_meta.get('concurrency', 3)} threads`", inline=True)
     embed.add_field(name="🔑 API Key",            value=f"||`{user['api_key']}`|| *(Click to reveal)*",                                inline=False)
     embed.add_field(

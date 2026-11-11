@@ -130,7 +130,7 @@
 
   // credits: low-balance state
   const cr = $('#nav-credits');
-  if (cr) new MutationObserver(() => { const v = parseFloat(cr.textContent), pill = cr.closest('.stat-pill'); if (!pill || isNaN(v)) return;
+  if (cr) new MutationObserver(() => { const v = parseFloat((cr.dataset.rawCredits || cr.textContent).replace(/,/g, '')), pill = cr.closest('.stat-pill'); if (!pill || isNaN(v)) return;
     pill.classList.toggle('fx-low', v < 10 && v >= 3); pill.classList.toggle('fx-crit', v < 3); pill.title = v < 10 ? 'Low balance. Top up on the Plans page.' : '';
     if (v < 3 && typeof currentUser !== 'undefined' && currentUser && !currentUser.is_guest && !sessionStorage.getItem('fx_low')) { try { sessionStorage.setItem('fx_low', 1); } catch (e) {} showToast('Credits are almost gone. Top up on the Plans page.', 'error'); } }).observe(cr, { childList: true, characterData: true, subtree: true });
 

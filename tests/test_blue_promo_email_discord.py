@@ -298,6 +298,45 @@ class TestDiscordBotHardening(unittest.TestCase):
             valid, _ = bot_mod.validate_tx_hash(bad_sig)
             self.assertFalse(valid, f"Should reject invalid tx hash: {bad_sig}")
 
+    def test_format_discord_cost_field_moderato_plan(self):
+        """Verify Moderato plan reflects effective rate $0.0012 and does not show stale $0.1."""
+        user = {"plan": "moderato", "credits": 500.0}
+        cost_str = bot_mod.format_discord_cost_field(user)
+        self.assertIn("0.0012", cost_str)
+        self.assertIn("Moderato", cost_str)
+        self.assertNotIn("$0.1", cost_str)
+
+    def test_format_discord_cost_field_all_tiers(self):
+        """Verify all tier plans format cleanly without $0.1."""
+        expected_rates = {
+            "free": "Free Tier",
+            "starter": "0.0025",
+            "moderato": "0.0012",
+            "vince": "0.0008",
+            "enterprise": "0.0005",
+            "pay_as_you_go": "0.0020",
+        }
+        for plan_id, exp_substr in expected_rates.items():
+            # Test with 'plan' key
+            user_plan = {"plan": plan_id, "credits": 100.0}
+            formatted_plan = bot_mod.format_discord_cost_field(user_plan)
+            self.assertIn(exp_substr, formatted_plan, f"Failed for plan key {plan_id}")
+            self.assertNotIn("$0.1", formatted_plan)
+
+            # Test with 'tier' key
+            user_tier = {"tier": plan_id, "credits": 100.0}
+            formatted_tier = bot_mod.format_discord_cost_field(user_tier)
+            self.assertIn(exp_substr, formatted_tier, f"Failed for tier key {plan_id}")
+            self.assertNotIn("$0.1", formatted_tier)
+
+    def test_discord_bot_source_has_zero_ten_cent_strings(self):
+        """Enforce zero occurrences of '$0.1' in discord_bot.py."""
+        import os
+        bot_file = os.path.join(os.path.dirname(__file__), "..", "discord_bot.py")
+        with open(bot_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertNotIn("$0.1", content, "Found stale '$0.1' string in discord_bot.py")
+
 
 if __name__ == "__main__":
     unittest.main()

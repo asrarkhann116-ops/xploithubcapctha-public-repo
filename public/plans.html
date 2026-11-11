@@ -722,12 +722,12 @@
                 </a>
 
                 <div class="user-control" id="user-control-block">
-                    <div class="stat-pill" id="nav-credits-wrap" style="display:none;" title="Available API execution credits">
+                    <div class="stat-pill" id="nav-credits-wrap" style="display:none;" title="Available Solves Remaining (1 solve = 1 request)">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                         </svg>
-                        <span class="stat-val" id="nav-credits" style="color:var(--text-cyan);">0.00</span>
-                        <span class="stat-lbl">Credits</span>
+                        <span class="stat-val" id="nav-credits" style="color:var(--text-cyan);">0</span>
+                        <span class="stat-lbl">Solves</span>
                     </div>
 
                     <div class="user-profile-badge" id="user-badge-wrap" style="display:none;">
@@ -1673,7 +1673,10 @@
                     if (userBadge) userBadge.style.display = 'inline-flex';
                     if (creditsWrap) creditsWrap.style.display = 'inline-flex';
                     if (usernameEl) usernameEl.innerText = `${data.username || 'Guest'} (Trial)`;
-                    if (creditsEl) creditsEl.innerText = Number(data.credits || 0).toFixed(2);
+                    if (creditsEl) {
+                        creditsEl.innerText = Number(data.credits || 0).toLocaleString();
+                        creditsEl.dataset.rawCredits = String(data.credits || 0);
+                    }
                     if (planBadge) {
                         planBadge.innerText = 'GUEST (5 Solves)';
                         planBadge.style.background = 'rgba(251, 191, 36, 0.15)';
@@ -1709,7 +1712,14 @@
                     if (userBadge) userBadge.style.display = 'inline-flex';
                     if (creditsWrap) creditsWrap.style.display = 'inline-flex';
                     if (usernameEl) usernameEl.innerText = data.username || 'User';
-                    if (creditsEl) creditsEl.innerText = Number(data.credits || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    if (creditsEl) {
+                        const numCredits = Number(data.credits || 0);
+                        creditsEl.innerText = numCredits.toLocaleString(undefined, {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: (numCredits % 1 === 0) ? 0 : 2
+                        });
+                        creditsEl.dataset.rawCredits = String(data.credits || 0);
+                    }
 
                     const userTier = (data.tier || data.plan_name || 'free').toLowerCase();
 

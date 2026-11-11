@@ -46,6 +46,31 @@ function showToast(message, type = 'info') {
     }, 3500);
 }
 
+/**
+ * Map plan key to dynamic debit telemetry string with effective rate clarity.
+ * Prevents users from confusing 1 solve credit with $1.00 USD.
+ */
+function getPlanDebitText(planKey) {
+    const key = (planKey || '').toLowerCase();
+    switch (key) {
+        case 'moderato':
+            return '1 Solve (≈ $0.0012 on Moderato)';
+        case 'starter':
+            return '1 Solve (≈ $0.0025 on Starter)';
+        case 'vince':
+            return '1 Solve (≈ $0.0008 on Vince)';
+        case 'enterprise':
+            return '1 Solve (≈ $0.0005 on Enterprise)';
+        case 'pay_as_you_go':
+        case 'payg':
+            return '1 Solve (≈ $0.002 on Pay-As-You-Go)';
+        case 'guest':
+        case 'free':
+        default:
+            return '1 Free Solve (0 on fail)';
+    }
+}
+
 // Load User Profile & State
 async function loadUserProfile() {
     try {
@@ -62,7 +87,14 @@ async function loadUserProfile() {
         }
 
         const creditsEl = document.getElementById('nav-credits');
-        if (creditsEl) creditsEl.innerText = Number(data.credits).toFixed(2);
+        if (creditsEl) {
+            const numCredits = Number(data.credits || 0);
+            creditsEl.innerText = numCredits.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: (numCredits % 1 === 0) ? 0 : 2
+            });
+            creditsEl.dataset.rawCredits = String(data.credits || 0);
+        }
 
         const apiKeyEl = document.getElementById('api-key-val');
         const apiKeyActions = document.getElementById('api-key-actions');
@@ -130,10 +162,15 @@ async function loadUserProfile() {
         const costEl = document.getElementById('cost-per-req');
         const dailyInfoEl = document.getElementById('daily-info');
         const resetTimerEl = document.getElementById('reset-timer');
+        const metricDebit = document.getElementById('metric-debit');
 
         const planKey = data.tier || (data.is_guest ? 'guest' : 'free');
         const planName = data.plan_name || planKey.toUpperCase();
         const concurrency = data.concurrency_limit || (planKey === 'free' ? 3 : 10);
+
+        if (metricDebit) {
+            metricDebit.textContent = getPlanDebitText(planKey);
+        }
 
         if (tierBadge) {
             tierBadge.className = 'tier-badge tier-' + planKey;
@@ -144,6 +181,8 @@ async function loadUserProfile() {
                 tierLabel.textContent = 'MODERATO — 30,000 solves/mo • 50 workers concurrency';
             } else if (planKey === 'vince') {
                 tierLabel.textContent = 'VINCE — 150,000 solves/mo • 150+ workers • Dedicated cluster';
+            } else if (planKey === 'enterprise') {
+                tierLabel.textContent = 'ENTERPRISE — 1,000,000 solves/mo • 500+ workers • Dedicated cluster';
             } else if (planKey === 'starter') {
                 tierLabel.textContent = 'STARTER — 5,000 solves/mo • 10 workers concurrency';
             } else if (planKey === 'pay_as_you_go') {
@@ -158,6 +197,9 @@ async function loadUserProfile() {
             if (planKey === 'vince') {
                 costEl.textContent = '$0.0008 / solve';
                 costEl.style.color = '#ffe0a8';
+            } else if (planKey === 'enterprise') {
+                costEl.textContent = '$0.0005 / solve';
+                costEl.style.color = '#bbf7d0';
             } else if (planKey === 'moderato') {
                 costEl.textContent = '$0.0012 / solve';
                 costEl.style.color = '#f6b8c8';
@@ -168,7 +210,7 @@ async function loadUserProfile() {
                 costEl.textContent = '$0.0020 / solve';
                 costEl.style.color = '#f6b8c8';
             } else {
-                costEl.textContent = '1.0 solve credit';
+                costEl.textContent = 'Free (75/day)';
                 costEl.style.color = '#9fd8ff';
             }
         }
@@ -492,6 +534,7 @@ async function executeScrape() {
     const metricStatus = document.getElementById('metric-status');
     const metricLatency = document.getElementById('metric-latency');
     const metricBypass = document.getElementById('metric-bypass');
+    const metricDebit = document.getElementById('metric-debit');
     const consoleOutput = document.getElementById('console-output');
 
     if (!url) {
@@ -513,6 +556,9 @@ async function executeScrape() {
     metricStatus.innerText = 'Connecting CDP...';
     metricLatency.innerText = 'Computing...';
     metricBypass.innerText = 'Pending';
+    if (metricDebit) {
+        metricDebit.textContent = getPlanDebitText(currentUser?.tier || 'free');
+    }
     consoleOutput.innerHTML = `<code>// Connecting to Chrome DevTools Protocol...
 // Injecting stealth anti-detection overrides...
 // Generating human Bezier cursor trajectories...</code>`;
@@ -549,6 +595,9 @@ async function executeScrape() {
             metricStatus.innerText = `200 OK (${data.mode}${nodeInfo})`;
             metricLatency.innerText = `${data.duration_ms} ms`;
             metricBypass.innerText = 'SOLVED / CLEARED';
+            if (metricDebit) {
+                metricDebit.textContent = getPlanDebitText(currentUser?.tier || 'free');
+            }
 
             renderConsoleOutput();
             loadUserProfile(); // Refresh credit count
@@ -558,6 +607,9 @@ async function executeScrape() {
             metricStatus.innerText = '400 Blocked';
             metricLatency.innerText = `${duration} ms`;
             metricBypass.innerText = 'FAILED';
+            if (metricDebit) {
+                metricDebit.textContent = '0 Solves (0 on fail)';
+            }
             consoleOutput.innerHTML = `<code>// ERROR: Challenge resolution failed
 // Response: ${escapeHtml(data.error || 'Challenge timeout or target refused')}</code>`;
             showToast(data.error || 'Bypass failed on target URL.', 'error');
@@ -565,6 +617,9 @@ async function executeScrape() {
     } catch (err) {
         metricStatus.className = 'cell-val status-err';
         metricStatus.innerText = 'Network Error';
+        if (metricDebit) {
+            metricDebit.textContent = '0 Solves (0 on fail)';
+        }
         consoleOutput.innerHTML = `<code>// Network Error: ${escapeHtml(err.message)}</code>`;
         showToast('Network error contacting backend.', 'error');
     } finally {
