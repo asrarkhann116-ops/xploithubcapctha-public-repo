@@ -957,24 +957,24 @@ function openOnRampModal(amount = 29, planName = 'Moderato ($29/mo)') {
     const nameEl = document.getElementById('onramp-target-title');
     if (nameEl) nameEl.innerText = planName;
     updateOnRampCalculation(amount);
-    modal.classList.add('open');
+    modal.style.display = 'flex'; modal.classList.add('open');
 }
 
 function closeOnRampModal() {
     const modal = document.getElementById('modal-onramp');
-    if (modal) modal.classList.remove('open');
+    if (modal) modal.style.display = 'none'; modal.classList.remove('open');
 }
 
 function openVoucherModal() {
     const modal = document.getElementById('modal-voucher-redeem');
-    if (modal) modal.classList.add('open');
+    if (modal) modal.style.display = 'flex'; modal.classList.add('open');
     const input = document.getElementById('modal-voucher-input');
     if (input) setTimeout(() => input.focus(), 50);
 }
 
 function closeVoucherModal() {
     const modal = document.getElementById('modal-voucher-redeem');
-    if (modal) modal.classList.remove('open');
+    if (modal) modal.style.display = 'none'; modal.classList.remove('open');
 }
 
 // Global modal keyboard navigation (Escape to close, Enter to submit)

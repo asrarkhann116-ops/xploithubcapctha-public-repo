@@ -4,53 +4,40 @@
    Signature detail: hard pixel drop-shadows on panels and buttons (no soft blur shadows). */
 
 :root {
-    /* 🏛️ Dark Sovereign Silk Tokens (DESIGN.md) */
-    --bg-canvas: #000000;
-    --bg-surface: #09090b;
-    --bg-elevated: #121216;
-    --border-hairline: rgba(255, 255, 255, 0.08);
-    --border-active: rgba(255, 255, 255, 0.22);
-    --silk-white: #ffffff;
-    --silver-ash: #a1a1aa;
-    --muted-zinc: #71717a;
-    --accent-pure: #ffffff;
+    --bg-base: #14152e;
+    --bg-panel: #1b1e3e;
+    --bg-panel-hover: #222650;
+    --bg-surface: #181a37;
+    --bg-input: #111227;
+    --bg-active: rgba(246, 184, 200, 0.08);
 
-    --radius-xs: 4px;
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-pill: 8px; /* Anti-slop: buttons/pills capped at 8px */
-
-    --transition-crisp: all 120ms ease-out;
-
-    /* Semantic Compatibility Tokens */
-    --bg-base: #000000;
-    --bg-panel: #09090b;
-    --bg-panel-hover: #121216;
-    --bg-input: #050507;
-    --bg-active: rgba(255, 255, 255, 0.06);
-
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
-    --border-accent: #ffffff;
+    --border-subtle: #2c3163;
+    --border-strong: #434a8a;
+    --border-accent: #f6b8c8;
     --border-cyan: #9fd8ff;
 
-    --text-primary: #ffffff;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --text-accent: #ffffff;
+    --text-primary: #fff4ec;
+    --text-secondary: #b9bfe6;
+    --text-muted: #8189bd;
+    --text-accent: #f6b8c8;
     --text-cyan: #9fd8ff;
     --text-amber: #ffe0a8;
     --text-danger: #ff8a8a;
     --text-ok: #8fe3c0;
-    --ink: #000000;
+    --ink: #1a1530;
 
     --font-sans: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
     --font-pixel: 'Pixelify Sans', 'Figtree', sans-serif;
 
-    --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.65);
-    --shadow-dropdown: 0 8px 30px rgba(0, 0, 0, 0.85);
+    --radius-xs: 3px;
+    --radius-sm: 5px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-pill: 9999px;
+
+    --shadow-panel: 4px 4px 0 rgba(8, 9, 24, 0.55);
+    --shadow-dropdown: 4px 4px 0 rgba(8, 9, 24, 0.7);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -105,7 +92,9 @@ a { color: var(--text-accent); }
 
 /* ───────── System bar ───────── */
 .system-bar {
-    background: #09090b;
+    background: rgba(17, 18, 39, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border-subtle);
     padding: 6px 24px;
     font-family: var(--font-mono);
@@ -398,7 +387,9 @@ a { color: var(--text-accent); }
 
 /* ───────── Panels ───────── */
 .panel {
-    background: #09090b;
+    background: rgba(27, 30, 62, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     padding: 20px;
@@ -1058,51 +1049,52 @@ a { color: var(--text-accent); }
     *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
+
 /* ══════════════════════════════════════════════════════════════
-   DARK SOVEREIGN SILK — 4-TAB UNIFIED PAYMENT ARCHITECTURE
+   DUSK CITY RETRO — UNIFIED 4-TAB PAYMENTS & MODALS
    ══════════════════════════════════════════════════════════════ */
 
 /* Unified 4-Tab Navigation */
 .payment-tabs-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    background: #050507;
-    border: 1px solid var(--border-hairline);
-    border-radius: var(--radius-md);
-    padding: 4px;
+    background: rgba(17, 18, 39, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 3px;
     gap: 4px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .payment-tab-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 14px;
+    gap: 6px;
+    padding: 8px 6px;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-xs);
     color: var(--text-secondary);
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: var(--transition-crisp);
+    transition: var(--transition-crisp, all 0.15s ease);
     text-align: center;
     white-space: nowrap;
 }
 
 .payment-tab-btn:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(246, 184, 200, 0.08);
 }
 
 .payment-tab-btn.active {
-    background: #121216;
-    color: var(--text-primary);
-    border: 1px solid var(--border-active);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    background: rgba(34, 38, 80, 0.95);
+    border-color: var(--border-accent);
+    color: var(--text-accent);
+    box-shadow: 2px 2px 0 rgba(8, 9, 24, 0.4);
 }
 
 .payment-tab-btn svg {
@@ -1124,68 +1116,58 @@ a { color: var(--text-accent); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Provider On-Ramp Grid */
+/* On-Ramp Provider Cards */
 .onramp-providers-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .onramp-provider-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-hairline);
+    background: rgba(20, 22, 48, 0.75);
+    border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    padding: 14px 16px;
-    cursor: pointer;
-    transition: var(--transition-crisp);
+    padding: 14px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    text-decoration: none;
-    color: inherit;
-    position: relative;
+    transition: var(--transition-crisp, all 0.15s ease);
 }
 
 .onramp-provider-card:hover {
-    border-color: var(--border-active);
-    background: var(--bg-elevated);
-    transform: translateY(-1px);
-}
-
-.onramp-provider-card.active {
-    border-color: #ffffff;
-    background: #121216;
+    border-color: var(--border-accent);
+    background: rgba(27, 30, 62, 0.9);
 }
 
 .onramp-provider-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .onramp-provider-name {
-    font-size: 14px;
     font-weight: 700;
+    font-size: 13px;
     color: var(--text-primary);
 }
 
 .onramp-provider-fee {
     font-size: 11px;
     font-family: var(--font-mono);
-    color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-ok);
+    background: rgba(143, 227, 192, 0.12);
+    border: 1px solid rgba(143, 227, 192, 0.3);
     padding: 2px 6px;
     border-radius: var(--radius-xs);
-    border: 1px solid var(--border-hairline);
 }
 
 .onramp-provider-desc {
     font-size: 12px;
     color: var(--text-secondary);
-    line-height: 1.4;
     margin-bottom: 12px;
+    line-height: 1.4;
 }
 
 .onramp-launch-btn {
@@ -1194,173 +1176,117 @@ a { color: var(--text-accent); }
     justify-content: center;
     gap: 6px;
     padding: 8px 12px;
+    background: rgba(246, 184, 200, 0.12);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-sm);
+    color: var(--text-accent);
     font-size: 12px;
     font-weight: 600;
-    border-radius: var(--radius-sm);
-    background: #ffffff;
-    color: #000000;
     text-decoration: none;
-    border: none;
+    transition: var(--transition-crisp, all 0.15s ease);
     cursor: pointer;
-    transition: var(--transition-crisp);
 }
 
 .onramp-launch-btn:hover {
-    background: #e4e4e7;
+    background: var(--text-accent);
+    color: var(--ink);
 }
 
-/* Fee Breakdown Card */
-.fee-breakdown-card {
-    background: #050507;
-    border: 1px solid var(--border-hairline);
-    border-radius: var(--radius-md);
-    padding: 14px 18px;
-    margin-bottom: 16px;
-}
-
-.fee-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-    padding: 4px 0;
-    color: var(--text-secondary);
-}
-
-.fee-row.total {
-    border-top: 1px solid var(--border-hairline);
-    margin-top: 6px;
-    padding-top: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-/* High-Visibility Memo Callout */
+/* Memo Callout Box */
 .memo-callout-box {
-    background: #09090b;
-    border: 1px solid var(--border-active);
-    border-radius: var(--radius-md);
-    padding: 16px;
-    margin-bottom: 18px;
+    background: rgba(246, 184, 200, 0.08);
+    border: 1px solid rgba(246, 184, 200, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 14px;
 }
 
 .memo-callout-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 12px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #ffffff;
-    margin-bottom: 8px;
+    color: var(--text-accent);
+    margin-bottom: 4px;
 }
 
 .memo-callout-desc {
     font-size: 12px;
     color: var(--text-secondary);
-    line-height: 1.5;
-    margin-bottom: 12px;
+    line-height: 1.45;
 }
 
-/* Sellix Hosted Gateway Surface */
-.sellix-gateway-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
+/* Sellix Checkout Cards */
 .sellix-grid-cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
 .sellix-plan-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-hairline);
+    background: rgba(20, 22, 48, 0.75);
+    border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    padding: 16px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: var(--transition-crisp);
+    transition: var(--transition-crisp, all 0.15s ease);
 }
 
 .sellix-plan-card:hover {
-    border-color: var(--border-active);
-    background: var(--bg-elevated);
+    border-color: var(--border-cyan);
+    background: rgba(27, 30, 62, 0.9);
 }
 
 .sellix-plan-name {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--text-accent);
     margin-bottom: 4px;
 }
 
 .sellix-plan-price {
-    font-size: 20px;
-    font-weight: 800;
-    color: #ffffff;
+    font-size: 17px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
     margin-bottom: 8px;
 }
 
 .sellix-plan-features {
     font-size: 12px;
     color: var(--text-secondary);
-    line-height: 1.5;
-    margin-bottom: 16px;
-    flex-grow: 1;
+    line-height: 1.45;
+    margin-bottom: 12px;
 }
 
 .btn-sellix {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    background: transparent;
-    border: 1px solid var(--border-active);
-    color: var(--text-primary);
-    padding: 9px 14px;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(159, 216, 255, 0.12);
+    border: 1px solid var(--border-cyan);
     border-radius: var(--radius-sm);
-    font-size: 12.5px;
+    color: var(--text-cyan);
+    font-size: 12px;
     font-weight: 600;
-    cursor: pointer;
     text-decoration: none;
-    transition: var(--transition-crisp);
+    cursor: pointer;
+    transition: var(--transition-crisp, all 0.15s ease);
     width: 100%;
 }
 
 .btn-sellix:hover {
-    background: #ffffff;
-    color: #000000;
-    border-color: #ffffff;
+    background: var(--text-cyan);
+    color: var(--ink);
 }
 
-.btn-sellix-sub {
-    margin-top: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-hairline);
-    font-size: 12px;
-    padding: 8px 12px;
-}
-
-.btn-sellix-sub:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: var(--border-active);
-    color: #ffffff;
-}
-
-/* Voucher Live Validation Box */
-.voucher-redemption-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-hairline);
-    border-radius: var(--radius-md);
-    padding: 20px;
-}
-
+/* Voucher Feedback Box */
 .voucher-feedback-box {
     margin-top: 14px;
     padding: 12px 16px;
@@ -1374,8 +1300,8 @@ a { color: var(--text-accent); }
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    background: rgba(143, 227, 192, 0.1);
-    border: 1px solid rgba(143, 227, 192, 0.35);
+    background: rgba(143, 227, 192, 0.12);
+    border: 1px solid rgba(143, 227, 192, 0.4);
     color: var(--text-ok);
 }
 
@@ -1383,8 +1309,8 @@ a { color: var(--text-accent); }
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    background: rgba(255, 138, 138, 0.1);
-    border: 1px solid rgba(255, 138, 138, 0.35);
+    background: rgba(255, 138, 138, 0.12);
+    border: 1px solid rgba(255, 138, 138, 0.4);
     color: var(--text-danger);
 }
 
@@ -1392,20 +1318,22 @@ a { color: var(--text-accent); }
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-hairline);
+    background: rgba(246, 184, 200, 0.08);
+    border: 1px solid var(--border-subtle);
     color: var(--text-secondary);
 }
 
 /* ══════════════════════════════════════════════════════════════
-   DARK SOVEREIGN SILK — ACCESSIBLE MODALS (DOSE CAP: 1 PER PAGE)
+   DUSK CITY RETRO — HIGH-FIDELITY MODALS
    ══════════════════════════════════════════════════════════════ */
 
 .sovereign-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    z-index: 1000;
+    background: rgba(10, 11, 26, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 10000;
     display: none;
     align-items: center;
     justify-content: center;
@@ -1413,16 +1341,16 @@ a { color: var(--text-accent); }
 }
 
 .sovereign-modal-backdrop.open {
-    display: flex;
+    display: flex !important;
 }
 
 .sovereign-modal {
-    background: #09090b;
-    border: 1px solid var(--border-active);
+    background: #181a37;
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-lg);
     width: 100%;
     max-width: 540px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.95);
+    box-shadow: 6px 6px 0 rgba(8, 9, 24, 0.85);
     overflow: hidden;
     animation: modalScaleIn 120ms ease-out;
     display: flex;
@@ -1439,17 +1367,18 @@ a { color: var(--text-accent); }
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border-hairline);
-    background: #0e0e12;
+    border-bottom: 1px solid var(--border-subtle);
+    background: #14152e;
 }
 
 .sovereign-modal-title {
     font-size: 15px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-accent);
     display: flex;
     align-items: center;
     gap: 8px;
+    font-family: var(--font-pixel, var(--font-sans));
 }
 
 .sovereign-modal-close {
@@ -1457,23 +1386,25 @@ a { color: var(--text-accent); }
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
     border-radius: var(--radius-xs);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: var(--transition-crisp);
+    transition: var(--transition-crisp, all 0.15s ease);
 }
 
 .sovereign-modal-close:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    background: rgba(246, 184, 200, 0.12);
 }
 
 .sovereign-modal-body {
     padding: 20px;
     max-height: 80vh;
     overflow-y: auto;
+    background: #181a37;
+    color: var(--text-primary);
 }
 
 .sovereign-modal-footer {
@@ -1482,8 +1413,26 @@ a { color: var(--text-accent); }
     justify-content: flex-end;
     gap: 10px;
     padding: 14px 20px;
-    border-top: 1px solid var(--border-hairline);
-    background: #0e0e12;
+    border-top: 1px solid var(--border-subtle);
+    background: #14152e;
+}
+
+.btn-sm-action {
+    background: rgba(27, 30, 62, 0.85);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-crisp, all 0.15s ease);
+}
+
+.btn-sm-action:hover {
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+    background: rgba(34, 38, 80, 0.95);
 }
 
 /* Admin Batch Voucher UI Layout */
@@ -1501,8 +1450,8 @@ a { color: var(--text-accent); }
 .voucher-code-export-box {
     width: 100%;
     min-height: 180px;
-    background: #050507;
-    border: 1px solid var(--border-hairline);
+    background: #111227;
+    border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     color: var(--text-amber);
     font-family: var(--font-mono);
@@ -1514,10 +1463,10 @@ a { color: var(--text-accent); }
 }
 
 .voucher-code-export-box:focus {
-    border-color: var(--border-active);
+    border-color: var(--border-accent);
 }
 
-/* Responsive Breakpoints for Modals and Tabs */
+/* Responsive Breakpoints */
 @media (max-width: 768px) {
     .payment-tabs-bar {
         grid-template-columns: repeat(2, 1fr);
@@ -1547,5 +1496,3 @@ a { color: var(--text-accent); }
         padding: 0;
     }
 }
-
-

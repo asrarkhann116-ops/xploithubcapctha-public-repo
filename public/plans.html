@@ -21,7 +21,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="https://xploithubcapctha.up.railway.app/static/og-banner.jpg">
 
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=2.6.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
@@ -657,7 +657,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/static/fx.css">
+    <link rel="stylesheet" href="/static/fx.css?v=2.6.0">
 </head>
 <body>
 
@@ -1549,7 +1549,7 @@
     </div>
 
     <!-- SOVEREIGN SILK ON-RAMP CHECKOUT MODAL -->
-    <div id="modal-onramp" class="sovereign-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="onramp-modal-title">
+    <div id="modal-onramp" class="sovereign-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="onramp-modal-title">
         <div class="sovereign-modal">
             <div class="sovereign-modal-header">
                 <div class="sovereign-modal-title" id="onramp-modal-title">
@@ -1562,7 +1562,7 @@
             </div>
             <div class="sovereign-modal-body">
                 <div style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px; text-transform:uppercase;">Selected Activation Target</div>
-                <div id="onramp-target-title" style="font-size:16px; font-weight:700; color:#ffffff; margin-bottom:14px;">Moderato ($29/mo)</div>
+                <div id="onramp-target-title" style="font-size:16px; font-weight:700; color:var(--text-accent); margin-bottom:14px;">Moderato ($29/mo)</div>
 
                 <!-- Critical Memo Instruction -->
                 <div class="memo-callout-box" style="margin-bottom:14px;">
@@ -1573,7 +1573,7 @@
                     <p class="memo-callout-desc">
                         Paste this memo into the provider's <strong>transfer memo / wallet tag</strong> field. Our Solana listener verifies this memo to immediately promote your account.
                     </p>
-                    <div style="display:flex; align-items:center; justify-content:space-between; background:#000000; padding:8px 12px; border-radius:6px; border:1px solid var(--border-hairline);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; background:#111227; padding:8px 12px; border-radius:6px; border:1px solid var(--border-subtle);">
                         <code id="modal-onramp-memo" style="font-size:13px; font-weight:700; color:#ffffff;">XPK-REF</code>
                         <button class="field-btn" onclick="copyDepositRef()">Copy Memo</button>
                     </div>
@@ -1611,7 +1611,7 @@
     </div>
 
     <!-- SOVEREIGN SILK VOUCHER REDEEM MODAL -->
-    <div id="modal-voucher-redeem" class="sovereign-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="voucher-modal-title">
+    <div id="modal-voucher-redeem" class="sovereign-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="voucher-modal-title">
         <div class="sovereign-modal">
             <div class="sovereign-modal-header">
                 <div class="sovereign-modal-title" id="voucher-modal-title">
@@ -1758,24 +1758,24 @@
             if (!modal) return;
             const nameEl = document.getElementById('onramp-target-title');
             if (nameEl) nameEl.innerText = planName;
-            modal.classList.add('open');
+            modal.style.display = 'flex'; modal.classList.add('open');
         }
 
         function closeOnRampModal() {
             const modal = document.getElementById('modal-onramp');
-            if (modal) modal.classList.remove('open');
+            if (modal) modal.style.display = 'none'; modal.classList.remove('open');
         }
 
         function openVoucherModal() {
             const modal = document.getElementById('modal-voucher-redeem');
-            if (modal) modal.classList.add('open');
+            if (modal) modal.style.display = 'flex'; modal.classList.add('open');
             const input = document.getElementById('modal-voucher-input');
             if (input) setTimeout(() => input.focus(), 50);
         }
 
         function closeVoucherModal() {
             const modal = document.getElementById('modal-voucher-redeem');
-            if (modal) modal.classList.remove('open');
+            if (modal) modal.style.display = 'none'; modal.classList.remove('open');
         }
 
         let isVoucherRedeeming = false;
