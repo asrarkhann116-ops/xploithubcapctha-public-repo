@@ -21,7 +21,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="https://xploithubcapctha.up.railway.app/static/og-banner.jpg">
 
-    <link rel="stylesheet" href="/static/style.css?v=2.7.0">
+    <link rel="stylesheet" href="/static/style.css?v=2.8.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
@@ -657,7 +657,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/static/fx.css?v=2.7.0">
+    <link rel="stylesheet" href="/static/fx.css?v=2.8.0">
 </head>
 <body>
 
@@ -879,9 +879,7 @@
                     <span>Get Starter ($9)</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
-                <button type="button" class="btn-sellix btn-sellix-sub" onclick="openSellixCheckout('starter', 9)">
-                    <span>Pay with Card / PayPal (Sellix)</span>
-                </button>
+
             </div>
 
             <!-- 3. MODERATO (MOST POPULAR) -->
@@ -938,9 +936,7 @@
                     <span>Activate Moderato ($29)</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
-                <button type="button" class="btn-sellix btn-sellix-sub" onclick="openSellixCheckout('moderato', 29)">
-                    <span>Pay with Card / PayPal (Sellix)</span>
-                </button>
+
             </div>
 
             <!-- 4. VINCE (BEST VALUE) -->
@@ -997,9 +993,7 @@
                     <span>Activate Vince ($99)</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
-                <button type="button" class="btn-sellix btn-sellix-sub" onclick="openSellixCheckout('vince', 99)">
-                    <span>Pay with Card / PayPal (Sellix)</span>
-                </button>
+
             </div>
 
         </div>
@@ -1073,9 +1067,7 @@
                 <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener" class="card-btn" style="background:rgba(236,72,153,0.15); border-color:#ec4899; color:#ec4899;">
                     <span>Contact Enterprise Architect</span>
                 </a>
-                <button type="button" class="btn-sellix btn-sellix-sub" onclick="openSellixCheckout('enterprise', 499)">
-                    <span>Pay via Sellix ($499/mo)</span>
-                </button>
+
             </div>
 
         </div>
@@ -1193,7 +1185,7 @@
                     <div>
                         <h2 class="checkout-title">Payment &amp; Activation Gateway</h2>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                            Choose your preferred payment method. Instant activation via automated on-chain listeners, Sellix webhooks, or vouchers.
+                            Choose your preferred payment method. Instant activation via automated on-chain listeners, or promotional vouchers.
                         </p>
                     </div>
                 </div>
@@ -1211,24 +1203,20 @@
                 <a href="/login" class="btn-primary" style="padding:6px 14px; font-size:12px; text-decoration:none; white-space:nowrap;">Sign In / Register</a>
             </div>
 
-            <!-- Unified 3-Tab Symmetrical Mode Selector (Zero Overflow) -->
+            <!-- Unified 2-Tab Symmetrical Mode Selector (Solana & Voucher) -->
             <div class="payment-tabs-bar" style="margin-bottom: 20px;">
-                <button class="payment-tab-btn active" id="plans-tab-sellix" onclick="switchPlansPaymentTab('sellix')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-                    <span>Cards &amp; Apple Pay (Sellix)</span>
-                </button>
-                <button class="payment-tab-btn" id="plans-tab-solana" onclick="switchPlansPaymentTab('solana')">
+                <button class="payment-tab-btn active" id="plans-tab-solana" onclick="switchPlansPaymentTab('solana')">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path></svg>
                     <span>Solana Direct (SPL USDT)</span>
                 </button>
                 <button class="payment-tab-btn" id="plans-tab-voucher" onclick="switchPlansPaymentTab('voucher')">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg>
-                    <span>Redeem Voucher</span>
+                    <span>Redeem Gift Voucher</span>
                 </button>
             </div>
 
             <!-- TAB 1: SOLANA DIRECT VIEW -->
-            <div id="plans-view-solana" class="payment-view-pane" style="display:none;">
+            <div id="plans-view-solana" class="payment-view-pane active">
                 <!-- Mode Selector Tabs: Subscriptions vs Pay-As-You-Go -->
                 <div class="checkout-mode-tabs" style="margin-bottom: 16px;">
                     <button class="checkout-tab-btn active" id="tab-checkout-subs" onclick="switchCheckoutTab('subs')">
@@ -1549,16 +1537,16 @@
             const wallet = currentSolanaWallet;
             const memo = currentUserDepositRef || 'XPK-REF';
 
-            const moonpayFee = Math.max(3.99, amt * 0.045);
+            
             const paybisFee = Math.max(2.00, amt * 0.0399);
             const transakFee = Math.max(1.50, amt * 0.035);
 
-            const moonpayTotal = amt + moonpayFee;
+            
             const paybisTotal = amt + paybisFee;
             const transakTotal = amt + transakFee;
 
-            const moonpayEl = document.getElementById('plans-fee-est-moonpay');
-            if (moonpayEl) moonpayEl.innerText = `~$${moonpayFee.toFixed(2)} fee (~$${moonpayTotal.toFixed(2)} total)`;
+            
+            
 
             const paybisEl = document.getElementById('plans-fee-est-paybis');
             if (paybisEl) paybisEl.innerText = `~$${paybisFee.toFixed(2)} fee (~$${paybisTotal.toFixed(2)} total)`;
@@ -1566,8 +1554,8 @@
             const transakEl = document.getElementById('plans-fee-est-transak');
             if (transakEl) transakEl.innerText = `~$${transakFee.toFixed(2)} fee (~$${transakTotal.toFixed(2)} total)`;
 
-            const btnMoonpay = document.getElementById('plans-btn-launch-moonpay');
-            if (btnMoonpay) btnMoonpay.href = `https://buy.moonpay.com?currencyCode=usdt_sol&walletAddress=${encodeURIComponent(wallet)}&walletAddressTag=${encodeURIComponent(memo)}&quoteCurrencyAmount=${amt}`;
+            
+            
 
             const btnPaybis = document.getElementById('plans-btn-launch-paybis');
             if (btnPaybis) btnPaybis.href = `https://paybis.com/?currencyCodeFrom=USD&currencyCodeTo=USDT-SOL&amountFrom=${amt}`;
@@ -1576,12 +1564,7 @@
             if (btnTransak) btnTransak.href = `https://global.transak.com?cryptoCurrencyCode=USDT&network=solana&walletAddress=${encodeURIComponent(wallet)}&fiatAmount=${amt}&walletAddressTag=${encodeURIComponent(memo)}`;
         }
 
-        function openSellixCheckout(planType, price) {
-            if (!currentUser || currentUser.is_guest || !currentUser.id) {
-                showToast('⚠️ Guest Account: Please register or sign in first so Sellix can activate your account ID.', 'error');
-                setTimeout(() => {
-                    window.location.href = '/login?next=' + encodeURIComponent('/plans/');
-                }, 800);
+        , 800);
                 return;
             }
             const userId = (currentUser && currentUser.id) || 0;

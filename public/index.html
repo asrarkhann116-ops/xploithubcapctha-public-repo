@@ -27,11 +27,11 @@
     <meta name="twitter:description" content="Bypass Cloudflare Turnstile & DataDome in seconds. Dual-tier Fast-TLS + Stealth Hardware CDP.">
     <meta name="twitter:image" content="https://xploithubcapctha.up.railway.app/static/og-banner.jpg">
 
-    <link rel="stylesheet" href="/static/style.css?v=2.7.0">
+    <link rel="stylesheet" href="/static/style.css?v=2.8.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/fx.css?v=2.7.0">
+    <link rel="stylesheet" href="/static/fx.css?v=2.8.0">
 </head>
 <body>
     <!-- ── Announcement Banner (non-intrusive, auto-polls /api/announcements/latest) ── -->
@@ -529,7 +529,7 @@
                     </button>
                 </div>
 
-                <!-- PANEL 3: Unified Symmetrical Settlement & Payments (Zero Overflow) -->
+                <!-- PANEL 3: Native Solana & Voucher Settlement (100% Automated, Zero Fake Checkouts) -->
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title-wrap">
@@ -553,55 +553,28 @@
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                         <div class="notice-text">
-                            <strong>Guest Testing Mode:</strong> Payments and automated upgrades attach permanently to your registered user ID. Please <a href="/login" style="color:var(--text-accent); font-weight:700; text-decoration:underline;">Sign In or Register</a> before purchasing.
+                            <strong>Guest Testing Mode:</strong> Automated plan upgrades attach permanently to your registered user ID. Please <a href="/login" style="color:var(--text-accent); font-weight:700; text-decoration:underline;">Sign In or Register</a> before depositing.
                         </div>
                     </div>
 
-                    <!-- 3-Tab Symmetrical Payment Selector (Zero Overflow) -->
+                    <!-- 2-Tab Symmetrical Payment Selector -->
                     <div class="payment-tabs-bar">
-                        <button class="payment-tab-btn active" id="tab-sellix" onclick="switchDashboardPaymentTab('sellix')" title="Credit/Debit Card, Apple Pay & PayPal">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-                            <span>Cards &amp; Apple Pay</span>
-                        </button>
-                        <button class="payment-tab-btn" id="tab-solana" onclick="switchDashboardPaymentTab('solana')" title="Solana SPL USDT Instant Settlement">
+                        <button class="payment-tab-btn active" id="tab-solana" onclick="switchDashboardPaymentTab('solana')" title="Instant Solana SPL USDT Settlement">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path></svg>
                             <span>Solana USDT</span>
                         </button>
                         <button class="payment-tab-btn" id="tab-voucher" onclick="switchDashboardPaymentTab('voucher')" title="Redeem Gift Voucher or Promotional Code">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg>
-                            <span>Voucher</span>
+                            <span>Redeem Voucher</span>
                         </button>
                     </div>
 
-                    <!-- TAB 1: CARDS & APPLE PAY VIEW (DIRECT SELLIX CHECKOUT) -->
-                    <div id="deposit-view-sellix" class="payment-view-pane active">
-                        <p class="panel-caption">Instant automated checkout via Credit Card, Debit Card, Apple Pay, Google Pay, or PayPal with webhook activation.</p>
-
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:8px; flex-wrap:wrap;">
-                            <span style="font-size:12px; color:var(--text-secondary); font-weight:600;">Choose Plan:</span>
-                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                                <button type="button" class="field-btn plan-preset-btn active" id="btn-plan-moderato" onclick="selectSidebarPlan('moderato', 29, this)">Moderato ($29)</button>
-                                <button type="button" class="field-btn plan-preset-btn" id="btn-plan-starter" onclick="selectSidebarPlan('starter', 9, this)">Starter ($9)</button>
-                                <button type="button" class="field-btn plan-preset-btn" id="btn-plan-vince" onclick="selectSidebarPlan('vince', 99, this)">Vince ($99)</button>
-                            </div>
-                        </div>
-
-                        <button type="button" class="btn-primary" id="btn-sidebar-sellix" onclick="triggerSidebarCheckout()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 16px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-                            <span id="btn-sidebar-sellix-text">Pay $29 with Card / Apple Pay</span>
-                        </button>
-
-                        <div style="text-align: center; margin-top: 10px;">
-                            <a href="/plans/" style="font-size: 12px; color: var(--text-cyan); text-decoration: none;">View full plan feature comparison &rarr;</a>
-                        </div>
-                    </div>
-
-                    <!-- TAB 2: SOLANA DIRECT VIEW -->
-                    <div id="deposit-view-solana" class="payment-view-pane" style="display: none;">
+                    <!-- TAB 1: SOLANA DIRECT VIEW (ACTIVE BY DEFAULT) -->
+                    <div id="deposit-view-solana" class="payment-view-pane active">
                         <p class="panel-caption">Instant on-chain settlement via Solana Mainnet (USDT SPL). Verifies in &lt;15 seconds with zero KYC holds.</p>
 
                         <div class="info-block">
-                            <div class="info-label">Official Solana Treasury Wallet</div>
+                            <div class="info-label">Official Solana Treasury Wallet (USDT SPL)</div>
                             <div class="info-content-row">
                                 <code id="solana-wallet-val">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
                                 <button class="field-btn" onclick="copySolanaWallet()" title="Copy wallet address">
@@ -635,9 +608,15 @@
                                 <span id="btn-verify-tx-text">Verify On-Chain</span>
                             </button>
                         </div>
+
+                        <!-- Discord Alternative Notice -->
+                        <div style="margin-top: 14px; padding: 10px 12px; background: rgba(20, 22, 48, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                            <span style="color: var(--text-secondary);">Need Card, PayPal, or Custom Plan?</span>
+                            <a href="https://discord.gg/3fb9Q7ucSN" target="_blank" rel="noopener noreferrer" style="color: var(--text-cyan); font-weight: 600; text-decoration: none; white-space: nowrap;">Open Ticket &rarr;</a>
+                        </div>
                     </div>
 
-                    <!-- TAB 3: REDEEM VOUCHER VIEW -->
+                    <!-- TAB 2: REDEEM VOUCHER VIEW -->
                     <div id="deposit-view-voucher" class="payment-view-pane" style="display: none;">
                         <p class="panel-caption">Redeem a subscription gift card or voucher code. Instantly upgrades your account tier, duration, concurrency slots, and solves balance.</p>
 
@@ -707,7 +686,7 @@
         </div>
     </div>
 
-    <script src="/static/app.js?v=2.7.0"></script>
+    <script src="/static/app.js?v=2.8.0"></script>
     <script src="/static/fx.js?v=2.6.0" defer></script>
 </body>
 </html>

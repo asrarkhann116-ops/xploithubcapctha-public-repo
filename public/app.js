@@ -1,32 +1,8 @@
 
-let currentSidebarPlan = 'moderato';
-let currentSidebarPrice = 29;
 
-function selectSidebarPlan(plan, price, btn) {
-    currentSidebarPlan = plan;
-    currentSidebarPrice = price;
-    document.querySelectorAll('.plan-preset-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    const btnText = document.getElementById('btn-sidebar-sellix-text');
-    if (btnText) {
-        if (currentUser && currentUser.is_guest) {
-            btnText.innerText = 'Sign In / Register to Pay with Card';
-        } else {
-            btnText.innerText = `Pay $${price} with Card / Apple Pay`;
-        }
-    }
-}
 
-function triggerSidebarCheckout() {
-    if (!currentUser || currentUser.is_guest || !currentUser.id) {
-        showToast('⚠️ Guest Account: Please register or sign in first so your plan attaches permanently.', 'error');
-        setTimeout(() => {
-            window.location.href = '/login?next=' + encodeURIComponent('/plans/');
-        }, 800);
-        return;
-    }
-    openSellixCheckout(currentSidebarPlan, currentSidebarPrice);
-}
+
+
 
 function handleSolanaDepositVerify() {
     if (!currentUser || currentUser.is_guest || !currentUser.id) {
@@ -594,7 +570,7 @@ async function pollFleetStatus() {
 //  UNIFIED 4-TAB PAYMENT CONTROLLER (Panel 3 & Modals)
 // ══════════════════════════════════════════════════════════
 function switchDashboardPaymentTab(tab) {
-    const tabs = ['sellix', 'solana', 'voucher'];
+    const tabs = ['solana', 'voucher'];
     tabs.forEach(t => {
         const tabBtn = document.getElementById(`tab-${t}`);
         const viewEl = document.getElementById(`deposit-view-${t}`);
@@ -938,71 +914,11 @@ async function redeemVoucherCode(inputId = 'voucher-code-input', msgId = 'deposi
 // ══════════════════════════════════════════════════════════
 //  ON-RAMP & SELLIX CHECKOUT CONTROLLERS
 // ══════════════════════════════════════════════════════════
-function getOnRampProviderUrl(provider, amount) {
-    const wallet = (currentUser && currentUser.solana_wallet) || '6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u';
-    const memo = (currentUser && currentUser.deposit_ref) || 'XPK-REF';
-    const amt = parseFloat(amount) || 29;
 
-    if (provider === 'moonpay') {
-        return `https://buy.moonpay.com?currencyCode=usdt_sol&walletAddress=${encodeURIComponent(wallet)}&walletAddressTag=${encodeURIComponent(memo)}&quoteCurrencyAmount=${amt}`;
-    } else if (provider === 'paybis') {
-        return `https://paybis.com/?currencyCodeFrom=USD&currencyCodeTo=USDT-SOL&amountFrom=${amt}`;
-    } else if (provider === 'transak') {
-        return `https://global.transak.com?cryptoCurrencyCode=USDT&network=solana&walletAddress=${encodeURIComponent(wallet)}&fiatAmount=${amt}&walletAddressTag=${encodeURIComponent(memo)}`;
-    }
-    return '#';
-}
 
-function updateOnRampCalculation(amount) {
-    const amt = Math.max(1, parseFloat(amount) || 29);
-    const wallet = (currentUser && currentUser.solana_wallet) || '6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u';
-    const memo = (currentUser && currentUser.deposit_ref) || 'XPK-REF';
 
-    // Provider Fee Estimates:
-    const moonpayFee = Math.max(3.99, amt * 0.045);
-    const paybisFee = Math.max(2.00, amt * 0.0399);
-    const transakFee = Math.max(1.50, amt * 0.035);
 
-    const moonpayTotal = amt + moonpayFee;
-    const paybisTotal = amt + paybisFee;
-    const transakTotal = amt + transakFee;
 
-    const baseEl = document.getElementById('fee-base-amount');
-    if (baseEl) baseEl.innerText = `$${amt.toFixed(2)} USDT`;
-
-    const moonpayFeeEl = document.getElementById('fee-est-moonpay');
-    if (moonpayFeeEl) moonpayFeeEl.innerText = `~$${moonpayFee.toFixed(2)} (~$${moonpayTotal.toFixed(2)} total)`;
-
-    const paybisFeeEl = document.getElementById('fee-est-paybis');
-    if (paybisFeeEl) paybisFeeEl.innerText = `~$${paybisFee.toFixed(2)} (~$${paybisTotal.toFixed(2)} total)`;
-
-    const transakFeeEl = document.getElementById('fee-est-transak');
-    if (transakFeeEl) transakFeeEl.innerText = `~$${transakFee.toFixed(2)} (~$${transakTotal.toFixed(2)} total)`;
-
-    // Update buttons
-    const btnMoonpay = document.getElementById('btn-launch-moonpay');
-    if (btnMoonpay) btnMoonpay.href = getOnRampProviderUrl('moonpay', amt);
-
-    const btnPaybis = document.getElementById('btn-launch-paybis');
-    if (btnPaybis) btnPaybis.href = getOnRampProviderUrl('paybis', amt);
-
-    const btnTransak = document.getElementById('btn-launch-transak');
-    if (btnTransak) btnTransak.href = getOnRampProviderUrl('transak', amt);
-}
-
-function openSellixCheckout(planType, price) {
-    if (!currentUser || currentUser.is_guest || !currentUser.id) {
-        showToast('⚠️ Guest Account: Please register or sign in first so Sellix can activate your account ID.', 'error');
-        setTimeout(() => {
-            window.location.href = '/login?next=' + encodeURIComponent('/plans/');
-        }, 800);
-        return;
-    }
-    const userId = currentUser.id;
-    const planKey = (planType || 'starter').toLowerCase();
-    const sellixUrl = `https://xploit-unblocker.sellix.io/product/${encodeURIComponent(planKey)}?custom-user_id=${encodeURIComponent(userId)}&custom-plan_type=${encodeURIComponent(planKey)}`;
-    window.open(sellixUrl, '_blank', 'noopener,noreferrer');
-}
 
 function openOnRampModal(amount = 29, planName = 'Moderato ($29/mo)') {
     const modal = document.getElementById('modal-onramp');
