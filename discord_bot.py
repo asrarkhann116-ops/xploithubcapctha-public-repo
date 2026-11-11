@@ -370,7 +370,7 @@ async def promo_command(interaction: discord.Interaction):
 # ═════════════════════════════════════════════════
 @client.tree.command(name="credits", description="🔑 View your credits balance and secret API key")
 async def credits_command(interaction: discord.Interaction):
-    await balance_command(interaction)
+    await balance_command.callback(interaction)
 
 
 # ═════════════════════════════════════════════════
@@ -454,7 +454,7 @@ async def topup_command(interaction: discord.Interaction):
         color=0xffd700,
     )
     embed.add_field(name="Official Solana Wallet", value=f"`{SOLANA_WALLET}`",                                              inline=False)
-    embed.add_field(name="Rates",                  value="• 1 USDT = 1,000 Unblock Requests\n• 5 USDT = 5,000 Unblock Requests", inline=False)
+    embed.add_field(name="Rates",                  value="• 1 USDT = 500 Solves ($0.002/solve • Never expires)\n• 5 USDT = 2,500 Solves", inline=False)
     embed.add_field(name="How to verify",          value="After sending, use `/redeem <tx_hash>` to instantly add credits!",     inline=False)
     await interaction.response.send_message(embed=embed)
 

@@ -164,7 +164,7 @@ async function loadUserProfile() {
         const resetTimerEl = document.getElementById('reset-timer');
         const metricDebit = document.getElementById('metric-debit');
 
-        const planKey = data.tier || (data.is_guest ? 'guest' : 'free');
+        const planKey = String(data.tier || (data.is_guest ? 'guest' : 'free')).toLowerCase();
         const planName = data.plan_name || planKey.toUpperCase();
         const concurrency = data.concurrency_limit || (planKey === 'free' ? 3 : 10);
 
@@ -544,7 +544,7 @@ async function executeScrape() {
 
     // Refresh profile to prevent stale client-side credits check
     await loadUserProfile();
-    if (!currentUser || currentUser.credits < 1) {
+    if (!currentUser || Number(currentUser.credits || 0) < 1) {
         showToast('Insufficient credits. Claim 500 free requests via Discord promo or top up.', 'error');
         return;
     }
