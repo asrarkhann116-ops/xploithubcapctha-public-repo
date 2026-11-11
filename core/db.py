@@ -3,7 +3,7 @@ import os
 import secrets
 import time
 import re
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "unblocker.db")
 
@@ -61,7 +61,14 @@ def init_db():
     cur.execute('''
     CREATE TABLE IF NOT EXISTS vouchers (
         code TEXT PRIMARY KEY,
-        credits REAL NOT NULL,
+        credits REAL NOT NULL DEFAULT 0.0,
+        plan TEXT,
+        duration_days INTEGER DEFAULT 30,
+        is_multi_use INTEGER DEFAULT 0,
+        max_uses INTEGER DEFAULT 1,
+        times_used INTEGER DEFAULT 0,
+        expires_at INTEGER DEFAULT 0,
+        note TEXT DEFAULT '',
         is_used INTEGER DEFAULT 0,
         used_by INTEGER,
         used_at INTEGER,
@@ -69,6 +76,36 @@ def init_db():
     )
     ''')
     
+    # ─── SELLIX ORDERS & IDEMPOTENCY TRACKING ───────────────────
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS sellix_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT UNIQUE NOT NULL,
+        user_id INTEGER,
+        plan_type TEXT,
+        amount REAL,
+        currency TEXT,
+        event TEXT,
+        status TEXT,
+        raw_payload TEXT,
+        created_at INTEGER
+    )
+    ''')
+
+    # ─── WEBHOOK DEAD-LETTER LOGS ────────────────────────────────
+    cur.execute('''
+    CREATE TABLE IF NOT EXISTS webhook_dead_letter_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        gateway TEXT NOT NULL,
+        event_type TEXT,
+        order_id TEXT,
+        reason TEXT NOT NULL,
+        payload TEXT,
+        headers TEXT,
+        created_at INTEGER NOT NULL
+    )
+    ''')
+
     # Scrape request logs
     cur.execute('''
     CREATE TABLE IF NOT EXISTS request_logs (
@@ -104,7 +141,26 @@ def init_db():
         except Exception:
             pass
 
-    # Voucher redemptions log (for anti-abuse IP tracking)
+    # ─── VOUCHERS SCHEMA MIGRATIONS ─────────────────────────────
+    cur.execute("PRAGMA table_info(vouchers)")
+    existing_voucher_cols = {row["name"] for row in cur.fetchall()}
+    voucher_migration_cols = [
+        ("plan", "ALTER TABLE vouchers ADD COLUMN plan TEXT"),
+        ("duration_days", "ALTER TABLE vouchers ADD COLUMN duration_days INTEGER DEFAULT 30"),
+        ("is_multi_use", "ALTER TABLE vouchers ADD COLUMN is_multi_use INTEGER DEFAULT 0"),
+        ("max_uses", "ALTER TABLE vouchers ADD COLUMN max_uses INTEGER DEFAULT 1"),
+        ("times_used", "ALTER TABLE vouchers ADD COLUMN times_used INTEGER DEFAULT 0"),
+        ("expires_at", "ALTER TABLE vouchers ADD COLUMN expires_at INTEGER DEFAULT 0"),
+        ("note", "ALTER TABLE vouchers ADD COLUMN note TEXT DEFAULT ''"),
+    ]
+    for col_name, alter_stmt in voucher_migration_cols:
+        if col_name not in existing_voucher_cols:
+            try:
+                cur.execute(alter_stmt)
+            except Exception:
+                pass
+
+    # Voucher redemptions log (for anti-abuse IP tracking & multi-use replay defense)
     cur.execute('''
     CREATE TABLE IF NOT EXISTS voucher_redemptions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,6 +169,9 @@ def init_db():
         ip TEXT,
         redeemed_at INTEGER
     )
+    ''')
+    cur.execute('''
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_voucher_redemptions_user ON voucher_redemptions(voucher_code, user_id)
     ''')
 
     # Announcements table (for flash updates on website and Discord)
@@ -577,55 +636,181 @@ def regenerate_user_api_key(user_id: int) -> str:
 
 def redeem_voucher(code: str, user_id: int, ip: str = "") -> Dict[str, Any]:
     """
-    Redeems voucher with full IP and anti-abuse protection.
+    Redeems voucher with atomic balance locking, expiration enforcement,
+    multi-use replay defense, and automatic subscription plan promotion.
     """
-    from core.anti_abuse import check_voucher_abuse, record_voucher_redemption
+    if not code or not isinstance(code, str):
+        return {"success": False, "error": "Invalid voucher code."}
+
     code = code.strip().upper()
 
-    # Anti-Cheat: Validate IP quota & duplication
+    # Anti-Cheat: Validate IP quota & duplication if IP provided
     if ip:
-        allowed, err = check_voucher_abuse(ip, user_id, code)
+        from core.anti_abuse import check_voucher_abuse
+        try:
+            allowed, err = check_voucher_abuse(ip, user_id, code)
+        except TypeError:
+            allowed, err = check_voucher_abuse(ip, code)
         if not allowed:
             return {"success": False, "error": err}
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM vouchers WHERE code = ?", (code,))
-    row = cur.fetchone()
-    if not row:
-        conn.close()
-        return {"success": False, "error": "Invalid voucher / gift code!"}
-    
-    if row["is_used"]:
-        conn.close()
-        return {"success": False, "error": "This voucher has already been redeemed!"}
-    
-    credits_to_add = float(row["credits"])
-    now = int(time.time())
-    cur.execute(
-        "UPDATE vouchers SET is_used = 1, used_by = ?, used_at = ? WHERE code = ? AND is_used = 0",
-        (user_id, now, code)
-    )
-    if cur.rowcount == 0:
-        conn.close()
-        return {"success": False, "error": "This voucher has already been redeemed!"}
+    try:
+        # Validate target user exists
+        cur.execute("SELECT id, credits, concurrency_limit FROM users WHERE id = ?", (user_id,))
+        user_row = cur.fetchone()
+        if not user_row:
+            conn.close()
+            return {"success": False, "error": f"User #{user_id} not found."}
 
-    cur.execute("UPDATE users SET credits = credits + ? WHERE id = ?", (credits_to_add, user_id))
-    cur.execute("SELECT credits FROM users WHERE id = ?", (user_id,))
-    new_credits = cur.fetchone()['credits']
-    conn.commit()
-    conn.close()
+        cur.execute("SELECT * FROM vouchers WHERE code = ?", (code,))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return {"success": False, "error": "This voucher does not exist."}
 
-    # Record IP tracking
-    if ip:
-        record_voucher_redemption(ip, user_id, code)
-    
-    return {
-        "success": True,
-        "credits_added": credits_to_add,
-        "new_balance": new_credits,
-        "message": f"Successfully redeemed voucher {code} (+{credits_to_add:,.0f} credits)!"
-    }
+        voucher = dict(row)
+        now = int(time.time())
+
+        # Expiration check
+        expires_at = int(voucher.get("expires_at", 0) or 0)
+        if expires_at > 0 and now > expires_at:
+            conn.close()
+            return {"success": False, "error": "This voucher has expired."}
+
+        is_multi_use = int(voucher.get("is_multi_use", 0) or 0)
+        max_uses = max(1, int(voucher.get("max_uses", 1) or 1))
+        voucher_plan = voucher.get("plan")
+        if voucher_plan:
+            voucher_plan = str(voucher_plan).strip().lower()
+            if voucher_plan not in PLANS:
+                voucher_plan = None
+        duration_days = int(voucher.get("duration_days", 30) or 30)
+        credits_val = float(voucher.get("credits", 0.0) or 0.0)
+
+        # Single-use vs Multi-use
+        if is_multi_use == 0 or max_uses <= 1:
+            if voucher.get("is_used"):
+                conn.close()
+                return {"success": False, "error": "This voucher has already been redeemed!"}
+
+            cur.execute(
+                """
+                UPDATE vouchers
+                SET is_used = 1,
+                    used_by = ?,
+                    used_at = ?,
+                    times_used = times_used + 1
+                WHERE code = ? AND is_used = 0
+                """,
+                (user_id, now, code)
+            )
+            if cur.rowcount == 0:
+                conn.close()
+                return {"success": False, "error": "This voucher has already been redeemed!"}
+        else:
+            if voucher.get("is_used") or voucher.get("times_used", 0) >= max_uses:
+                conn.close()
+                return {"success": False, "error": "This voucher has reached its maximum redemption limit."}
+
+            # Check if this user already redeemed this multi-use voucher
+            cur.execute(
+                "SELECT id FROM voucher_redemptions WHERE voucher_code = ? AND user_id = ?",
+                (code, user_id)
+            )
+            if cur.fetchone():
+                conn.close()
+                return {"success": False, "error": "You have already redeemed this voucher."}
+
+            cur.execute(
+                """
+                UPDATE vouchers
+                SET times_used = times_used + 1,
+                    is_used = CASE WHEN times_used + 1 >= max_uses THEN 1 ELSE 0 END,
+                    used_at = ?
+                WHERE code = ? AND is_used = 0 AND times_used < max_uses
+                """,
+                (now, code)
+            )
+            if cur.rowcount == 0:
+                conn.close()
+                return {"success": False, "error": "This voucher has reached its maximum redemption limit."}
+
+        # Record redemption in voucher_redemptions
+        try:
+            cur.execute(
+                """
+                INSERT INTO voucher_redemptions (voucher_code, user_id, ip, redeemed_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (code, user_id, ip or "", now)
+            )
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            conn.close()
+            return {"success": False, "error": "You have already redeemed this voucher."}
+
+        # Plan vs Credit activation
+        if voucher_plan and voucher_plan in PLANS:
+            conn.commit()
+            conn.close()
+
+            plan_res = admin_set_user_plan(
+                user_id=user_id,
+                plan=voucher_plan,
+                duration_days=duration_days,
+                add_credits=True
+            )
+            if not plan_res.get("success"):
+                return plan_res
+
+            if credits_val > 0:
+                add_credit(user_id, credits_val)
+
+            u = get_user_by_id(user_id)
+            new_credits = float(u["credits"]) if u else float(plan_res.get("credits", 0.0))
+            plan_credits = float(plan_res.get("credits_added", 0.0))
+            credits_added_val = credits_val if credits_val > 0 else plan_credits
+            concurrency_limit = int(plan_res.get("concurrency_limit", PLANS[voucher_plan]["concurrency"]))
+
+            return {
+                "success": True,
+                "plan": voucher_plan,
+                "credits_added": credits_added_val,
+                "duration_days": duration_days,
+                "concurrency_limit": concurrency_limit,
+                "msg": f"Voucher successfully redeemed! Activated {voucher_plan} plan.",
+                "message": f"Voucher successfully redeemed! Activated {voucher_plan} plan.",
+                "new_balance": new_credits,
+            }
+        else:
+            # Credit-only voucher
+            cur.execute("UPDATE users SET credits = credits + ? WHERE id = ?", (credits_val, user_id))
+            cur.execute("SELECT credits, concurrency_limit FROM users WHERE id = ?", (user_id,))
+            u_row = cur.fetchone()
+            conn.commit()
+            conn.close()
+
+            new_credits = float(u_row["credits"]) if u_row else credits_val
+            concurrency_limit = int(u_row["concurrency_limit"]) if u_row and u_row["concurrency_limit"] else 3
+            credits_formatted = int(credits_val) if credits_val.is_integer() else credits_val
+
+            return {
+                "success": True,
+                "plan": "none",
+                "credits_added": credits_val,
+                "duration_days": 0,
+                "concurrency_limit": concurrency_limit,
+                "msg": f"Voucher successfully redeemed! Added {credits_formatted} credits.",
+                "message": f"Successfully redeemed voucher {code} (+{credits_val:,.0f} credits)!",
+                "new_balance": new_credits,
+            }
+    except sqlite3.Error as e:
+        conn.rollback()
+        conn.close()
+        print(f"[DB ERROR] redeem_voucher failed for code {code}: {e}")
+        return {"success": False, "error": f"Database error during voucher redemption: {e}"}
 
 def get_user_by_api_key(api_key: str) -> Optional[Dict[str, Any]]:
     conn = get_db()
@@ -887,7 +1072,7 @@ def get_admin_overview() -> dict:
     recent_requests = [dict(r) for r in cur.fetchall()]
 
     # All vouchers
-    cur.execute("SELECT code, credits, is_used, used_by, used_at, created_at FROM vouchers ORDER BY created_at DESC")
+    cur.execute("SELECT * FROM vouchers ORDER BY created_at DESC")
     vouchers = [dict(r) for r in cur.fetchall()]
 
     conn.close()
@@ -929,24 +1114,188 @@ def admin_adjust_user_credits(user_id: int, amount: float) -> dict:
         "delta": amount
     }
 
-def admin_create_voucher(code: str, credits: float) -> dict:
+def admin_create_voucher(
+    code: str,
+    credits: float,
+    plan: Optional[str] = None,
+    duration_days: int = 30,
+    max_uses: int = 1,
+    expires_in_days: int = 0,
+    note: str = ""
+) -> dict:
     """Create a new gift voucher code."""
     code = code.strip().upper()
-    if not code or credits <= 0:
+    credits_val = float(credits) if credits is not None else 0.0
+    if not code:
         return {"success": False, "error": "Invalid voucher code or credits amount."}
+    if credits_val <= 0 and not plan:
+        return {"success": False, "error": "Invalid voucher code or credits amount."}
+
+    is_multi_use = 1 if max_uses > 1 else 0
+    now = int(time.time())
+    expires_at = int(now + (expires_in_days * 86400)) if expires_in_days > 0 else 0
+    plan_clean = plan.strip().lower() if plan and str(plan).strip() else None
+
     conn = get_db()
     cur = conn.cursor()
     try:
         cur.execute(
-            "INSERT INTO vouchers (code, credits, is_used, created_at) VALUES (?, ?, 0, ?)",
-            (code, float(credits), int(time.time()))
+            """
+            INSERT INTO vouchers (
+                code, credits, plan, duration_days, is_multi_use, max_uses, times_used, expires_at, note, is_used, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 0, ?)
+            """,
+            (code, credits_val, plan_clean, int(duration_days), is_multi_use, int(max_uses), expires_at, str(note or ""), now)
         )
         conn.commit()
-        conn.close()
-        return {"success": True, "code": code, "credits": credits}
+        return {"success": True, "code": code, "credits": credits_val, "plan": plan_clean}
     except Exception as e:
-        conn.close()
+        conn.rollback()
         return {"success": False, "error": f"Code '{code}' already exists or DB error."}
+    finally:
+        conn.close()
+
+def admin_batch_create_vouchers(
+    count: int,
+    plan: Optional[str] = None,
+    credits: float = 0.0,
+    duration_days: int = 30,
+    max_uses: int = 1,
+    expires_in_days: int = 0,
+    note: str = ""
+) -> List[str]:
+    """
+    Generates count unique voucher codes (cryptographically secure alphanumeric string).
+    Determines is_multi_use = 1 if max_uses > 1 else 0.
+    Calculates expires_at = int(time.time() + expires_in_days * 86400) if expires_in_days > 0 else 0.
+    Inserts all codes into vouchers within a transaction.
+    Returns the list of created voucher codes.
+    """
+    if count <= 0:
+        return []
+
+    is_multi_use = 1 if max_uses > 1 else 0
+    now = int(time.time())
+    expires_at = int(now + (expires_in_days * 86400)) if expires_in_days > 0 else 0
+    plan_clean = plan.strip().lower() if plan and str(plan).strip() else None
+    credits_val = float(credits) if credits is not None else 0.0
+    duration_days_val = int(duration_days) if duration_days is not None else 30
+    max_uses_val = max(1, int(max_uses))
+
+    generated_codes: List[str] = []
+
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        while len(generated_codes) < count:
+            code = f"XPK-{secrets.token_hex(4).upper()}-{secrets.token_hex(4).upper()}"
+            if code in generated_codes:
+                continue
+            cur.execute("SELECT 1 FROM vouchers WHERE code = ?", (code,))
+            if cur.fetchone():
+                continue
+            cur.execute(
+                """
+                INSERT INTO vouchers (
+                    code, credits, plan, duration_days, is_multi_use, max_uses, times_used, expires_at, note, is_used, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 0, ?)
+                """,
+                (code, credits_val, plan_clean, duration_days_val, is_multi_use, max_uses_val, expires_at, str(note or ""), now)
+            )
+            generated_codes.append(code)
+        conn.commit()
+        return generated_codes
+    except sqlite3.Error as e:
+        conn.rollback()
+        print(f"[DB ERROR] admin_batch_create_vouchers failed: {e}")
+        return []
+    finally:
+        conn.close()
+
+def is_sellix_order_processed(order_id: str) -> bool:
+    """Returns True if order_id exists in sellix_orders."""
+    if not order_id:
+        return False
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM sellix_orders WHERE order_id = ? LIMIT 1", (str(order_id).strip(),))
+    row = cur.fetchone()
+    conn.close()
+    return bool(row)
+
+def record_sellix_order(
+    order_id: str,
+    user_id: int,
+    plan_type: str,
+    amount: float,
+    currency: str,
+    event: str,
+    status: str,
+    raw_payload: str = ""
+) -> bool:
+    """
+    Inserts a record into sellix_orders with current timestamp.
+    Returns True on success, or False if order_id already exists (or raises IntegrityError safely caught).
+    """
+    order_id = str(order_id).strip()
+    if not order_id:
+        return False
+    now = int(time.time())
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO sellix_orders (
+                order_id, user_id, plan_type, amount, currency, event, status, raw_payload, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (order_id, int(user_id), str(plan_type), float(amount), str(currency), str(event), str(status), str(raw_payload), now)
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        return False
+    except sqlite3.Error as e:
+        conn.rollback()
+        print(f"[DB ERROR] record_sellix_order failed for order {order_id}: {e}")
+        return False
+    finally:
+        conn.close()
+
+def log_webhook_dead_letter(
+    gateway: str,
+    event_type: str,
+    order_id: str,
+    reason: str,
+    payload: str,
+    headers: str
+) -> int:
+    """
+    Inserts into webhook_dead_letter_logs with current timestamp and returns cur.lastrowid.
+    """
+    now = int(time.time())
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO webhook_dead_letter_logs (
+                gateway, event_type, order_id, reason, payload, headers, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (str(gateway), str(event_type or ""), str(order_id or ""), str(reason), str(payload or ""), str(headers or ""), now)
+        )
+        conn.commit()
+        last_id = cur.lastrowid or 0
+        return int(last_id)
+    except sqlite3.Error as e:
+        conn.rollback()
+        print(f"[DB ERROR] log_webhook_dead_letter failed: {e}")
+        return 0
+    finally:
+        conn.close()
 
 def get_setting(key: str, default: str = "") -> str:
     """Retrieve persistent system setting."""

@@ -162,8 +162,22 @@ async def verify_solana_deposit(tx_hash: str, user_id: int, plan_type: Optional[
         is_explicit_payg = (plan_type == "pay_as_you_go")
 
         # Subscription exact match checks (allow +- 0.50 USDT variance for exchange fee rounding)
+        # Annual Enterprise: ~4990 USDT
+        if not is_explicit_payg and (4980.0 <= deposit_amount <= 5000.0 or plan_type == "enterprise_annual"):
+            new_plan = "enterprise"
+            plan_duration_days = 365
+            concurrency_limit = 500
+            credits_to_add = 1000000.0 * 12  # 12M solves
+            plan_desc = "Annual Enterprise Plan (12M solves • 500 workers • 365 Days)"
+        # Monthly Enterprise: ~499 USDT
+        elif not is_explicit_payg and (498.0 <= deposit_amount <= 500.0 or plan_type == "enterprise"):
+            new_plan = "enterprise"
+            plan_duration_days = 30
+            concurrency_limit = 500
+            credits_to_add = 1000000.0       # 1M solves
+            plan_desc = "Monthly Enterprise Plan (1,000,000 solves/mo • 500 workers • 30 Days)"
         # Annual Vince: ~949 USDT
-        if not is_explicit_payg and (948.0 <= deposit_amount <= 950.0 or plan_type == "vince_annual"):
+        elif not is_explicit_payg and (948.0 <= deposit_amount <= 950.0 or plan_type == "vince_annual"):
             new_plan = "vince"
             plan_duration_days = 365
             concurrency_limit = 150
@@ -176,8 +190,12 @@ async def verify_solana_deposit(tx_hash: str, user_id: int, plan_type: Optional[
             concurrency_limit = 50
             credits_to_add = 30000.0 * 12   # 360k solves
             plan_desc = "Annual Moderato Plan (360k solves • 50 workers • 365 Days)"
-        # Annual Starter: ~89 USDT
-        elif not is_explicit_payg and (88.0 <= deposit_amount <= 90.0 or plan_type == "starter_annual"):
+        # Annual Starter: ~89 USDT or ~99 USDT (dual tolerance)
+        elif not is_explicit_payg and (
+            (88.0 <= deposit_amount <= 90.0)
+            or (plan_type == "starter_annual" and 98.0 <= deposit_amount <= 100.0)
+            or (plan_type == "starter_annual")
+        ):
             new_plan = "starter"
             plan_duration_days = 365
             concurrency_limit = 10
@@ -211,7 +229,13 @@ async def verify_solana_deposit(tx_hash: str, user_id: int, plan_type: Optional[
             curr_concurrency = user['concurrency_limit'] if 'concurrency_limit' in user.keys() and user['concurrency_limit'] else 3
 
             # Active subscribers receive their tier's discounted overage rate
-            if curr_plan == 'vince' and curr_expires > now:
+            if curr_plan == 'enterprise' and curr_expires > now:
+                rate = 0.0005
+                credits_to_add = round(deposit_amount / rate, 0)
+                new_plan = curr_plan
+                concurrency_limit = max(curr_concurrency, 500)
+                plan_duration_days = 0
+            elif curr_plan == 'vince' and curr_expires > now:
                 rate = 0.0008
                 credits_to_add = round(deposit_amount / rate, 0)
                 new_plan = curr_plan
@@ -251,19 +275,19 @@ async def verify_solana_deposit(tx_hash: str, user_id: int, plan_type: Optional[
                     if plan_duration_days > 0:
                         plan_expires = now + (plan_duration_days * 86400)
                         cur.execute(
-                            "UPDATE users SET has_deposited = 1, is_guest = 0, plan = ?, plan_expires_at = ?, concurrency_limit = ? WHERE id = ?",
+                            "UPDATE users SET has_deposited = 1, is_guest = 0, timeout_until = 0, plan = ?, plan_expires_at = ?, concurrency_limit = ? WHERE id = ?",
                             (new_plan, plan_expires, concurrency_limit, user_id)
                         )
                     else:
                         cur.execute(
-                            """UPDATE users SET has_deposited = 1, is_guest = 0,
-                               plan = CASE WHEN plan IN ('vince', 'moderato', 'starter') AND plan_expires_at > ? THEN plan ELSE ? END,
+                            """UPDATE users SET has_deposited = 1, is_guest = 0, timeout_until = 0,
+                               plan = CASE WHEN plan IN ('enterprise', 'vince', 'moderato', 'starter') AND plan_expires_at > ? THEN plan ELSE ? END,
                                concurrency_limit = MAX(concurrency_limit, ?)
                                WHERE id = ?""",
                             (now, new_plan, concurrency_limit, user_id)
                         )
                 else:
-                    cur.execute("UPDATE users SET has_deposited = 1, is_guest = 0 WHERE id = ?", (user_id,))
+                    cur.execute("UPDATE users SET has_deposited = 1, is_guest = 0, timeout_until = 0 WHERE id = ?", (user_id,))
 
                 cur.execute("SELECT credits FROM users WHERE id = ?", (user_id,))
                 new_balance_row = cur.fetchone()

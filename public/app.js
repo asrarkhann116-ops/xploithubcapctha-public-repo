@@ -228,10 +228,36 @@ async function loadUserProfile() {
         if (solanaWalletEl && data.solana_wallet) {
             solanaWalletEl.innerText = data.solana_wallet;
         }
+        const onrampWalletEl = document.getElementById('onramp-solana-wallet');
+        if (onrampWalletEl && data.solana_wallet) {
+            onrampWalletEl.innerText = data.solana_wallet;
+        }
 
         const depositRefEl = document.getElementById('user-deposit-ref');
         if (depositRefEl) {
             depositRefEl.innerText = data.is_guest ? 'REGISTER_FOR_REF' : (data.deposit_ref || 'XPK-REF');
+        }
+        const onrampRefEl = document.getElementById('onramp-deposit-ref');
+        if (onrampRefEl) {
+            onrampRefEl.innerText = data.is_guest ? 'REGISTER_FOR_REF' : (data.deposit_ref || 'XPK-REF');
+        }
+
+        // Plan Expiry Tag / Pill
+        const tierExpiryEl = document.getElementById('tier-expiry');
+        if (tierExpiryEl) {
+            if (data.plan_expires_at && data.plan_expires_at > 0) {
+                const expDate = new Date(data.plan_expires_at * 1000);
+                tierExpiryEl.innerText = 'Valid until: ' + expDate.toLocaleDateString();
+                tierExpiryEl.style.display = 'inline-block';
+            } else {
+                tierExpiryEl.style.display = 'none';
+            }
+        }
+
+        // Update on-ramp fee calculator with currently selected or default amount
+        const onrampAmtInput = document.getElementById('onramp-amount-input');
+        if (onrampAmtInput) {
+            updateOnRampCalculation(onrampAmtInput.value || 29);
         }
 
         // Update code snippet box
@@ -502,24 +528,33 @@ async function pollFleetStatus() {
     }
 }
 
-// Deposit Tab Switcher (Solana vs Voucher)
-function toggleDepositTab(tab) {
-    const solanaTab = document.getElementById('tab-solana');
-    const voucherTab = document.getElementById('tab-voucher');
-    const solanaView = document.getElementById('deposit-view-solana');
-    const voucherView = document.getElementById('deposit-view-voucher');
+// ══════════════════════════════════════════════════════════
+//  UNIFIED 4-TAB PAYMENT CONTROLLER (Panel 3 & Modals)
+// ══════════════════════════════════════════════════════════
+function switchDashboardPaymentTab(tab) {
+    const tabs = ['solana', 'onramp', 'sellix', 'voucher'];
+    tabs.forEach(t => {
+        const tabBtn = document.getElementById(`tab-${t}`);
+        const viewEl = document.getElementById(`deposit-view-${t}`);
+        if (tabBtn) {
+            if (t === tab) tabBtn.classList.add('active');
+            else tabBtn.classList.remove('active');
+        }
+        if (viewEl) {
+            if (t === tab) viewEl.style.display = 'block';
+            else viewEl.style.display = 'none';
+        }
+    });
 
-    if (tab === 'solana') {
-        solanaTab.classList.add('active');
-        voucherTab.classList.remove('active');
-        solanaView.style.display = 'block';
-        voucherView.style.display = 'none';
-    } else {
-        voucherTab.classList.add('active');
-        solanaTab.classList.remove('active');
-        voucherView.style.display = 'block';
-        solanaView.style.display = 'none';
+    if (tab === 'onramp') {
+        const amtInput = document.getElementById('onramp-amount-input');
+        updateOnRampCalculation(amtInput ? amtInput.value : 29);
     }
+}
+
+// Backwards compatibility alias
+function toggleDepositTab(tab) {
+    switchDashboardPaymentTab(tab);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -752,18 +787,42 @@ async function verifyDeposit() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  VOUCHER REDEMPTION
+//  VOUCHER REDEMPTION & INSTANT PLAN UPGRADE
 // ══════════════════════════════════════════════════════════
-async function redeemVoucherCode() {
-    const code = document.getElementById('voucher-code-input').value.trim();
-    const msg = document.getElementById('deposit-msg');
+let isVoucherRedeeming = false;
+
+async function redeemVoucherCode(inputId = 'voucher-code-input', msgId = 'deposit-msg') {
+    if (isVoucherRedeeming) return;
+
+    const inputEl = document.getElementById(inputId);
+    const msg = document.getElementById(msgId);
+    if (!inputEl) return;
+    const code = inputEl.value.trim().toUpperCase();
 
     if (!code) {
         showToast('Please enter a voucher or gift code.', 'error');
         return;
     }
 
-    setStatusMessage(msg, 'Validating code...', '#b9bfe6');
+    isVoucherRedeeming = true;
+    inputEl.disabled = true;
+
+    // Disable associated trigger buttons
+    const targetBtns = Array.from(document.querySelectorAll(`button[onclick*="${inputId}"], button[onclick*="redeemVoucherCode"]`)).concat(
+        inputEl.parentElement ? Array.from(inputEl.parentElement.querySelectorAll('button')) : []
+    );
+    const uniqueBtns = Array.from(new Set(targetBtns));
+    uniqueBtns.forEach(btn => btn.disabled = true);
+
+    if (msg) {
+        msg.className = 'voucher-feedback-box loading';
+        msg.style.display = 'flex';
+        msg.innerHTML = `
+            <svg class="spin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+            <span>Validating voucher signature...</span>
+        `;
+    }
+
     try {
         const res = await fetch('/api/voucher/redeem', {
             method: 'POST',
@@ -773,19 +832,160 @@ async function redeemVoucherCode() {
         const data = await res.json();
 
         if (data.success) {
-            setStatusMessage(msg, data.message, '#f6b8c8');
-            document.getElementById('voucher-code-input').value = '';
-            loadUserProfile();
-            showToast(data.message, 'success');
+            inputEl.value = '';
+            const planUpgraded = data.plan ? String(data.plan).toUpperCase() : null;
+            const creditsAdded = Number(data.credits_added || 0).toLocaleString();
+            const duration = Number(data.duration_days || 30);
+            const slots = Number(data.concurrency_limit || 10);
+
+            let feedbackHtml = `
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <span style="font-size:16px;color:var(--text-ok);">✓</span>
+                    <div>
+                        <strong style="color:var(--text-ok);">Voucher Activated Successfully!</strong><br>
+                        ${planUpgraded ? `Upgraded to <strong style="color:#ffffff;">${planUpgraded}</strong> (${duration} days validity, ${slots} concurrent slots).<br>` : ''}
+                        <span>+${creditsAdded} solves credited to your account balance.</span>
+                    </div>
+                </div>
+            `;
+            if (msg) {
+                msg.className = 'voucher-feedback-box success';
+                msg.style.display = 'flex';
+                msg.innerHTML = feedbackHtml;
+            }
+            showToast(data.message || `+${creditsAdded} solves credited!`, 'success');
+            await loadUserProfile();
         } else {
-            setStatusMessage(msg, data.error, '#ff8a8a');
-            showToast(data.error, 'error');
+            const errMsg = data.detail || data.error || 'Failed to redeem voucher.';
+            if (msg) {
+                msg.className = 'voucher-feedback-box error';
+                msg.style.display = 'flex';
+                msg.innerHTML = `<span style="font-size:16px;color:var(--text-danger);">✕</span><span>${escapeHtml(errMsg)}</span>`;
+            }
+            showToast(errMsg, 'error');
         }
     } catch (e) {
-        msg.innerText = 'Network error: ' + e.message;
+        if (msg) {
+            msg.className = 'voucher-feedback-box error';
+            msg.style.display = 'flex';
+            msg.innerHTML = `<span style="font-size:16px;color:var(--text-danger);">✕</span><span>Network error: ${escapeHtml(e.message)}</span>`;
+        }
         showToast('Error validating voucher code.', 'error');
+    } finally {
+        isVoucherRedeeming = false;
+        inputEl.disabled = false;
+        uniqueBtns.forEach(btn => btn.disabled = false);
     }
 }
+
+// ══════════════════════════════════════════════════════════
+//  ON-RAMP & SELLIX CHECKOUT CONTROLLERS
+// ══════════════════════════════════════════════════════════
+function getOnRampProviderUrl(provider, amount) {
+    const wallet = (currentUser && currentUser.solana_wallet) || '6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u';
+    const memo = (currentUser && currentUser.deposit_ref) || 'XPK-REF';
+    const amt = parseFloat(amount) || 29;
+
+    if (provider === 'moonpay') {
+        return `https://buy.moonpay.com?currencyCode=usdt_sol&walletAddress=${encodeURIComponent(wallet)}&walletAddressTag=${encodeURIComponent(memo)}&quoteCurrencyAmount=${amt}`;
+    } else if (provider === 'paybis') {
+        return `https://paybis.com/?currencyCodeFrom=USD&currencyCodeTo=USDT-SOL&amountFrom=${amt}`;
+    } else if (provider === 'transak') {
+        return `https://global.transak.com?cryptoCurrencyCode=USDT&network=solana&walletAddress=${encodeURIComponent(wallet)}&fiatAmount=${amt}&walletAddressTag=${encodeURIComponent(memo)}`;
+    }
+    return '#';
+}
+
+function updateOnRampCalculation(amount) {
+    const amt = Math.max(1, parseFloat(amount) || 29);
+    const wallet = (currentUser && currentUser.solana_wallet) || '6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u';
+    const memo = (currentUser && currentUser.deposit_ref) || 'XPK-REF';
+
+    // Provider Fee Estimates:
+    const moonpayFee = Math.max(3.99, amt * 0.045);
+    const paybisFee = Math.max(2.00, amt * 0.0399);
+    const transakFee = Math.max(1.50, amt * 0.035);
+
+    const moonpayTotal = amt + moonpayFee;
+    const paybisTotal = amt + paybisFee;
+    const transakTotal = amt + transakFee;
+
+    const baseEl = document.getElementById('fee-base-amount');
+    if (baseEl) baseEl.innerText = `$${amt.toFixed(2)} USDT`;
+
+    const moonpayFeeEl = document.getElementById('fee-est-moonpay');
+    if (moonpayFeeEl) moonpayFeeEl.innerText = `~$${moonpayFee.toFixed(2)} (~$${moonpayTotal.toFixed(2)} total)`;
+
+    const paybisFeeEl = document.getElementById('fee-est-paybis');
+    if (paybisFeeEl) paybisFeeEl.innerText = `~$${paybisFee.toFixed(2)} (~$${paybisTotal.toFixed(2)} total)`;
+
+    const transakFeeEl = document.getElementById('fee-est-transak');
+    if (transakFeeEl) transakFeeEl.innerText = `~$${transakFee.toFixed(2)} (~$${transakTotal.toFixed(2)} total)`;
+
+    // Update buttons
+    const btnMoonpay = document.getElementById('btn-launch-moonpay');
+    if (btnMoonpay) btnMoonpay.href = getOnRampProviderUrl('moonpay', amt);
+
+    const btnPaybis = document.getElementById('btn-launch-paybis');
+    if (btnPaybis) btnPaybis.href = getOnRampProviderUrl('paybis', amt);
+
+    const btnTransak = document.getElementById('btn-launch-transak');
+    if (btnTransak) btnTransak.href = getOnRampProviderUrl('transak', amt);
+}
+
+function openSellixCheckout(planType, price) {
+    if (currentUser && currentUser.is_guest) {
+        showToast('⚠️ Guest Account: Please register or sign in first so Sellix webhook can credit your permanent account ID.', 'error');
+        const warning = document.getElementById('checkout-guest-warning') || document.getElementById('sellix-guest-warning');
+        if (warning) {
+            warning.style.display = 'flex';
+            warning.scrollIntoView({ behavior: 'smooth' });
+        }
+        return;
+    }
+    const userId = (currentUser && currentUser.id) || 0;
+    const planKey = (planType || 'starter').toLowerCase();
+    const sellixUrl = `https://xploit-unblocker.sellix.io/product/${encodeURIComponent(planKey)}?custom-user_id=${encodeURIComponent(userId)}&custom-plan_type=${encodeURIComponent(planKey)}`;
+    window.open(sellixUrl, '_blank', 'noopener,noreferrer');
+}
+
+function openOnRampModal(amount = 29, planName = 'Moderato ($29/mo)') {
+    const modal = document.getElementById('modal-onramp');
+    if (!modal) return;
+    const input = document.getElementById('onramp-amount-input');
+    if (input) input.value = amount;
+    const nameEl = document.getElementById('onramp-target-title');
+    if (nameEl) nameEl.innerText = planName;
+    updateOnRampCalculation(amount);
+    modal.classList.add('open');
+}
+
+function closeOnRampModal() {
+    const modal = document.getElementById('modal-onramp');
+    if (modal) modal.classList.remove('open');
+}
+
+function openVoucherModal() {
+    const modal = document.getElementById('modal-voucher-redeem');
+    if (modal) modal.classList.add('open');
+    const input = document.getElementById('modal-voucher-input');
+    if (input) setTimeout(() => input.focus(), 50);
+}
+
+function closeVoucherModal() {
+    const modal = document.getElementById('modal-voucher-redeem');
+    if (modal) modal.classList.remove('open');
+}
+
+// Global modal keyboard navigation (Escape to close, Enter to submit)
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeOnRampModal();
+        closeVoucherModal();
+        const openModals = document.querySelectorAll('.sovereign-modal-backdrop.open');
+        openModals.forEach(m => m.classList.remove('open'));
+    }
+});
 
 // ══════════════════════════════════════════════════════════
 //  CLIPBOARD & UTILITY HELPERS

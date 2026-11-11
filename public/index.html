@@ -439,6 +439,7 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span id="tier-badge" class="tier-badge tier-free">FREE</span>
+                            <span id="tier-expiry" class="badge-pill badge-green" style="display:none; font-size:11px;">Valid until: --</span>
                         </div>
                     </div>
 
@@ -528,7 +529,7 @@
                     </button>
                 </div>
 
-                <!-- PANEL 3: Solana Treasury Settlement & Vouchers -->
+                <!-- PANEL 3: Unified 4-Tab Sovereign Silk Settlement & Payments -->
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title-wrap">
@@ -539,20 +540,38 @@
                             </svg>
                             <h2>Settlement & Balances</h2>
                         </div>
+                        <a href="/plans/" class="status-badge-accent" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="View all plans and enterprise pricing">
+                            <span>Plans &amp; Pricing</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </a>
                     </div>
 
-                    <!-- Tabs for Solana vs Voucher -->
-                    <div class="sub-tab-bar">
-                        <button class="sub-tab active" id="tab-solana" onclick="toggleDepositTab('solana')">Solana USDT (SPL)</button>
-                        <button class="sub-tab" id="tab-voucher" onclick="toggleDepositTab('voucher')">Redeem Gift Voucher</button>
+                    <!-- 4-Tab Symmetrical Payment Selector -->
+                    <div class="payment-tabs-bar">
+                        <button class="payment-tab-btn active" id="tab-solana" onclick="switchDashboardPaymentTab('solana')" title="Solana SPL USDT Transfer">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path></svg>
+                            <span>Solana Direct</span>
+                        </button>
+                        <button class="payment-tab-btn" id="tab-onramp" onclick="switchDashboardPaymentTab('onramp')" title="Credit/Debit Card & Apple Pay On-Ramp">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                            <span>Card &amp; Apple Pay</span>
+                        </button>
+                        <button class="payment-tab-btn" id="tab-sellix" onclick="switchDashboardPaymentTab('sellix')" title="Sellix Hosted Gateway with Card & PayPal">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                            <span>Sellix Gateway</span>
+                        </button>
+                        <button class="payment-tab-btn" id="tab-voucher" onclick="switchDashboardPaymentTab('voucher')" title="Redeem Gift Voucher or Promotional Code">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg>
+                            <span>Redeem Voucher</span>
+                        </button>
                     </div>
 
-                    <!-- SOLANA TAB VIEW -->
-                    <div id="deposit-view-solana">
-                        <p class="panel-caption">Send USDT (SPL) to our official Solana treasury. Need 24/7 dedicated unblockers? <a href="/plans/" style="color:var(--text-accent); font-weight:600; text-decoration:underline;">View Plan Pricing</a></p>
+                    <!-- TAB 1: SOLANA DIRECT VIEW -->
+                    <div id="deposit-view-solana" class="payment-view-pane active">
+                        <p class="panel-caption">Instant on-chain settlement via Solana Mainnet (USDT SPL). Verifies in &lt;15 seconds with zero KYC holds.</p>
 
                         <div class="info-block">
-                            <div class="info-label">Solana treasury wallet</div>
+                            <div class="info-label">Official Solana Treasury Wallet</div>
                             <div class="info-content-row">
                                 <code id="solana-wallet-val">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
                                 <button class="field-btn" onclick="copySolanaWallet()" title="Copy wallet address">
@@ -565,7 +584,7 @@
                         </div>
 
                         <div class="info-block">
-                            <div class="info-label">Your unique deposit reference ID</div>
+                            <div class="info-label">Your Unique Deposit Reference Memo</div>
                             <div class="info-content-row">
                                 <code id="user-deposit-ref" class="text-accent">XPK-REF</code>
                                 <button class="field-btn" onclick="copyDepositRef()" title="Copy reference memo">
@@ -588,22 +607,179 @@
                         </div>
                     </div>
 
-                    <!-- VOUCHER TAB VIEW -->
-                    <div id="deposit-view-voucher" style="display: none;">
-                        <p class="panel-caption">Redeem a gift code or promotional voucher provided by administrators or boosters:</p>
-                        
+                    <!-- TAB 2: CREDIT / DEBIT CARD & APPLE PAY (ON-RAMP) VIEW -->
+                    <div id="deposit-view-onramp" class="payment-view-pane">
+                        <p class="panel-caption">Purchase USDT on Solana using your Credit Card, Debit Card, or Apple Pay via regulated on-ramps. Auto-settles to our treasury.</p>
+
+                        <!-- Amount Preset Selector -->
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+                            <span style="font-size:12px; color:var(--text-secondary); font-weight:600;">Plan Amount:</span>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button type="button" class="field-btn" onclick="document.getElementById('onramp-amount-input').value=9; updateOnRampCalculation(9);">Starter ($9)</button>
+                                <button type="button" class="field-btn" onclick="document.getElementById('onramp-amount-input').value=29; updateOnRampCalculation(29);">Moderato ($29)</button>
+                                <button type="button" class="field-btn" onclick="document.getElementById('onramp-amount-input').value=99; updateOnRampCalculation(99);">Vince ($99)</button>
+                            </div>
+                        </div>
+
+                        <div class="field-box" style="margin-bottom:14px;">
+                            <input type="number" id="onramp-amount-input" value="29" min="5" step="1" oninput="updateOnRampCalculation(this.value)" placeholder="USDT Amount">
+                            <span style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono); padding-right:10px;">USDT</span>
+                        </div>
+
+                        <!-- Provider Cards Grid -->
+                        <div class="onramp-providers-grid">
+                            <div class="onramp-provider-card">
+                                <div>
+                                    <div class="onramp-provider-head">
+                                        <span class="onramp-provider-name">MoonPay</span>
+                                        <span class="onramp-provider-fee">~4.5% Fee</span>
+                                    </div>
+                                    <div class="onramp-provider-desc">Cards, Apple Pay, Google Pay. Worldwide coverage.</div>
+                                </div>
+                                <div>
+                                    <div id="fee-est-moonpay" style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:8px;">~$3.99 fee</div>
+                                    <a id="btn-launch-moonpay" href="#" target="_blank" rel="noopener noreferrer" class="onramp-launch-btn" style="width:100%;">
+                                        <span>Buy on MoonPay</span>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="onramp-provider-card">
+                                <div>
+                                    <div class="onramp-provider-head">
+                                        <span class="onramp-provider-name">Paybis</span>
+                                        <span class="onramp-provider-fee">~3.99% Fee</span>
+                                    </div>
+                                    <div class="onramp-provider-desc">Credit/Debit cards, instant checkout, low fees.</div>
+                                </div>
+                                <div>
+                                    <div id="fee-est-paybis" style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:8px;">~$2.00 fee</div>
+                                    <a id="btn-launch-paybis" href="#" target="_blank" rel="noopener noreferrer" class="onramp-launch-btn" style="width:100%;">
+                                        <span>Buy on Paybis</span>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="onramp-provider-card">
+                                <div>
+                                    <div class="onramp-provider-head">
+                                        <span class="onramp-provider-name">Transak</span>
+                                        <span class="onramp-provider-fee">~3.5% Fee</span>
+                                    </div>
+                                    <div class="onramp-provider-desc">Direct Solana USDT on-ramp, bank transfer &amp; card.</div>
+                                </div>
+                                <div>
+                                    <div id="fee-est-transak" style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:8px;">~$1.50 fee</div>
+                                    <a id="btn-launch-transak" href="#" target="_blank" rel="noopener noreferrer" class="onramp-launch-btn" style="width:100%;">
+                                        <span>Buy on Transak</span>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- High-Visibility Memo Warning -->
+                        <div class="memo-callout-box">
+                            <div class="memo-callout-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                <span>CRITICAL: Enter Your Deposit Memo at Checkout</span>
+                            </div>
+                            <p class="memo-callout-desc">
+                                When prompted by MoonPay, Paybis, or Transak for a <strong>memo / wallet address tag</strong>, you MUST enter your unique reference ID below. Our Solana listener verifies this memo to immediately promote your account.
+                            </p>
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:#000000; padding:10px 14px; border-radius:8px; border:1px solid var(--border-hairline);">
+                                <div>
+                                    <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); text-transform:uppercase;">Required Memo</div>
+                                    <code id="onramp-deposit-ref" style="font-size:13px; font-weight:700; color:#ffffff;">XPK-REF</code>
+                                </div>
+                                <button class="field-btn" onclick="copyDepositRef()" title="Copy Memo">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy Memo</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: SELLIX HOSTED GATEWAY VIEW -->
+                    <div id="deposit-view-sellix" class="payment-view-pane">
+                        <p class="panel-caption">Pay with traditional payment methods via Sellix hosted gateway. Supports Credit/Debit Cards, PayPal, Cash App, and automated order webhooks.</p>
+
+                        <!-- Guest Alert Banner -->
+                        <div id="sellix-guest-warning" style="display:none; margin-bottom:14px; padding:12px 14px; border-radius:8px; background:rgba(255, 224, 168, 0.1); border:1px solid rgba(255, 224, 168, 0.35); font-size:12px; color:var(--text-amber); align-items:center; justify-content:space-between; gap:10px;">
+                            <span>⚠️ <strong>Guest Account:</strong> Please register or sign in first so Sellix webhooks can attach your subscription to your permanent account.</span>
+                            <a href="/login" class="btn-primary" style="padding:4px 10px; font-size:11px; text-decoration:none; white-space:nowrap;">Sign In</a>
+                        </div>
+
+                        <div class="sellix-grid-cards">
+                            <div class="sellix-plan-card">
+                                <div>
+                                    <div class="sellix-plan-name">Starter Plan</div>
+                                    <div class="sellix-plan-price">$9.00 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ month</span></div>
+                                    <div class="sellix-plan-features">
+                                        • 5,000 solves / month<br>
+                                        • 10 worker concurrency slots<br>
+                                        • Turnstile &amp; CAPTCHA solvers
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-sellix" onclick="openSellixCheckout('starter', 9)">
+                                    <span>Pay with Card / PayPal</span>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
+                            </div>
+
+                            <div class="sellix-plan-card" style="border-color: rgba(255, 255, 255, 0.22);">
+                                <div>
+                                    <div style="font-size:10px; color:var(--text-accent); font-weight:700; font-family:var(--font-mono); margin-bottom:4px;">MOST POPULAR • 6x VALUE</div>
+                                    <div class="sellix-plan-name">Moderato Plan</div>
+                                    <div class="sellix-plan-price">$29.00 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ month</span></div>
+                                    <div class="sellix-plan-features">
+                                        • 30,000 solves / month<br>
+                                        • 50 worker concurrency slots<br>
+                                        • Dedicated 24/7 fast runners
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-sellix" style="background:#ffffff; color:#000000;" onclick="openSellixCheckout('moderato', 29)">
+                                    <span>Pay with Card / PayPal</span>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
+                            </div>
+
+                            <div class="sellix-plan-card">
+                                <div>
+                                    <div class="sellix-plan-name">Vince Plan</div>
+                                    <div class="sellix-plan-price">$99.00 <span style="font-size:12px; font-weight:400; color:var(--text-muted);">/ month</span></div>
+                                    <div class="sellix-plan-features">
+                                        • 150,000 solves / month<br>
+                                        • 150+ worker concurrency slots<br>
+                                        • Dedicated residential proxies
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-sellix" onclick="openSellixCheckout('vince', 99)">
+                                    <span>Pay with Card / PayPal</span>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: REDEEM VOUCHER VIEW -->
+                    <div id="deposit-view-voucher" class="payment-view-pane">
+                        <p class="panel-caption">Redeem a subscription gift card or voucher code. Instantly upgrades your account tier, duration, concurrency slots, and solves balance.</p>
+
                         <div class="tx-input-group">
-                            <input type="text" id="voucher-code-input" placeholder="e.g. XPK-WELCOME-1000" spellcheck="false" autocomplete="off">
-                            <button class="btn-secondary" onclick="redeemVoucherCode()">
+                            <input type="text" id="voucher-code-input" placeholder="e.g. VOUCHER-MODERATO-XXXX" spellcheck="false" autocomplete="off" onkeydown="if(event.key==='Enter') redeemVoucherCode('voucher-code-input', 'deposit-msg');">
+                            <button class="btn-secondary" onclick="redeemVoucherCode('voucher-code-input', 'deposit-msg')">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
-                                <span>Claim Code</span>
+                                <span>Claim Voucher</span>
                             </button>
                         </div>
                     </div>
 
-                    <div id="deposit-msg" class="deposit-result-area"></div>
+                    <div id="deposit-msg" class="voucher-feedback-box"></div>
                 </div>
 
             </div>
@@ -629,6 +805,96 @@
             </div>
         </div>
     </footer>
+
+    <!-- SOVEREIGN SILK ON-RAMP CHECKOUT MODAL -->
+    <div id="modal-onramp" class="sovereign-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="onramp-modal-title">
+        <div class="sovereign-modal">
+            <div class="sovereign-modal-header">
+                <div class="sovereign-modal-title" id="onramp-modal-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                    <span>Card &amp; Apple Pay On-Ramp Checkout</span>
+                </div>
+                <button type="button" class="sovereign-modal-close" onclick="closeOnRampModal()" aria-label="Close dialog">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="sovereign-modal-body">
+                <div style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:4px; text-transform:uppercase;">Selected Activation Target</div>
+                <div id="onramp-target-title" style="font-size:16px; font-weight:700; color:#ffffff; margin-bottom:14px;">Moderato ($29/mo)</div>
+
+                <!-- Critical Memo Instruction -->
+                <div class="memo-callout-box" style="margin-bottom:14px;">
+                    <div class="memo-callout-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f6b8c8" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <span>Mandatory Transfer Memo</span>
+                    </div>
+                    <p class="memo-callout-desc">
+                        Paste this memo into the provider's <strong>transfer memo / wallet tag</strong> field. Our Solana listener verifies this memo to immediately promote your account.
+                    </p>
+                    <div style="display:flex; align-items:center; justify-content:space-between; background:#000000; padding:8px 12px; border-radius:6px; border:1px solid var(--border-hairline);">
+                        <code id="modal-onramp-memo" style="font-size:13px; font-weight:700; color:#ffffff;">XPK-REF</code>
+                        <button class="field-btn" onclick="copyDepositRef()">Copy Memo</button>
+                    </div>
+                </div>
+
+                <!-- Operator Wallet -->
+                <div class="info-block" style="margin-bottom:14px;">
+                    <div class="info-label">Solana Treasury Wallet (SPL USDT)</div>
+                    <div class="info-content-row">
+                        <code id="onramp-solana-wallet" style="font-size:11px;">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
+                        <button class="field-btn" onclick="copySolanaWallet()">Copy</button>
+                    </div>
+                </div>
+
+                <!-- Provider Launch Options -->
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <a id="modal-btn-moonpay" href="https://buy.moonpay.com" target="_blank" rel="noopener noreferrer" class="btn-sellix" style="justify-content:space-between;">
+                        <span style="font-weight:700;">MoonPay (Cards &amp; Apple Pay)</span>
+                        <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">~4.5% fee →</span>
+                    </a>
+                    <a id="modal-btn-paybis" href="https://paybis.com" target="_blank" rel="noopener noreferrer" class="btn-sellix" style="justify-content:space-between;">
+                        <span style="font-weight:700;">Paybis (Low Card Fees)</span>
+                        <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">~3.99% fee →</span>
+                    </a>
+                    <a id="modal-btn-transak" href="https://global.transak.com" target="_blank" rel="noopener noreferrer" class="btn-sellix" style="justify-content:space-between;">
+                        <span style="font-weight:700;">Transak (Global Bank &amp; Cards)</span>
+                        <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">~3.5% fee →</span>
+                    </a>
+                </div>
+            </div>
+            <div class="sovereign-modal-footer">
+                <button type="button" class="btn-sm-action" onclick="closeOnRampModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SOVEREIGN SILK VOUCHER REDEEM MODAL -->
+    <div id="modal-voucher-redeem" class="sovereign-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="voucher-modal-title">
+        <div class="sovereign-modal">
+            <div class="sovereign-modal-header">
+                <div class="sovereign-modal-title" id="voucher-modal-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg>
+                    <span>Redeem Voucher / Gift Card</span>
+                </div>
+                <button type="button" class="sovereign-modal-close" onclick="closeVoucherModal()" aria-label="Close dialog">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="sovereign-modal-body">
+                <p style="font-size:13px; color:var(--text-secondary); line-height:1.5; margin-bottom:14px;">
+                    Enter your voucher code or gift card code. Subscription plans will immediately upgrade your duration, concurrency slots, and solves balance.
+                </p>
+                <div class="field-box" style="margin-bottom:14px;">
+                    <input type="text" id="modal-voucher-input" placeholder="e.g. VOUCHER-MODERATO-XXXX" spellcheck="false" autocomplete="off" onkeydown="if(event.key==='Enter') redeemVoucherCode('modal-voucher-input', 'modal-voucher-msg');">
+                </div>
+                <div id="modal-voucher-msg" class="voucher-feedback-box"></div>
+            </div>
+            <div class="sovereign-modal-footer">
+                <button type="button" class="btn-sm-action" onclick="closeVoucherModal()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="redeemVoucherCode('modal-voucher-input', 'modal-voucher-msg')" style="padding:8px 18px;">Redeem Code</button>
+            </div>
+        </div>
+    </div>
 
     <script src="/static/app.js"></script>
     <script src="/static/fx.js" defer></script>

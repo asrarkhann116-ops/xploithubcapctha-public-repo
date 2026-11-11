@@ -5,6 +5,7 @@ import uuid
 import secrets
 import hmac
 import hashlib
+import json
 import aiohttp
 import ipaddress
 import urllib.parse
@@ -42,6 +43,11 @@ from core.db import (
     get_admin_overview,
     admin_adjust_user_credits,
     admin_create_voucher,
+    is_sellix_order_processed,
+    record_sellix_order,
+    log_webhook_dead_letter,
+    admin_batch_create_vouchers,
+    admin_set_user_plan,
     PLANS,
     FREE_DAILY_REQUESTS
 )
@@ -77,6 +83,7 @@ else:
     WORKER_SECRET = _env_worker_secret if _env_worker_secret and _env_worker_secret not in _INSECURE_SECRETS else (_env_worker_secret or secrets.token_hex(32))
 
 ADMIN_SECRET = os.getenv("ADMIN_SECRET")  # Set ONLY via Railway env var — never hardcoded
+SELLIX_WEBHOOK_SECRET = os.getenv("SELLIX_WEBHOOK_SECRET", "dev_sellix_secret")
 
 # In-memory task queue: pending tasks waiting for a worker
 task_queue = deque()
@@ -227,6 +234,15 @@ class AdminCreditAdjustRequest(BaseModel):
 class AdminVoucherCreateRequest(BaseModel):
     code: str = Field(..., min_length=3, max_length=64)
     credits: float = Field(..., gt=0)
+
+class AdminBatchVoucherCreateRequest(BaseModel):
+    count: int = 1
+    plan: Optional[str] = None
+    credits: float = 0.0
+    duration_days: int = 30
+    max_uses: int = 1
+    expires_in_days: int = 0
+    note: str = ""
 
 class CaptchaTokenSolveRequest(BaseModel):
     url: str
@@ -1370,6 +1386,163 @@ async def verify_deposit(req: DepositVerifyRequest, request: Request, response: 
         ))
     return res
 
+@app.get("/api/payment/on-ramp-config")
+async def get_on_ramp_config():
+    """Returns Solana treasury wallet and supported fiat on-ramp gateway providers."""
+    return {
+        "success": True,
+        "solana_wallet": SOLANA_WALLET,
+        "supported_providers": ["moonpay", "paybis", "transak"]
+    }
+
+@app.post("/api/webhooks/sellix")
+async def handle_sellix_webhook(
+    request: Request,
+    x_sellix_signature: Optional[str] = Header(None)
+):
+    raw_body = await request.body()
+    headers_dict = dict(request.headers)
+    headers_str = json.dumps(headers_dict)
+    payload_str = raw_body.decode("utf-8", errors="replace")
+
+    secret = SELLIX_WEBHOOK_SECRET or os.getenv("SELLIX_WEBHOOK_SECRET", "")
+    if not x_sellix_signature or not secret:
+        log_webhook_dead_letter("sellix", "", "", "Missing signature", payload_str, headers_str)
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing signature.")
+
+    expected_sig = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha512).hexdigest()
+    if not hmac.compare_digest(x_sellix_signature.lower(), expected_sig.lower()):
+        log_webhook_dead_letter("sellix", "", "", "Invalid signature", payload_str, headers_str)
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid signature.")
+
+    try:
+        data = json.loads(payload_str)
+    except Exception as e:
+        log_webhook_dead_letter("sellix", "", "", f"Malformed JSON: {e}", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail="Malformed JSON payload.")
+
+    if not isinstance(data, dict):
+        log_webhook_dead_letter("sellix", "", "", "Payload is not a JSON object", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail="Invalid JSON object.")
+
+    event = str(data.get("event", "") or "").strip()
+    order_data = data.get("data", {})
+    if not isinstance(order_data, dict):
+        log_webhook_dead_letter("sellix", event, "", "Order data is not an object", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail="Invalid order data.")
+
+    order_id = str(order_data.get("id") or order_data.get("uniqid") or data.get("id") or data.get("uniqid") or "").strip()
+    if not order_id:
+        log_webhook_dead_letter("sellix", event, "", "Missing order id", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail="Missing order id.")
+
+    # Filter supported events
+    if event not in ("order:paid", "order:completed"):
+        log_webhook_dead_letter("sellix", event, order_id, f"Unhandled event type: {event}", payload_str, headers_str)
+        return {"status": "skipped", "success": True, "message": f"Ignored event: {event}"}
+
+    # Idempotency check: if order already processed, return 200 without duplicate grant
+    if is_sellix_order_processed(order_id):
+        return {"status": "already_processed", "success": True, "message": "Order already processed"}
+
+    # Extract custom fields: support both dict and list of key-value objects
+    custom_fields_raw = order_data.get("custom_fields", {})
+    custom_fields = {}
+    if isinstance(custom_fields_raw, dict):
+        custom_fields = dict(custom_fields_raw)
+    elif isinstance(custom_fields_raw, list):
+        for item in custom_fields_raw:
+            if isinstance(item, dict):
+                k = item.get("name") or item.get("key")
+                v = item.get("value")
+                if k is not None:
+                    custom_fields[str(k).strip()] = v
+
+    user_id_raw = custom_fields.get("user_id")
+    plan_type_raw = custom_fields.get("plan_type")
+
+    if not user_id_raw or not plan_type_raw:
+        log_webhook_dead_letter("sellix", event, order_id, "Missing user_id or plan_type in custom_fields", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail="Missing user_id or plan_type in custom_fields.")
+
+    try:
+        user_id = int(user_id_raw)
+    except (ValueError, TypeError):
+        log_webhook_dead_letter("sellix", event, order_id, f"Invalid user_id: {user_id_raw}", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail="Invalid or non-existent user_id.")
+
+    user = get_user_by_id(user_id)
+    if not user:
+        log_webhook_dead_letter("sellix", event, order_id, f"Non-existent user_id: {user_id}", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail="Invalid or non-existent user_id.")
+
+    plan_key = str(plan_type_raw).strip().lower()
+    is_annual = bool(custom_fields.get("is_annual", False))
+    if plan_key.endswith("_annual"):
+        base_plan = plan_key.replace("_annual", "")
+        is_annual = True
+    else:
+        base_plan = plan_key
+
+    if base_plan not in PLANS:
+        log_webhook_dead_letter("sellix", event, order_id, f"Invalid plan_type: {plan_type_raw}", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail=f"Unknown plan_type: {plan_type_raw}")
+
+    # Determine duration_days
+    if "duration_days" in custom_fields:
+        try:
+            duration_days = int(custom_fields["duration_days"])
+        except (ValueError, TypeError):
+            duration_days = 365 if is_annual else 30
+    else:
+        duration_days = 365 if is_annual else 30
+
+    # Pricing validation: check paid amount >= expected plan price
+    total_paid = float(order_data.get("total", 0.0) or order_data.get("total_display", 0.0) or 0.0)
+    plan_cfg = PLANS[base_plan]
+    if is_annual or duration_days > 60:
+        expected_price = float(plan_cfg.get("price_annual", plan_cfg.get("price_monthly", plan_cfg.get("price", 0.0)) * 10))
+    else:
+        expected_price = float(plan_cfg.get("price_monthly", plan_cfg.get("price", 0.0)))
+
+    if total_paid < expected_price or total_paid <= 0:
+        log_webhook_dead_letter("sellix", event, order_id, f"Underpaid amount: {total_paid} < {expected_price}", payload_str, headers_str)
+        raise HTTPException(status_code=400, detail=f"Insufficient or counterfeit payment amount: {total_paid} < {expected_price}")
+
+    # Record order idempotently in sellix_orders
+    currency = str(order_data.get("currency", "USD"))
+    status = str(order_data.get("status", "completed"))
+    recorded = record_sellix_order(
+        order_id=order_id,
+        user_id=user_id,
+        plan_type=base_plan,
+        amount=total_paid,
+        currency=currency,
+        event=event,
+        status=status,
+        raw_payload=payload_str
+    )
+    if not recorded:
+        return {"status": "already_processed", "success": True, "message": "Order already processed"}
+
+    # Atomically invoke admin_set_user_plan
+    plan_res = admin_set_user_plan(
+        user_id=user_id,
+        plan=base_plan,
+        duration_days=duration_days,
+        add_credits=True
+    )
+
+    return {
+        "success": True,
+        "status": "completed",
+        "order_id": order_id,
+        "plan": base_plan,
+        "plan_granted": base_plan,
+        "plan_result": plan_res,
+        "message": f"Successfully activated {base_plan} plan."
+    }
+
 @app.post("/api/voucher/redeem")
 async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request, response: Response):
     user = get_or_create_session_user(request, response)
@@ -1379,7 +1552,15 @@ async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request, r
     res = redeem_voucher(req.code, user["id"], ip=client_ip)
     if not res.get("success"):
         raise HTTPException(status_code=400, detail=res.get("error"))
-    return res
+    return {
+        **res,
+        "plan": res.get("plan", "none"),
+        "duration_days": res.get("duration_days", 0),
+        "concurrency_limit": res.get("concurrency_limit", 3),
+        "credits_added": res.get("credits_added", 0.0),
+        "msg": res.get("msg", res.get("message", "Voucher redeemed successfully")),
+        "message": res.get("message", res.get("msg", "Voucher redeemed successfully"))
+    }
 
 @app.get("/api/analytics/metrics")
 async def platform_analytics_metrics(days: int = 7):
@@ -1467,6 +1648,53 @@ async def admin_create_voucher_api(
     if not res.get("success"):
         raise HTTPException(status_code=400, detail=res.get("error"))
     return res
+
+@app.post("/api/admin/vouchers/batch-create")
+async def admin_batch_create_vouchers_api(
+    req: AdminBatchVoucherCreateRequest,
+    x_admin_key: Optional[str] = Header(None)
+):
+    verify_admin_key(x_admin_key)
+    if req.count < 1 or req.count > 100:
+        raise HTTPException(status_code=400, detail="Count must be between 1 and 100.")
+    vouchers = admin_batch_create_vouchers(
+        count=req.count,
+        plan=req.plan,
+        credits=req.credits,
+        duration_days=req.duration_days,
+        max_uses=req.max_uses,
+        expires_in_days=req.expires_in_days,
+        note=req.note
+    )
+    return {
+        "success": True,
+        "count": len(vouchers),
+        "vouchers": vouchers
+    }
+
+@app.get("/api/admin/webhooks/dead-letter")
+async def admin_get_webhook_dead_letters(
+    limit: int = 50,
+    x_admin_key: Optional[str] = Header(None)
+):
+    verify_admin_key(x_admin_key)
+    limit = max(1, min(100, limit))
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, gateway, event_type, order_id, reason, payload, headers, created_at "
+        "FROM webhook_dead_letter_logs ORDER BY id DESC LIMIT ?",
+        (limit,)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    dead_letters = [dict(r) for r in rows]
+    return {
+        "success": True,
+        "count": len(dead_letters),
+        "dead_letters": dead_letters,
+        "logs": dead_letters
+    }
 
 
 # ── Announcement Pydantic models ──────────────────────────────────────────
