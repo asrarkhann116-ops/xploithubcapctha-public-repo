@@ -33,7 +33,10 @@ function showToast(message, type = 'info') {
         iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fd8ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
     }
 
-    toast.innerHTML = `${iconSvg}<span>${message}</span>`;
+    toast.innerHTML = iconSvg;
+    const msgSpan = document.createElement('span');
+    msgSpan.textContent = message;
+    toast.appendChild(msgSpan);
     container.appendChild(toast);
 
     setTimeout(() => {
@@ -556,13 +559,13 @@ async function executeScrape() {
             metricLatency.innerText = `${duration} ms`;
             metricBypass.innerText = 'FAILED';
             consoleOutput.innerHTML = `<code>// ERROR: Challenge resolution failed
-// Response: ${data.error || 'Challenge timeout or target refused'}</code>`;
+// Response: ${escapeHtml(data.error || 'Challenge timeout or target refused')}</code>`;
             showToast(data.error || 'Bypass failed on target URL.', 'error');
         }
     } catch (err) {
         metricStatus.className = 'cell-val status-err';
         metricStatus.innerText = 'Network Error';
-        consoleOutput.innerHTML = `<code>// Network Error: ${err.message}</code>`;
+        consoleOutput.innerHTML = `<code>// Network Error: ${escapeHtml(err.message)}</code>`;
         showToast('Network error contacting backend.', 'error');
     } finally {
         btn.disabled = false;
@@ -608,7 +611,22 @@ function renderConsoleOutput() {
 }
 
 function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function setStatusMessage(el, text, color = '#f6b8c8', fontWeight = '600') {
+    if (!el) return;
+    const span = document.createElement('span');
+    span.style.color = color;
+    span.style.fontWeight = fontWeight;
+    span.textContent = text || '';
+    el.replaceChildren(span);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -627,10 +645,10 @@ async function verifyPromo() {
         const data = await res.json();
 
         if (data.success) {
-            msg.innerHTML = `<span style="color: #f6b8c8; font-weight: 600;">${data.message}</span>`;
+            setStatusMessage(msg, data.message, '#f6b8c8');
             showToast(data.message, 'success');
         } else {
-            msg.innerHTML = `<span style="color: #ffe0a8; font-weight: 600;">${data.message}</span>`;
+            setStatusMessage(msg, data.message, '#ffe0a8');
             showToast(data.message, 'error');
         }
         loadUserProfile();
@@ -654,7 +672,7 @@ async function verifyDeposit() {
         return;
     }
 
-    msg.innerHTML = '<span style="color: #b9bfe6;">Verifying confirmation on Solana mainnet RPC...</span>';
+    setStatusMessage(msg, 'Verifying confirmation on Solana mainnet RPC...', '#b9bfe6');
     try {
         const res = await fetch('/api/deposit/verify', {
             method: 'POST',
@@ -664,12 +682,12 @@ async function verifyDeposit() {
         const data = await res.json();
 
         if (data.success) {
-            msg.innerHTML = `<span style="color: #f6b8c8; font-weight: 600;">${data.message}</span>`;
+            setStatusMessage(msg, data.message, '#f6b8c8');
             document.getElementById('tx-hash-input').value = '';
             loadUserProfile();
             showToast(data.message, 'success');
         } else {
-            msg.innerHTML = `<span style="color: #ff8a8a; font-weight: 600;">${data.error}</span>`;
+            setStatusMessage(msg, data.error, '#ff8a8a');
             showToast(data.error, 'error');
         }
     } catch (e) {
@@ -690,7 +708,7 @@ async function redeemVoucherCode() {
         return;
     }
 
-    msg.innerHTML = '<span style="color: #b9bfe6;">Validating code...</span>';
+    setStatusMessage(msg, 'Validating code...', '#b9bfe6');
     try {
         const res = await fetch('/api/voucher/redeem', {
             method: 'POST',
@@ -700,12 +718,12 @@ async function redeemVoucherCode() {
         const data = await res.json();
 
         if (data.success) {
-            msg.innerHTML = `<span style="color: #f6b8c8; font-weight: 600;">${data.message}</span>`;
+            setStatusMessage(msg, data.message, '#f6b8c8');
             document.getElementById('voucher-code-input').value = '';
             loadUserProfile();
             showToast(data.message, 'success');
         } else {
-            msg.innerHTML = `<span style="color: #ff8a8a; font-weight: 600;">${data.error}</span>`;
+            setStatusMessage(msg, data.error, '#ff8a8a');
             showToast(data.error, 'error');
         }
     } catch (e) {

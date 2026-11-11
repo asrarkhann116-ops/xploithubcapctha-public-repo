@@ -65,6 +65,7 @@ def unlock_fast_tls(
         duration_ms = int((time.time() - start) * 1000)
 
         text = response.text
+        text_lower = text.lower()
         # Check if actual Cloudflare challenge or block wall is returned
         is_challenge = False
         if response.status_code in (403, 503):
@@ -341,11 +342,35 @@ def execute_unblock(
     """
     Smart Dual-Tier Dispatcher:
     Tries Fast-TLS first (50ms). If Cloudflare challenge detected, escalates to CDP Stealth.
+    Safely handles headless/container environments where local browser CDP is unavailable.
     """
     if not force_cdp:
         res = unlock_fast_tls(url, proxy=proxy, method=method, headers=headers, body=body)
         if res.get("success"):
             return res
+        if res.get("needs_cdp"):
+            is_headless = (
+                (os.name != "nt" and not os.environ.get("DISPLAY"))
+                or bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+                or bool(os.environ.get("RENDER"))
+                or bool(os.environ.get("NO_LOCAL_CDP"))
+                or bool(os.environ.get("CONTAINER"))
+            )
+            if is_headless:
+                return {
+                    "success": False,
+                    "needs_cdp": True,
+                    "error": "CDP execution required",
+                    "status_code": res.get("status_code", 403),
+                    "duration_ms": res.get("duration_ms", 0)
+                }
 
-    return unlock_cdp(url, proxy=proxy, method=method, headers=headers, body=body)
+    try:
+        return unlock_cdp(url, proxy=proxy, method=method, headers=headers, body=body)
+    except Exception as e:
+        return {
+            "success": False,
+            "needs_cdp": True,
+            "error": f"CDP execution failed: {str(e)}"
+        }
 

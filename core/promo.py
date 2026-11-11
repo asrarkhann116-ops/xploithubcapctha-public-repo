@@ -66,17 +66,20 @@ async def fetch_discord_member_profile(user_id: str, access_token: str = "") -> 
 
 async def verify_user_promo(user_id: str, db_user_id: int, client_ip: str = "") -> Dict[str, Any]:
     """
-    Verifies promo status with full anti-cheat enforcement:
+    Verifies promo status with anti-cheat enforcement:
     - Verifies IP has not claimed promo on another account.
     - Inspects live Custom Status and Profile notes for the server invite.
-    - Grants +500 credits if valid.
-    - Enforces 5-hour timeout only upon verified removal.
+    - Grants credits atomically to prevent double-claim race conditions.
+    - Enforces 5-hour timeout upon verified removal.
     """
     db_user = get_user_by_id(db_user_id) or get_user_by_discord_id(user_id)
+    if not db_user:
+        return {"success": False, "error": "User record not found", "message": "User record not found"}
+
     now = int(time.time())
     
     # 1. Check if currently in penalty timeout
-    if db_user and db_user.get("timeout_until", 0) > now:
+    if db_user.get("timeout_until", 0) > now:
         remaining_mins = (db_user["timeout_until"] - now) // 60
         return {
             "success": False,
@@ -86,29 +89,40 @@ async def verify_user_promo(user_id: str, db_user_id: int, client_ip: str = "") 
         }
 
     # 2. Anti-Cheat: Check if this IP address already claimed promo credits on another account
-    if client_ip and check_promo_ip_claimed(client_ip) and not db_user.get("has_promo"):
-        return {
-            "success": False,
-            "message": f"🚨 Anti-Abuse Block: The +{FREE_CREDITS:,.0f} free Discord reward has already been claimed from your IP address ({client_ip}). Max 1 promo claim per household/network is permitted."
-        }
+    if client_ip and client_ip not in ("127.0.0.1", "::1", "localhost"):
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id FROM users WHERE (created_ip = ? OR last_ip = ?) AND has_promo = 1 AND id != ?",
+            (client_ip, client_ip, db_user_id)
+        )
+        ip_conflict = cur.fetchone()
+        conn.close()
+
+        if (ip_conflict or check_promo_ip_claimed(client_ip)) and not db_user.get("has_promo"):
+            return {
+                "success": False,
+                "error": "IP address already claimed promo credits on another account",
+                "message": f"🚨 Anti-Abuse Block: The +{FREE_CREDITS:,.0f} free Discord reward has already been claimed from your IP address ({client_ip}). Max 1 promo claim per household/network is permitted."
+            }
 
     # 3. Check if this Discord ID was already used by another account in DB
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT id FROM users WHERE discord_id = ? AND has_promo = 1 AND id != ?", (user_id, db_user_id))
     duplicate_discord = cur.fetchone()
+    conn.close()
     if duplicate_discord:
-        conn.close()
         return {
             "success": False,
+            "error": "Discord account already used to claim promo",
             "message": "🚨 Anti-Abuse Block: This Discord account has already been used to claim promo credits on another account."
         }
 
-    access_token = db_user.get("discord_token", "") if db_user else ""
+    access_token = db_user.get("discord_token", "")
     is_member, status, notes, nick = await fetch_discord_member_profile(user_id, access_token=access_token)
     
     if not is_member:
-        conn.close()
         return {
             "success": False,
             "message": f"❌ You must be a member of our Discord server! Join here: https://{PROMO_DISPLAY_LINK}"
@@ -119,17 +133,37 @@ async def verify_user_promo(user_id: str, db_user_id: int, client_ip: str = "") 
     
     if has_link:
         if not db_user.get("has_promo"):
-            # First-time claim: Grant free credits!
-            add_credit(db_user_id, FREE_CREDITS)
-            cur.execute("UPDATE users SET has_promo = 1, promo_last_verified = ? WHERE id = ?", (now, db_user_id))
+            # First-time claim: Grant free credits atomically to prevent concurrency race conditions
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE users SET credits = credits + ?, has_promo = 1, promo_last_verified = ?, last_ip = COALESCE(NULLIF(?, ''), last_ip) WHERE id = ? AND has_promo = 0",
+                (FREE_CREDITS, now, client_ip or "", db_user_id)
+            )
             conn.commit()
+            rows_updated = cur.rowcount
             conn.close()
-            return {
-                "success": True,
-                "credits_granted": FREE_CREDITS,
-                "message": f"🎉 Verified! '{PROMO_DISPLAY_LINK}' detected in your Discord profile. +{FREE_CREDITS:,.0f} Free Solve Credits granted!"
-            }
+
+            if rows_updated > 0:
+                return {
+                    "success": True,
+                    "credits_granted": FREE_CREDITS,
+                    "message": f"🎉 Verified! '{PROMO_DISPLAY_LINK}' detected in your Discord profile. +{FREE_CREDITS:,.0f} Free Solve Credits granted!"
+                }
+            else:
+                conn = get_db()
+                cur = conn.cursor()
+                cur.execute("UPDATE users SET promo_last_verified = ? WHERE id = ?", (now, db_user_id))
+                conn.commit()
+                conn.close()
+                return {
+                    "success": True,
+                    "credits_granted": 0,
+                    "message": "✅ Promo link is active and verified in your Discord profile! Active promo status confirmed. 💖"
+                }
         else:
+            conn = get_db()
+            cur = conn.cursor()
             cur.execute("UPDATE users SET promo_last_verified = ? WHERE id = ?", (now, db_user_id))
             conn.commit()
             conn.close()
@@ -143,14 +177,12 @@ async def verify_user_promo(user_id: str, db_user_id: int, client_ip: str = "") 
         if db_user.get("has_promo"):
             # Confirmed removal after previous grant: Trigger 5 hours timeout
             set_user_timeout(db_user_id, hours=TIMEOUT_HOURS)
-            conn.close()
             return {
                 "success": False,
                 "timed_out": True,
                 "message": f"🚨 VIOLATION DETECTED! You removed '{PROMO_DISPLAY_LINK}' from your profile. 5 HOURS TIMEOUT ENFORCED! 💀"
             }
         
-        conn.close()
         return {
             "success": False,
             "message": f"❌ Promo link not found! Put '{PROMO_DISPLAY_LINK}' in your Discord 'Custom Status' or 'About Me' (Bio) or Server Nickname, then click verify."

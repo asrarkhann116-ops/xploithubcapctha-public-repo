@@ -1,4 +1,6 @@
+import os
 import time
+import ipaddress
 from collections import defaultdict
 from typing import Tuple, Dict, Any, Optional
 from fastapi import Request
@@ -14,35 +16,71 @@ MAX_ACCOUNTS_PER_IP = 2
 MAX_GUEST_PER_IP_HOURS = 24
 VOUCHER_ATTEMPT_LIMIT = 5  # Max 5 attempts in 5 minutes per IP
 
+TRUSTED_PROXIES = {"127.0.0.1", "::1", "localhost", "testclient"}
+_env_trusted = os.getenv("TRUSTED_PROXIES", "")
+if _env_trusted:
+    for _p in _env_trusted.split(","):
+        if _p.strip():
+            TRUSTED_PROXIES.add(_p.strip())
+
+def _is_trusted_proxy(host: Optional[str]) -> bool:
+    if not host:
+        return False
+    if host in TRUSTED_PROXIES:
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+        return ip.is_loopback
+    except ValueError:
+        return False
+
+def _sanitize_ip(candidate: Optional[str]) -> Optional[str]:
+    if not candidate:
+        return None
+    raw = candidate.strip()
+    try:
+        return str(ipaddress.ip_address(raw))
+    except ValueError:
+        return None
+
 def get_client_ip(request: Request) -> str:
     """
-    Extracts the true client IP address, prioritizing Cloudflare & trusted proxy headers.
+    Extracts the true client IP address.
+    Only trusts proxy headers (CF-Connecting-IP, X-Forwarded-For, etc.) if the direct peer
+    (request.client.host) matches trusted proxy addresses (e.g. 127.0.0.1, reverse proxies).
     """
-    # 1. Cloudflare
-    cf_ip = request.headers.get("cf-connecting-ip")
-    if cf_ip:
-        return cf_ip.strip()
-    
-    # 2. True-Client-IP
-    true_ip = request.headers.get("true-client-ip")
-    if true_ip:
-        return true_ip.strip()
+    direct_host = request.client.host if request.client else None
 
-    # 3. X-Forwarded-For (client is the leftmost non-internal IP)
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        parts = [p.strip() for p in xff.split(",") if p.strip()]
-        if parts:
-            return parts[0]
+    # Only inspect forwarding headers if the immediate connection is from a trusted proxy
+    if _is_trusted_proxy(direct_host):
+        # 1. Cloudflare
+        cf_ip = _sanitize_ip(request.headers.get("cf-connecting-ip"))
+        if cf_ip:
+            return cf_ip
 
-    # 4. X-Real-IP
-    x_real = request.headers.get("x-real-ip")
-    if x_real:
-        return x_real.strip()
+        # 2. True-Client-IP
+        true_ip = _sanitize_ip(request.headers.get("true-client-ip"))
+        if true_ip:
+            return true_ip
 
-    # 5. Socket client
-    if request.client and request.client.host:
-        return request.client.host
+        # 3. X-Forwarded-For (client is the leftmost non-internal IP)
+        xff = request.headers.get("x-forwarded-for")
+        if xff:
+            parts = [p.strip() for p in xff.split(",") if p.strip()]
+            for part in parts:
+                sanitized = _sanitize_ip(part)
+                if sanitized:
+                    return sanitized
+
+        # 4. X-Real-IP
+        x_real = _sanitize_ip(request.headers.get("x-real-ip"))
+        if x_real:
+            return x_real
+
+    # Direct client connection (or direct host if untrusted proxy)
+    if direct_host:
+        sanitized_direct = _sanitize_ip(direct_host)
+        return sanitized_direct or direct_host
 
     return "127.0.0.1"
 

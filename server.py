@@ -6,6 +6,9 @@ import secrets
 import hmac
 import hashlib
 import aiohttp
+import ipaddress
+import urllib.parse
+import socket
 from typing import Optional, Any, Dict, List, Union
 from collections import deque
 from fastapi import FastAPI, Header, Query, HTTPException, Request, Response, Depends
@@ -52,10 +55,27 @@ from core.anti_abuse import (
     record_failed_login,
     clear_failed_logins
 )
-from core.turnstile import verify_turnstile_token
+from core.turnstile import verify_turnstile_token, TURNSTILE_SECRET_KEY
+from core.security_guard import validate_safe_url
 
-# Worker secret key for GitHub Actions runners to authenticate
-WORKER_SECRET = os.getenv("WORKER_SECRET", "xpk-worker-default-secret")
+# Secrets configuration & elimination of static default fallbacks
+_INSECURE_SECRETS = {
+    "xpk-worker-default-secret",
+    "xpk-secure-session-key-sign-2026-prod",
+    "secret",
+    "password",
+    "admin"
+}
+_is_production = os.getenv("ENVIRONMENT", "").lower() == "production" or bool(os.getenv("RAILWAY_ENVIRONMENT"))
+
+_env_worker_secret = os.getenv("WORKER_SECRET")
+if _is_production:
+    if not _env_worker_secret or _env_worker_secret in _INSECURE_SECRETS:
+        raise RuntimeError("Production security violation: WORKER_SECRET must be explicitly configured with a non-default secret.")
+    WORKER_SECRET = _env_worker_secret
+else:
+    WORKER_SECRET = _env_worker_secret if _env_worker_secret and _env_worker_secret not in _INSECURE_SECRETS else (_env_worker_secret or secrets.token_hex(32))
+
 ADMIN_SECRET = os.getenv("ADMIN_SECRET")  # Set ONLY via Railway env var — never hardcoded
 
 # In-memory task queue: pending tasks waiting for a worker
@@ -76,6 +96,19 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None
 )
+
+def validate_target_url(url: str, field_name: str = "URL") -> str:
+    """
+    Validates target scrape URLs and webhook URLs against SSRF, file access, loopback, and metadata exfiltration.
+    Delegates directly to core.security_guard.validate_safe_url for strict IP/scheme/encoding checks.
+    """
+    try:
+        return validate_safe_url(url, field_name=field_name)
+    except ValueError as err:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid or restricted target URL: {err}"
+        )
 
 # ── Discord status & showcase integration ───────────────────────────────────
 from core.discord_webhook import (
@@ -120,7 +153,6 @@ if env_origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^https://.*(\.railway\.app|\.onrender\.com)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -283,7 +315,7 @@ def authenticate_api_key(
             key = authorization.strip()
 
     # Admin key (from Railway env only) — bypasses all limits
-    if key and ADMIN_SECRET and key == ADMIN_SECRET:
+    if key and ADMIN_SECRET and hmac.compare_digest(key, ADMIN_SECRET):
         return _ADMIN_USER
 
     user = None
@@ -332,7 +364,13 @@ def authenticate_api_key(
     return user
 
 # Cryptographic Session Cookie Security (HMAC-SHA256)
-SESSION_SECRET = os.getenv("SESSION_SECRET") or os.getenv("ADMIN_SECRET") or "xpk-secure-session-key-sign-2026-prod"
+_env_session_secret = os.getenv("SESSION_SECRET") or os.getenv("ADMIN_SECRET")
+if _is_production:
+    if not _env_session_secret or _env_session_secret in _INSECURE_SECRETS:
+        raise RuntimeError("Production security violation: SESSION_SECRET must be explicitly configured with a non-default secret.")
+    SESSION_SECRET = _env_session_secret
+else:
+    SESSION_SECRET = _env_session_secret if _env_session_secret and _env_session_secret not in _INSECURE_SECRETS else secrets.token_hex(32)
 
 def sign_session_uid(uid: int) -> str:
     """Cryptographically sign a user ID with HMAC-SHA256 to prevent cookie-forgery IDOR."""
@@ -424,13 +462,14 @@ async def dispatch_to_worker(
     method: str = "GET",
     headers: dict = None,
     body: Any = None,
-    timeout: int = 35
+    timeout: int = 35,
+    priority: bool = False
 ):
     """Push a task onto the queue and wait for a worker to complete it."""
     task_id = str(uuid.uuid4())[:12]
     event = asyncio.Event()
     task_events[task_id] = event
-    task_queue.append({
+    item = {
         "task_id": task_id,
         "url": url,
         "mode": mode,
@@ -439,12 +478,23 @@ async def dispatch_to_worker(
         "method": method,
         "headers": headers,
         "body": body,
-    })
+    }
+    if priority:
+        task_queue.appendleft(item)
+    else:
+        task_queue.append(item)
     try:
         await asyncio.wait_for(event.wait(), timeout=timeout)
     except asyncio.TimeoutError:
         task_events.pop(task_id, None)
         task_results.pop(task_id, None)
+        for q_item in list(task_queue):
+            if q_item.get("task_id") == task_id:
+                try:
+                    task_queue.remove(q_item)
+                except ValueError:
+                    pass
+                break
         return None
     result = task_results.pop(task_id, None)
     task_events.pop(task_id, None)
@@ -469,6 +519,9 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
             detail="Insufficient solve credits. Your plan allocation is exhausted. Please upgrade or top up to continue unlocking."
         )
 
+    # SSRF & protocol defense
+    req.url = validate_target_url(req.url, "target URL")
+
     plan_meta = get_user_plan_meta(user)
     concurrency_limit = int(user.get("concurrency_limit") or plan_meta.get("concurrency", 3))
     current_active = active_user_concurrency.get(user_id, 0)
@@ -484,6 +537,7 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
 
     try:
         # If remote workers are online, dispatch heavy CDP tasks to them
+        is_vip_plan = plan_meta.get("id") in ("vince", "enterprise", "moderato")
         if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto", "cdp")):
             result = await dispatch_to_worker(
                 url=req.url,
@@ -492,7 +546,8 @@ async def unlock_endpoint(req: UnlockRequest, user = Depends(authenticate_api_ke
                 proxy=req.proxy,
                 method=req.method or "GET",
                 headers=req.headers,
-                body=req.body
+                body=req.body,
+                priority=is_vip_plan
             )
             if result and result.get("success"):
                 duration_ms = int((time.time() - start_time) * 1000)
@@ -666,6 +721,7 @@ async def solve_captcha_token_endpoint(
     Dedicated Captcha Token Solver API (CapSolver / 2Captcha alternative).
     Solves Cloudflare Turnstile, hCaptcha, and reCAPTCHA, and returns the verified token string.
     """
+    req.url = validate_target_url(req.url, "target URL")
     user_id = user["id"]
     start_time = time.time()
 
@@ -725,14 +781,35 @@ async def solve_captcha_token_endpoint(
             "duration_ms": duration_ms
         })
 
+def cleanup_stale_tasks(ttl_seconds: int = 3600):
+    """Evicts expired async tasks and unreferenced worker results to prevent memory leaks."""
+    now = int(time.time())
+    expired_ids = [
+        tid for tid, tinfo in async_tasks.items()
+        if now - tinfo.get("created_at", now) > ttl_seconds
+    ]
+    for tid in expired_ids:
+        async_tasks.pop(tid, None)
+
+    # Bound cache size to at most 1,000 tasks
+    if len(async_tasks) > 1000:
+        sorted_keys = sorted(async_tasks.keys(), key=lambda k: async_tasks[k].get("created_at", 0))
+        for k in sorted_keys[: len(async_tasks) - 1000]:
+            async_tasks.pop(k, None)
+
+    # Evict unreferenced task_results where no event is waiting
+    for tid in list(task_results.keys()):
+        if tid not in task_events:
+            task_results.pop(tid, None)
+
 # ── Background Task Runner for Async Scrapes ───────────
 async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int):
     """Processes an async unblock task in the background, updates status, and triggers webhook."""
-    async_tasks[task_id]["status"] = "processing"
-    start_time = time.time()
-    force_cdp = req.force_cdp or (req.mode == "stealth")
-
     try:
+        async_tasks[task_id]["status"] = "processing"
+        start_time = time.time()
+        force_cdp = req.force_cdp or (req.mode == "stealth")
+
         result = None
         # Try worker dispatch first if available
         if has_active_workers() and (force_cdp or req.mode in ("stealth", "auto")):
@@ -797,6 +874,8 @@ async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int
             "completed_at": int(time.time()),
             "error": str(e)
         })
+    finally:
+        active_user_concurrency[user_id] = max(0, active_user_concurrency.get(user_id, 1) - 1)
 
     # Webhook Callback if provided
     if req.webhook_url:
@@ -814,13 +893,38 @@ async def process_async_task(task_id: str, req: AsyncUnlockRequest, user_id: int
 @app.post("/v1/unlock/async", status_code=202)
 async def unlock_async_endpoint(req: AsyncUnlockRequest, user = Depends(authenticate_api_key)):
     """
-    Submits an unblock job asynchronously.
+    Submits an unblock job asynchronously with concurrency limits and SSRF filtering.
     Returns task_id immediately. Client can poll /v1/tasks/{task_id} or receive webhook POST.
     """
+    user_id = user["id"]
+    if float(user.get("credits", 0) or 0) < 1.0:
+        raise HTTPException(
+            status_code=402,
+            detail="Insufficient solve credits. Your plan allocation is exhausted. Please upgrade or top up to continue unlocking."
+        )
+
+    # SSRF & URL filtering
+    req.url = validate_target_url(req.url, "target URL")
+    if req.webhook_url:
+        req.webhook_url = validate_target_url(req.webhook_url, "webhook URL")
+
+    # Enforce concurrency limits (matching synchronous /v1/unlock)
+    plan_meta = get_user_plan_meta(user)
+    concurrency_limit = int(user.get("concurrency_limit") or plan_meta.get("concurrency", 3))
+    current_active = active_user_concurrency.get(user_id, 0)
+    if current_active >= concurrency_limit:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Concurrency limit reached ({current_active}/{concurrency_limit} active slots for {plan_meta['name']} plan). Please wait for active jobs to finish or upgrade plan."
+        )
+
+    active_user_concurrency[user_id] = current_active + 1
+    cleanup_stale_tasks()
+
     task_id = f"task_{uuid.uuid4().hex[:16]}"
     async_tasks[task_id] = {
         "task_id": task_id,
-        "user_id": user["id"],
+        "user_id": user_id,
         "url": req.url,
         "mode": req.mode,
         "status": "queued",
@@ -831,7 +935,7 @@ async def unlock_async_endpoint(req: AsyncUnlockRequest, user = Depends(authenti
     }
 
     # Launch background worker
-    asyncio.create_task(process_async_task(task_id, req, user["id"]))
+    asyncio.create_task(process_async_task(task_id, req, user_id))
 
     return {
         "success": True,
@@ -844,6 +948,7 @@ async def unlock_async_endpoint(req: AsyncUnlockRequest, user = Depends(authenti
 @app.get("/v1/tasks/{task_id}")
 async def get_task_status(task_id: str):
     """Poll status of an asynchronous unblock job."""
+    cleanup_stale_tasks()
     task = async_tasks.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found or expired.")
@@ -852,11 +957,30 @@ async def get_task_status(task_id: str):
 @app.get("/v1/tasks")
 async def list_recent_tasks(
     request: Request,
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
     """Returns the most recent 25 async tasks (requires authenticated user session or admin key)."""
-    admin_ok = bool(ADMIN_SECRET and (x_admin_key or key) == ADMIN_SECRET)
+    cleanup_stale_tasks()
+    admin_ok = bool(ADMIN_SECRET and x_admin_key and hmac.compare_digest(x_admin_key, ADMIN_SECRET))
+    user = get_session_user(request)
+    if not admin_ok and (not user or bool(user.get("is_guest", 0))):
+        raise HTTPException(status_code=401, detail="Authentication required to view task history.")
+
+    sorted_tasks = sorted(
+        [
+            {
+                "task_id": t["task_id"],
+                "url": t["url"],
+                "status": t["status"],
+                "created_at": t["created_at"],
+                "completed_at": t.get("completed_at")
+            }
+            for t in async_tasks.values()
+        ],
+        key=lambda x: x["created_at"],
+        reverse=True
+    )
+    return {"tasks": sorted_tasks[:25]}
     user = get_session_user(request)
     if not admin_ok and (not user or bool(user.get("is_guest", 0))):
         raise HTTPException(status_code=401, detail="Authentication required to view task history.")
@@ -981,7 +1105,13 @@ async def get_current_user_profile(request: Request, response: Response):
 async def auth_register(req: RegisterRequest, request: Request, response: Response):
     """Register a new user account with email and password (enforces max 2 accounts per IP)."""
     client_ip = get_client_ip(request)
-    if req.cf_turnstile_response:
+    if TURNSTILE_SECRET_KEY:
+        if not req.cf_turnstile_response or not req.cf_turnstile_response.strip():
+            raise HTTPException(status_code=403, detail="Captcha validation required. Please complete the security check.")
+        turnstile_ok, turnstile_err = await verify_turnstile_token(req.cf_turnstile_response, client_ip)
+        if not turnstile_ok:
+            raise HTTPException(status_code=403, detail=turnstile_err)
+    elif req.cf_turnstile_response:
         turnstile_ok, turnstile_err = await verify_turnstile_token(req.cf_turnstile_response, client_ip)
         if not turnstile_ok:
             raise HTTPException(status_code=403, detail=turnstile_err)
@@ -1020,7 +1150,13 @@ async def auth_login(req: LoginRequest, request: Request, response: Response):
     if not allowed:
         raise HTTPException(status_code=429, detail=rate_err)
 
-    if req.cf_turnstile_response:
+    if TURNSTILE_SECRET_KEY:
+        if not req.cf_turnstile_response or not req.cf_turnstile_response.strip():
+            raise HTTPException(status_code=403, detail="Captcha validation required. Please complete the security check.")
+        turnstile_ok, turnstile_err = await verify_turnstile_token(req.cf_turnstile_response, client_ip)
+        if not turnstile_ok:
+            raise HTTPException(status_code=403, detail=turnstile_err)
+    elif req.cf_turnstile_response:
         turnstile_ok, turnstile_err = await verify_turnstile_token(req.cf_turnstile_response, client_ip)
         if not turnstile_ok:
             raise HTTPException(status_code=403, detail=turnstile_err)
@@ -1247,13 +1383,25 @@ async def redeem_voucher_endpoint(req: VoucherRedeemRequest, request: Request, r
 
 @app.get("/api/analytics/metrics")
 async def platform_analytics_metrics(days: int = 7):
-    """Public platform metrics: total requests, success rates, latency, trends."""
-    # Bound days between 1 and 30
+    """Public platform metrics: total requests, success rates, latency, trends, and solver fleet status."""
     days = max(1, min(30, days))
     metrics = get_platform_metrics(days=days)
+    now = time.time()
+    online_workers = [w for w in active_workers.values() if now - w.get("last_seen", 0) < 90]
+    total_completed = sum(w.get("tasks_completed", 0) for w in online_workers)
     return {
         "success": True,
-        "metrics": metrics
+        "metrics": metrics,
+        "workers_online": len(online_workers),
+        "queue_depth": len(task_queue),
+        "total_requests": metrics.get("total_requests", 0),
+        "success_rate_percent": metrics.get("success_rate_percent", 100.0),
+        "registered_users": metrics.get("total_registered_users", 0),
+        "avg_latency_ms": metrics.get("avg_duration_ms", 0),
+        "cost_per_solve_usd": 0.01,
+        "credits_per_usdt": 100,
+        "free_daily_credits": 75,
+        "status": "operational" if len(online_workers) > 0 else "degraded"
     }
 
 @app.get("/api/user/analytics")
@@ -1272,11 +1420,9 @@ async def user_personal_analytics(request: Request, response: Response):
 # ════════════════════════════════════════════
 
 def verify_admin_key(
-    x_admin_key: Optional[str] = Header(None),
-    admin_key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
-    key = x_admin_key or admin_key
-    if not key or key != ADMIN_SECRET:
+    if not x_admin_key or not ADMIN_SECRET or not hmac.compare_digest(x_admin_key, ADMIN_SECRET):
         raise HTTPException(status_code=403, detail="Unauthorized: Invalid admin secret key.")
     return True
 
@@ -1291,10 +1437,9 @@ async def admin_html_page():
 
 @app.get("/api/admin/overview")
 async def admin_overview_api(
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     data = get_admin_overview()
     now = time.time()
     active_worker_count = len([w for w in active_workers.values() if now - w.get("last_seen", 0) < 60])
@@ -1304,10 +1449,9 @@ async def admin_overview_api(
 @app.post("/api/admin/users/credits")
 async def admin_adjust_user_credits_api(
     req: AdminCreditAdjustRequest,
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     res = admin_adjust_user_credits(req.user_id, req.amount)
     if not res.get("success"):
         raise HTTPException(status_code=400, detail=res.get("error"))
@@ -1316,10 +1460,9 @@ async def admin_adjust_user_credits_api(
 @app.post("/api/admin/vouchers/create")
 async def admin_create_voucher_api(
     req: AdminVoucherCreateRequest,
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     res = admin_create_voucher(req.code, req.credits)
     if not res.get("success"):
         raise HTTPException(status_code=400, detail=res.get("error"))
@@ -1334,13 +1477,19 @@ class AdminSetCreditsRequest(BaseModel):
     user_id: int
     credits: float
 
+class AdminSetPlanRequest(BaseModel):
+    user_id: int
+    plan: str
+    duration_days: Optional[int] = 30
+    add_credits: Optional[bool] = True
+    concurrency_limit: Optional[int] = None
+
 @app.post("/api/admin/users/ban")
 async def admin_ban_user_api(
     req: AdminUserActionRequest,
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     from core.db import admin_ban_user
     res = admin_ban_user(req.user_id)
     if not res.get("success"):
@@ -1350,10 +1499,9 @@ async def admin_ban_user_api(
 @app.post("/api/admin/users/unban")
 async def admin_unban_user_api(
     req: AdminUserActionRequest,
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     from core.db import admin_unban_user
     res = admin_unban_user(req.user_id)
     if not res.get("success"):
@@ -1363,10 +1511,9 @@ async def admin_unban_user_api(
 @app.delete("/api/admin/users/delete")
 async def admin_delete_user_api(
     req: AdminUserActionRequest,
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     from core.db import admin_delete_user
     res = admin_delete_user(req.user_id)
     if not res.get("success"):
@@ -1376,12 +1523,30 @@ async def admin_delete_user_api(
 @app.post("/api/admin/users/set-credits")
 async def admin_set_credits_api(
     req: AdminSetCreditsRequest,
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     from core.db import admin_set_user_credits
     res = admin_set_user_credits(req.user_id, req.credits)
+    if not res.get("success"):
+        raise HTTPException(status_code=400, detail=res.get("error"))
+    return res
+
+@app.post("/api/admin/users/set-plan")
+async def admin_set_user_plan_api(
+    req: AdminSetPlanRequest,
+    x_admin_key: Optional[str] = Header(None)
+):
+    """Admin: Assign or upgrade a user's subscription plan and apply exact quotas."""
+    verify_admin_key(x_admin_key)
+    from core.db import admin_set_user_plan
+    res = admin_set_user_plan(
+        user_id=req.user_id,
+        plan=req.plan,
+        duration_days=req.duration_days if req.duration_days is not None else 30,
+        add_credits=bool(req.add_credits),
+        concurrency_override=req.concurrency_limit
+    )
     if not res.get("success"):
         raise HTTPException(status_code=400, detail=res.get("error"))
     return res
@@ -1406,10 +1571,9 @@ async def get_latest_announcement():
 # ── Admin: list all announcements ─────────────────────────────────────────
 @app.get("/api/admin/announcements")
 async def admin_list_announcements(
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None),
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     from core.db import get_all_announcements
     return {"success": True, "announcements": get_all_announcements()}
 
@@ -1418,10 +1582,9 @@ async def admin_list_announcements(
 @app.post("/api/admin/announcements")
 async def admin_create_announcement(
     req: AnnouncementCreateRequest,
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None),
+    x_admin_key: Optional[str] = Header(None)
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     from core.db import create_announcement
 
     # Save to DB
@@ -1456,10 +1619,9 @@ async def admin_create_announcement(
 async def admin_toggle_announcement_api(
     announcement_id: int,
     x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None),
     active: int = Query(1),
 ):
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     from core.db import admin_toggle_announcement
     admin_toggle_announcement(announcement_id, active)
     return {"success": True, "id": announcement_id, "is_active": active}
@@ -1472,8 +1634,8 @@ async def admin_toggle_announcement_api(
 # ════════════════════════════════════════════
 
 def verify_worker_auth(x_worker_secret: Optional[str] = Header(None)):
-    """Authenticate worker nodes via shared secret."""
-    if not x_worker_secret or x_worker_secret != WORKER_SECRET:
+    """Authenticate worker nodes via shared secret using constant-time comparison."""
+    if not x_worker_secret or not WORKER_SECRET or not hmac.compare_digest(x_worker_secret, WORKER_SECRET):
         raise HTTPException(status_code=403, detail="Invalid worker secret.")
     return True
 
@@ -1536,9 +1698,9 @@ class WorkerResultPayload(BaseModel):
 async def worker_submit_result(payload: WorkerResultPayload, _auth = Depends(verify_worker_auth)):
     """Worker submits completed task result."""
     task_id = payload.task_id
-    task_results[task_id] = payload.dict()
     event = task_events.get(task_id)
     if event:
+        task_results[task_id] = payload.dict()
         event.set()
     return {"status": "accepted", "task_id": task_id}
 
@@ -1559,37 +1721,12 @@ async def get_workers_status():
 
 @app.get("/api/proxies/status")
 async def get_proxies_status_endpoint(
-    x_admin_key: Optional[str] = Header(None),
-    key: Optional[str] = Query(None)
+    x_admin_key: Optional[str] = Header(None)
 ):
     """Returns proxy pool configuration and health stats (Admin restricted)."""
-    verify_admin_key(x_admin_key, key)
+    verify_admin_key(x_admin_key)
     from engine.proxies import get_proxy_stats
     return get_proxy_stats()
-
-# ════════════════════════════════════════════
-#  7. PUBLIC ANALYTICS METRICS (for hero stats & status page)
-# ════════════════════════════════════════════
-@app.get("/api/analytics/metrics")
-async def public_metrics():
-    """Public metrics endpoint for frontend hero numbers and status page live data."""
-    now = time.time()
-    online_workers = [w for w in active_workers.values() if now - w.get("last_seen", 0) < 90]
-    metrics = get_platform_metrics()
-    total_completed = sum(w.get("tasks_completed", 0) for w in online_workers)
-    return {
-        "success": True,
-        "workers_online": len(online_workers),
-        "queue_depth": len(task_queue),
-        "total_requests": metrics.get("total_requests", 0),
-        "success_rate_percent": metrics.get("success_rate_percent", 100.0),
-        "registered_users": metrics.get("total_registered_users", 0),
-        "avg_latency_ms": metrics.get("avg_duration_ms", 0),
-        "cost_per_solve_usd": 0.01,
-        "credits_per_usdt": 100,
-        "free_daily_credits": 75,
-        "status": "operational" if len(online_workers) > 0 else "degraded"
-    }
 
 
 if __name__ == "__main__":

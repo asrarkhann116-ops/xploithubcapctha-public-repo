@@ -1,0 +1,13 @@
+.env
+*.env
+*.db
+data/*.db
+xploit_api.db
+__pycache__/
+*.pyc
+tests/
+.git/
+.agents/
+.venv/
+env/
+*.log

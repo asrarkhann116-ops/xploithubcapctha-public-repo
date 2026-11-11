@@ -5,6 +5,9 @@ import os
 import sys
 import time
 import aiohttp
+import re
+from urllib.parse import urlparse
+from typing import Tuple, Optional
 from dotenv import load_dotenv
 
 if hasattr(sys.stdout, 'reconfigure'):
@@ -56,6 +59,75 @@ class UnblockerBot(discord.Client):
 
 
 client = UnblockerBot()
+
+
+# ─── Input Validation & Sanitization Helpers ──────────────────────────────
+MAX_URL_LENGTH = 2048
+ALLOWED_URL_SCHEMES = ("http", "https")
+
+
+def sanitize_discord_text(text: Optional[str], max_len: int = 1000) -> str:
+    """
+    Sanitize text to prevent Discord mention injection (@everyone, @here, user/role mentions)
+    and escape markdown syntax / code-block break-outs.
+    """
+    if not text:
+        return ""
+    s = str(text)
+    # Neutralize @everyone and @here mentions
+    s = s.replace("@everyone", "@\u200beveryone")
+    s = s.replace("@here", "@\u200bhere")
+    # Neutralize raw user / role mention syntax (<@123>, <@!123>, <@&123>)
+    s = re.sub(r"<@&?[!0-9]+>", "[mention]", s)
+    # Neutralize code-block breakouts
+    s = s.replace("```", "'''")
+    if len(s) > max_len:
+        s = s[:max_len] + "..."
+    return s
+
+
+def validate_target_url(url: Optional[str]) -> Tuple[bool, str]:
+    """Validate target URL scheme and length for slash commands."""
+    if not url or not isinstance(url, str):
+        return False, "Target URL cannot be empty."
+    clean = url.strip()
+    if len(clean) > MAX_URL_LENGTH:
+        return False, f"Target URL exceeds maximum length of {MAX_URL_LENGTH} characters."
+    if len(clean) < 8:
+        return False, "Target URL is too short."
+    try:
+        parsed = urlparse(clean)
+        if parsed.scheme.lower() not in ALLOWED_URL_SCHEMES:
+            return False, "Invalid URL scheme. Only HTTP and HTTPS protocols are allowed."
+        if not parsed.netloc:
+            return False, "Invalid URL: host or domain name missing."
+        return True, ""
+    except Exception:
+        return False, "Malformed URL format."
+
+
+def validate_voucher_code(code: Optional[str]) -> Tuple[bool, str]:
+    """Validate voucher code length and allowed character set."""
+    if not code or not isinstance(code, str):
+        return False, "Voucher code cannot be empty."
+    clean = code.strip()
+    if len(clean) > 64:
+        return False, "Voucher code exceeds maximum length of 64 characters."
+    if not re.match(r"^[A-Za-z0-9_-]+$", clean):
+        return False, "Voucher code contains invalid characters (letters, digits, '-' and '_' only)."
+    return True, ""
+
+
+def validate_tx_hash(tx_hash: Optional[str]) -> Tuple[bool, str]:
+    """Validate Solana transaction signature format and length."""
+    if not tx_hash or not isinstance(tx_hash, str):
+        return False, "Transaction signature cannot be empty."
+    clean = tx_hash.strip()
+    if len(clean) < 32 or len(clean) > 128:
+        return False, "Invalid Solana transaction signature length (expected 32 to 128 characters)."
+    if not re.match(r"^[1-9A-HJ-NP-za-km-z]+$", clean):
+        return False, "Invalid Solana signature format (base58 characters only)."
+    return True, ""
 
 
 # ═══════════════════════════════════════════════════════
@@ -146,8 +218,7 @@ async def status_loop():
 # ═══════════════════════════════════════════════════════
 
 async def post_announcement_to_discord(title: str, message: str, version: str = "") -> bool:
-    """Post a rich announcement embed to the api-updates channel.
-    Returns True on success. Called from the FastAPI admin endpoint."""
+    """Post an announcement embed to the api-updates channel."""
     channel_id_str = get_setting(CHANNEL_UPDATES_KEY)
     if not channel_id_str:
         print("[ANNOUNCE] Updates channel not configured in DB settings.")
@@ -159,20 +230,24 @@ async def post_announcement_to_discord(title: str, message: str, version: str = 
         print(f"[ANNOUNCE] Cannot fetch updates channel: {e}")
         return False
 
+    clean_title = sanitize_discord_text(title, max_len=200)
+    clean_message = sanitize_discord_text(message, max_len=4000)
+    clean_version = sanitize_discord_text(version, max_len=50)
+
     embed = discord.Embed(
-        title=f"📢 {title}",
-        description=message,
+        title=f"📢 {clean_title}",
+        description=clean_message,
         color=0x06b6d4,
         timestamp=discord.utils.utcnow(),
     )
-    if version:
-        embed.add_field(name="Version", value=f"`{version}`", inline=True)
+    if clean_version:
+        embed.add_field(name="Version", value=f"`{clean_version}`", inline=True)
     embed.add_field(name="🔗 Website", value=f"[Open Console]({BASE_URL})", inline=True)
     embed.set_footer(text="Xploit Unblocker · Admin Broadcast")
 
     try:
         await channel.send(content="@here", embed=embed)
-        print(f"[ANNOUNCE] Posted: {title}")
+        print(f"[ANNOUNCE] Posted: {clean_title}")
         return True
     except Exception as e:
         print(f"[ANNOUNCE] Failed: {e}")
@@ -199,6 +274,10 @@ async def on_ready():
 async def unblock_command(interaction: discord.Interaction, url: str):
     await interaction.response.defer(thinking=True)
 
+    is_valid, err_msg = validate_target_url(url)
+    if not is_valid:
+        return await interaction.followup.send(f"❌ {sanitize_discord_text(err_msg)}", ephemeral=True)
+
     user = get_or_create_user(
         str(interaction.user.id),
         interaction.user.name,
@@ -217,24 +296,25 @@ async def unblock_command(interaction: discord.Interaction, url: str):
         )
         return await interaction.followup.send(embed=embed, ephemeral=True)
 
-    result = execute_unblock(url)
+    result = await asyncio.to_thread(execute_unblock, url.strip())
 
     if result.get("success"):
         deduct_credit(user["id"], 1.0)
-        title     = result.get("title") or "Page Unlocked"
+        title     = sanitize_discord_text(result.get("title") or "Page Unlocked", max_len=80)
         dur       = result.get("duration_ms", 0)
-        mode      = result.get("mode", "stealth")
-        html_snip = result.get("html", "")[:400].replace("\n", " ")
+        mode      = sanitize_discord_text(result.get("mode", "stealth"), max_len=30)
+        raw_html  = result.get("html", "")[:400].replace("\n", " ")
+        html_snip = sanitize_discord_text(raw_html, max_len=300)
 
-        embed = discord.Embed(title=f"✅ Unblocked: {title[:80]}", url=url, color=0x00ff99)
+        embed = discord.Embed(title=f"✅ Unblocked: {title}", url=url.strip(), color=0x00ff99)
         embed.add_field(name="⚡ Engine Mode",  value=f"`{mode}`",              inline=True)
         embed.add_field(name="⏱️ Duration",     value=f"`{dur}ms`",             inline=True)
         embed.add_field(name="💰 Cost",         value="`$0.1 (1 Credit)`",      inline=True)
-        embed.add_field(name="📄 HTML Snippet", value=f"```{html_snip[:300]}...```", inline=False)
+        embed.add_field(name="📄 HTML Snippet", value=f"```{html_snip}```",    inline=False)
         embed.set_footer(text=f"Credits Remaining: {user['credits'] - 1.0:.1f} | Xploit Unblocker")
         await interaction.followup.send(embed=embed)
     else:
-        err = result.get("error", "Challenge solve timeout")
+        err = sanitize_discord_text(result.get("error", "Challenge solve timeout"), max_len=200)
         await interaction.followup.send(f"❌ **Failed to unblock target:** `{err}`", ephemeral=True)
 
 
@@ -251,10 +331,11 @@ async def promo_command(interaction: discord.Interaction):
         interaction.user.avatar.url if interaction.user.avatar else ""
     )
     res = await verify_user_promo(str(interaction.user.id), user["id"])
+    msg = sanitize_discord_text(res.get("message") or res.get("error") or "")
 
     embed = discord.Embed(
         title="🛡️ Discord Promo Guard",
-        description=res["message"],
+        description=msg,
         color=0x00ff99 if res.get("success") else 0xff0033,
     )
     embed.add_field(name="Required Link", value="`discord.gg/3fb9Q7ucSN`", inline=False)
@@ -314,6 +395,11 @@ async def status_command(interaction: discord.Interaction):
 @app_commands.describe(code="Promo or gift code to redeem")
 async def voucher_command(interaction: discord.Interaction, code: str):
     await interaction.response.defer(ephemeral=True)
+
+    is_valid, err_msg = validate_voucher_code(code)
+    if not is_valid:
+        return await interaction.followup.send(f"❌ {sanitize_discord_text(err_msg)}", ephemeral=True)
+
     user = get_or_create_user(
         str(interaction.user.id),
         interaction.user.name,
@@ -328,9 +414,10 @@ async def voucher_command(interaction: discord.Interaction, code: str):
         )
         embed.add_field(name="New Balance", value=f"**{res['new_balance']:,.1f} Credits**", inline=True)
     else:
+        clean_err = sanitize_discord_text(res.get("error", "Invalid or already redeemed voucher code."))
         embed = discord.Embed(
             title="❌ Voucher Error",
-            description=res.get("error", "Invalid or already redeemed voucher code."),
+            description=clean_err,
             color=0xff0033,
         )
     await interaction.followup.send(embed=embed, ephemeral=True)
@@ -359,19 +446,26 @@ async def topup_command(interaction: discord.Interaction):
 @app_commands.describe(tx_hash="The 88-character Solana transaction signature")
 async def redeem_command(interaction: discord.Interaction, tx_hash: str):
     await interaction.response.defer(ephemeral=True)
+
+    is_valid, err_msg = validate_tx_hash(tx_hash)
+    if not is_valid:
+        return await interaction.followup.send(f"❌ {sanitize_discord_text(err_msg)}", ephemeral=True)
+
     user = get_or_create_user(
         str(interaction.user.id),
         interaction.user.name,
         interaction.user.avatar.url if interaction.user.avatar else ""
     )
-    res = await verify_solana_deposit(tx_hash, user["id"])
+    res = await verify_solana_deposit(tx_hash.strip(), user["id"])
     if res.get("success"):
+        clean_msg = sanitize_discord_text(res.get('message', 'Credits added'))
         await interaction.followup.send(
-            f"🎉 **{res['message']}**\nNew balance: **{res['new_balance']} credits**!", ephemeral=True
+            f"🎉 **{clean_msg}**\nNew balance: **{res.get('new_balance', 0)} credits**!", ephemeral=True
         )
     else:
+        clean_err = sanitize_discord_text(res.get('error', 'Deposit verification failed'))
         await interaction.followup.send(
-            f"❌ **Deposit verification failed:** {res.get('error')}", ephemeral=True
+            f"❌ **Deposit verification failed:** {clean_err}", ephemeral=True
         )
 
 

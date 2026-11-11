@@ -13,50 +13,59 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
-        .admin-page { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        .admin-page { max-width: 1400px; margin: 0 auto; padding: 24px; width: 100%; }
         .admin-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
-        .admin-title-wrap { display: flex; align-items: center; gap: 12px; }
-        .admin-tag { background: rgba(255, 138, 138, 0.15); border: 1px solid rgba(255, 138, 138, 0.4); color: #f87171; font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; }
+        .admin-title-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .admin-tag { background: rgba(255, 138, 138, 0.15); border: 1px solid rgba(255, 138, 138, 0.4); color: var(--text-danger, #ff8a8a); font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: var(--radius-xs, 3px); }
         
         /* Stats Grid */
-        .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .admin-stat-card { background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(31, 41, 55, 0.9); border-radius: 12px; padding: 18px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .stat-card-title { font-size: 12px; font-weight: 600; color: #b9bfe6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-        .stat-card-val { font-size: 26px; font-weight: 800; font-family: var(--font-mono); color: #fff4ec; }
-        .stat-card-sub { font-size: 11px; color: #8189bd; margin-top: 4px; }
+        .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .admin-stat-card { background: var(--bg-panel, #1b1e3e); border: 1px solid var(--border-subtle, #2c3163); border-radius: var(--radius-md, 8px); padding: 18px 20px; box-shadow: var(--shadow-panel, 4px 4px 0 rgba(8, 9, 24, 0.55)); }
+        .stat-card-title { font-size: 11px; font-weight: 700; color: var(--text-secondary, #b9bfe6); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; font-family: var(--font-mono); }
+        .stat-card-val { font-size: 26px; font-weight: 800; font-family: var(--font-mono); color: var(--text-primary, #fff4ec); }
+        .stat-card-sub { font-size: 11px; color: var(--text-muted, #8189bd); margin-top: 4px; }
 
-        /* Tabs */
-        .admin-tabs { display: flex; gap: 8px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); margin-bottom: 20px; }
-        .admin-tab-btn { background: transparent; border: none; color: #b9bfe6; font-family: var(--font-mono); font-size: 13px; font-weight: 600; padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        .admin-tab-btn:hover { color: #f1f5f9; }
-        .admin-tab-btn.active { color: #9fd8ff; border-bottom-color: #9fd8ff; }
+        /* Tabs with smooth horizontal touch-scroll on mobile */
+        .admin-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border-subtle, #2c3163); margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .admin-tabs::-webkit-scrollbar { display: none; }
+        .admin-tab-btn { background: transparent; border: none; color: var(--text-secondary, #b9bfe6); font-family: var(--font-mono); font-size: 13px; font-weight: 600; padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; }
+        .admin-tab-btn:hover { color: var(--text-primary, #fff4ec); }
+        .admin-tab-btn.active { color: var(--text-cyan, #9fd8ff); border-bottom-color: var(--text-cyan, #9fd8ff); }
 
         /* Table Panels */
-        .admin-table-panel { background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(31, 41, 55, 0.9); border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .admin-table-panel { background: var(--bg-panel, #1b1e3e); border: 1px solid var(--border-subtle, #2c3163); border-radius: var(--radius-md, 8px); overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: var(--shadow-panel, 4px 4px 0 rgba(8, 9, 24, 0.55)); }
         .admin-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; table-layout: auto; }
-        .admin-table th { background: rgba(17, 18, 39, 0.9); color: #8189bd; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid rgba(51, 65, 85, 0.6); white-space: nowrap; }
-        .admin-table td { padding: 12px 16px; border-bottom: 1px solid rgba(31, 41, 55, 0.6); color: #fff4ec; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: break-word; }
-        .admin-table tr:hover { background: rgba(30, 41, 59, 0.4); }
+        .admin-table th { background: var(--bg-surface, #181a37); color: var(--text-muted, #8189bd); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle, #2c3163); white-space: nowrap; }
+        .admin-table td { padding: 12px 16px; border-bottom: 1px solid rgba(44, 49, 99, 0.5); color: var(--text-primary, #fff4ec); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: break-word; }
+        .admin-table tr:hover { background: var(--bg-panel-hover, #222650); }
 
         /* Badges */
-        .badge-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
-        .badge-green { background: rgba(246, 184, 200, 0.15); color: #f6b8c8; border: 1px solid rgba(246, 184, 200, 0.3); }
-        .badge-amber { background: rgba(255, 224, 168, 0.15); color: #ffe0a8; border: 1px solid rgba(255, 224, 168, 0.3); }
-        .badge-blue { background: rgba(56, 189, 248, 0.15); color: #9fd8ff; border: 1px solid rgba(56, 189, 248, 0.3); }
+        .badge-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-xs, 3px); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+        .badge-green { background: rgba(143, 227, 192, 0.15); color: var(--text-ok, #8fe3c0); border: 1px solid rgba(143, 227, 192, 0.35); }
+        .badge-amber, .badge-yellow { background: rgba(255, 224, 168, 0.15); color: var(--text-amber, #ffe0a8); border: 1px solid rgba(255, 224, 168, 0.35); }
+        .badge-blue { background: rgba(159, 216, 255, 0.15); color: var(--text-cyan, #9fd8ff); border: 1px solid rgba(159, 216, 255, 0.35); }
+        .badge-pink { background: rgba(246, 184, 200, 0.15); color: var(--text-accent, #f6b8c8); border: 1px solid rgba(246, 184, 200, 0.35); }
+        .badge-danger { background: rgba(255, 138, 138, 0.15); color: var(--text-danger, #ff8a8a); border: 1px solid rgba(255, 138, 138, 0.35); }
 
         /* Action Buttons */
-        .btn-sm-action { background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(51, 65, 85, 0.8); color: #fff4ec; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
-        .btn-sm-action:hover { background: #9fd8ff; color: #fff; border-color: #9fd8ff; }
+        .btn-sm-action { background: var(--bg-surface, #181a37); border: 1px solid var(--border-subtle, #2c3163); color: var(--text-primary, #fff4ec); padding: 5px 12px; border-radius: var(--radius-sm, 5px); font-size: 12px; font-family: var(--font-sans); font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-sm-action:hover { background: var(--bg-panel-hover, #222650); border-color: var(--border-strong, #434a8a); color: #fff; }
 
         /* Modals & Key Prompt */
-        .admin-lock-screen { position: fixed; inset: 0; background: rgba(10, 15, 26, 0.95); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-        .lock-box { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; max-width: 420px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
-        .lock-input { width: 100%; background: #0f172a; border: 1px solid #334155; color: #fff4ec; padding: 10px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 13px; margin: 12px 0 16px; outline: none; }
-        .lock-input:focus { border-color: #9fd8ff; box-shadow: 0 0 12px rgba(56, 189, 248, 0.25); }
+        .admin-lock-screen { position: fixed; inset: 0; background: rgba(10, 11, 24, 0.88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+        .lock-box { background: var(--bg-panel, #1b1e3e); border: 1px solid var(--border-subtle, #2c3163); border-radius: var(--radius-md, 8px); padding: 24px; max-width: 440px; width: 100%; box-shadow: var(--shadow-dropdown, 4px 4px 0 rgba(8, 9, 24, 0.7)); }
+        .lock-input { width: 100%; background: var(--bg-input, #111227); border: 1px solid var(--border-subtle, #2c3163); color: var(--text-primary, #fff4ec); padding: 10px 14px; border-radius: var(--radius-sm, 5px); font-family: var(--font-mono); font-size: 13px; margin: 10px 0 14px; outline: none; }
+        .lock-input:focus { border-color: var(--border-cyan, #9fd8ff); box-shadow: 0 0 0 2px rgba(159, 216, 255, 0.2); }
+
+        @media (max-width: 640px) {
+            .admin-page { padding: 16px; }
+            .admin-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .lock-box { padding: 20px 16px; }
+        }
     </style>
     <link rel="stylesheet" href="/static/fx.css">
 </head>
-<body style="background: #0a0f1a; color: #fff4ec; min-height: 100vh;">
+<body style="min-height: 100vh;">
 
     <!-- Admin Key Lock Screen (Dismissed if valid key stored) -->
     <div id="admin-lock" class="admin-lock-screen" style="display: flex;">
@@ -271,14 +280,64 @@
     </div>
 
     <!-- Credit Adjustment Modal Prompt -->
-    <div id="credit-modal" class="admin-lock-screen" style="display: none;">
+    <div id="credit-modal" class="admin-lock-screen" style="display: none;" onclick="if(event.target===this) closeCreditModal();">
         <div class="lock-box">
-            <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px;">Adjust User Credits</h3>
-            <p id="modal-user-info" style="font-size: 13px; color: #b9bfe6; margin-bottom: 14px;"></p>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <h3 style="font-size: 16px; font-weight: 700; margin:0;">Adjust User Credits</h3>
+                <button type="button" onclick="closeCreditModal()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; line-height:1;" aria-label="Close">&times;</button>
+            </div>
+            <p id="modal-user-info" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;"></p>
             <input type="number" id="modal-amount-input" class="lock-input" placeholder="Amount (+100 or -50)">
             <div style="display: flex; gap: 10px;">
                 <button onclick="submitCreditAdjust()" class="btn-primary" style="flex: 1; padding: 8px;">Apply Credits</button>
                 <button onclick="closeCreditModal()" class="btn-sm-action" style="flex: 1; padding: 8px;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Assignment Modal Prompt -->
+    <div id="plan-modal" class="admin-lock-screen" style="display: none;" onclick="if(event.target===this) closePlanModal();">
+        <div class="lock-box" style="max-width: 440px; text-align: left;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                <h3 style="font-size: 16px; font-weight: 700; margin:0; display:flex; align-items:center; gap:6px;">
+                    <span>👑</span>
+                    <span>Assign Subscription Plan</span>
+                </h3>
+                <button type="button" onclick="closePlanModal()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; line-height:1;" aria-label="Close">&times;</button>
+            </div>
+            <p id="plan-modal-user-info" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;"></p>
+            
+            <label for="modal-plan-select" style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block; font-family: var(--font-mono);">Select Plan Tier:</label>
+            <select id="modal-plan-select" class="lock-input" style="width: 100%; margin-bottom: 12px;" onchange="onPlanSelectChange()">
+                <option value="free">Free Tier (75/day, 3 concurrency)</option>
+                <option value="starter">Starter Tier ($9/mo, 5,000 solves, 10 concurrency)</option>
+                <option value="moderato">Moderato Tier ($29/mo, 30,000 solves, 50 concurrency)</option>
+                <option value="vince">Vince Tier ($99/mo, 150,000 solves, 150 concurrency, VIP Priority)</option>
+                <option value="enterprise">Enterprise Tier ($499/mo, 1M solves, 500 concurrency)</option>
+                <option value="pay_as_you_go">Pay-As-You-Go (10 concurrency, never expire)</option>
+            </select>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                <div style="flex: 1;">
+                    <label for="modal-plan-days" style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block; font-family: var(--font-mono);">Duration (Days):</label>
+                    <input type="number" id="modal-plan-days" class="lock-input" value="30" placeholder="30 (0 = Lifetime)">
+                </div>
+                <div style="flex: 1;">
+                    <label for="modal-plan-concurrency" style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block; font-family: var(--font-mono);">Concurrency Slots:</label>
+                    <input type="number" id="modal-plan-concurrency" class="lock-input" value="50" placeholder="e.g. 50">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 16px; background: var(--bg-surface); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <label style="font-size: 13px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="modal-plan-add-credits" checked style="accent-color: var(--text-accent);">
+                    <span>Add plan credits to balance (<strong id="modal-plan-credit-text" style="color:var(--text-cyan);">+30,000 solves</strong>)</span>
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button onclick="submitPlanChange()" class="btn-primary" style="flex: 1; padding: 10px;">Apply Plan Quota</button>
+                <button onclick="closePlanModal()" class="btn-sm-action" style="flex: 1; padding: 10px;">Cancel</button>
             </div>
         </div>
     </div>
@@ -379,22 +438,39 @@
                     ? '<span class="badge-pill" style="background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.4);margin-left:4px;">BANNED</span>'
                     : '';
 
+                // Plan badge styling & concurrency
+                let planBadgeClass = 'badge-blue';
+                if (safePlan === 'vince') planBadgeClass = 'badge-yellow';
+                else if (safePlan === 'moderato') planBadgeClass = 'badge-pink';
+                else if (safePlan === 'enterprise') planBadgeClass = 'badge-green';
+
+                const daysLeft = (u.plan_expires_at && u.plan_expires_at > now) 
+                    ? `<span style="font-size:10px; color:#a7f3d0; margin-left:4px;">(${Math.ceil((u.plan_expires_at - now)/86400)}d left)</span>` 
+                    : (safePlan === 'free' ? '<span style="font-size:10px; color:#8189bd; margin-left:4px;">(Daily)</span>' : '<span style="font-size:10px; color:#8189bd; margin-left:4px;">(Lifetime)</span>');
+                const concurrencySlots = u.concurrency_limit || (safePlan === 'moderato' ? 50 : (safePlan === 'vince' ? 150 : (safePlan === 'starter' ? 10 : 3)));
+
                 return `
                 <tr style="${isBanned ? 'opacity:0.6;' : ''}">
                     <td><code>#${safeId}</code></td>
                     <td style="font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${safeUsername}">${safeUsername}${bannedBadge}</td>
                     <td><span style="color: #b9bfe6; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;" title="${safeEmail}">${safeEmail}</span></td>
-                    <td><span class="badge-pill badge-blue">${safePlan}</span></td>
+                    <td>
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <div><span class="badge-pill ${planBadgeClass}">${safePlan.toUpperCase()}</span>${daysLeft}</div>
+                            <span style="font-size:10px; color:#8189bd;">⚡ ${concurrencySlots} concurrent slots</span>
+                        </div>
+                    </td>
                     <td><strong style="color: #9fd8ff;">${safeCredits}</strong></td>
                     <td>${depositBadge}</td>
                     <td>
                         <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                            <button class="btn-sm-action" style="color:#f6b8c8;border-color:rgba(246,184,200,0.4);" onclick="openPlanModal(${safeId})" title="Assign Plan">👑 Plan</button>
                             <button class="btn-sm-action" onclick="openCreditModal(${safeId})" title="Adjust credits">± Credits</button>
                             ${isBanned
-                                ? `<button class="btn-sm-action" style="color:#6ee7b7;border-color:rgba(110,231,183,0.4);" onclick="unbanUser(${safeId})">✓ Unban</button>`
-                                : `<button class="btn-sm-action" style="color:#fbbf24;border-color:rgba(251,191,36,0.4);" onclick="banUser(${safeId})">🚫 Ban</button>`
+                                ? `<button class="btn-sm-action" style="color:var(--text-ok);border-color:rgba(143,227,192,0.4);" onclick="unbanUser(${safeId})">✓ Unban</button>`
+                                : `<button class="btn-sm-action" style="color:var(--text-amber);border-color:rgba(255,224,168,0.4);" onclick="banUser(${safeId})">🚫 Ban</button>`
                             }
-                            <button class="btn-sm-action" style="color:#f87171;border-color:rgba(248,113,113,0.4);" onclick="deleteUser(${safeId}, '${safeUsername}')">🗑 Kill</button>
+                            <button class="btn-sm-action" style="color:var(--text-danger);border-color:rgba(255,138,138,0.4);" onclick="deleteUser(${safeId})">🗑 Kill</button>
                         </div>
                     </td>
                 </tr>
@@ -505,6 +581,97 @@
             document.getElementById('credit-modal').style.display = 'none';
         }
 
+        const PLAN_METAS = {
+            'free': { concurrency: 3, credits: 75, text: '+75 daily solves' },
+            'starter': { concurrency: 10, credits: 5000, text: '+5,000 solves' },
+            'moderato': { concurrency: 50, credits: 30000, text: '+30,000 solves' },
+            'vince': { concurrency: 150, credits: 150000, text: '+150,000 solves' },
+            'enterprise': { concurrency: 500, credits: 1000000, text: '+1,000,000 solves' },
+            'pay_as_you_go': { concurrency: 10, credits: 0, text: 'No credits (Pay as you go)' }
+        };
+
+        function onPlanSelectChange() {
+            const plan = document.getElementById('modal-plan-select').value;
+            const meta = PLAN_METAS[plan] || PLAN_METAS['free'];
+            document.getElementById('modal-plan-concurrency').value = meta.concurrency;
+            document.getElementById('modal-plan-credit-text').innerText = meta.text;
+            if (plan === 'free' || plan === 'pay_as_you_go') {
+                document.getElementById('modal-plan-days').value = '0';
+            } else {
+                const currentDays = parseInt(document.getElementById('modal-plan-days').value, 10) || 0;
+                if (currentDays <= 0) {
+                    document.getElementById('modal-plan-days').value = '30';
+                }
+            }
+        }
+
+        function openPlanModal(userId) {
+            selectedUserId = Number(userId);
+            const u = (rawAdminData && rawAdminData.users) ? rawAdminData.users.find(x => x.id === selectedUserId) : null;
+            if (!u) return;
+
+            const username = u.username || `User_${selectedUserId}`;
+            const currentPlan = (u.plan && PLAN_METAS[u.plan]) ? u.plan : 'free';
+            const meta = PLAN_METAS[currentPlan] || PLAN_METAS['free'];
+            const currentSlots = u.concurrency_limit || meta.concurrency || 3;
+            const expiresAt = u.plan_expires_at || 0;
+
+            document.getElementById('plan-modal-user-info').innerText = `User: ${username} (Current: ${currentPlan.toUpperCase()})`;
+            
+            const planSelect = document.getElementById('modal-plan-select');
+            planSelect.value = currentPlan;
+            
+            const now = Math.floor(Date.now() / 1000);
+            let daysRemaining = 30;
+            if (expiresAt && expiresAt > now) {
+                daysRemaining = Math.ceil((expiresAt - now) / 86400);
+            } else if (currentPlan === 'free' || currentPlan === 'pay_as_you_go') {
+                daysRemaining = 0;
+            }
+            document.getElementById('modal-plan-days').value = daysRemaining;
+            document.getElementById('modal-plan-concurrency').value = currentSlots;
+            document.getElementById('modal-plan-credit-text').innerText = meta.text;
+
+            document.getElementById('plan-modal').style.display = 'flex';
+        }
+
+        function closePlanModal() {
+            selectedUserId = null;
+            document.getElementById('plan-modal').style.display = 'none';
+        }
+
+        async function submitPlanChange() {
+            if (!selectedUserId) return;
+            const key = getSavedKey();
+            const plan = document.getElementById('modal-plan-select').value;
+            const duration_days = parseInt(document.getElementById('modal-plan-days').value, 10) || 0;
+            const concurrency_limit = parseInt(document.getElementById('modal-plan-concurrency').value, 10) || 3;
+            const add_credits = document.getElementById('modal-plan-add-credits').checked;
+
+            try {
+                const res = await fetch('/api/admin/users/set-plan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-Admin-Key': key},
+                    body: JSON.stringify({
+                        user_id: selectedUserId,
+                        plan: plan,
+                        duration_days: duration_days,
+                        concurrency_limit: concurrency_limit,
+                        add_credits: add_credits
+                    })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    closePlanModal();
+                    fetchAdminData();
+                } else {
+                    alert('Plan change failed: ' + (json.detail || json.error || 'Server error'));
+                }
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            }
+        }
+
         async function banUser(userId) {
             if (!confirm(`Ban user #${userId}? Their credits will be zeroed and access revoked.`)) return;
             const key = getSavedKey();
@@ -534,17 +701,18 @@
             } catch(e) { alert('Error: ' + e.message); }
         }
 
-        async function deleteUser(userId, username) {
-            if (!confirm(`⚠️ PERMANENTLY DELETE user #${userId} (${username})?
-
-This will also wipe all their request logs and deposits. This CANNOT be undone.`)) return;
-            if (!confirm(`Last warning: Delete #${userId} (${username}) forever?`)) return;
+        async function deleteUser(userId) {
+            const uid = Number(userId);
+            const u = (rawAdminData && rawAdminData.users) ? rawAdminData.users.find(x => x.id === uid) : null;
+            const username = u ? (u.username || 'Anonymous') : ('User #' + uid);
+            if (!confirm(`⚠️ PERMANENTLY DELETE user #${uid} (${username})?\n\nThis will also wipe all their request logs and deposits. This CANNOT be undone.`)) return;
+            if (!confirm(`Last warning: Delete #${uid} (${username}) forever?`)) return;
             const key = getSavedKey();
             try {
                 const res = await fetch('/api/admin/users/delete', {
                     method: 'DELETE',
                     headers: {'Content-Type': 'application/json', 'X-Admin-Key': key},
-                    body: JSON.stringify({ user_id: userId })
+                    body: JSON.stringify({ user_id: uid })
                 });
                 const json = await res.json();
                 if (json.success) { fetchAdminData(); }
@@ -615,22 +783,28 @@ This will also wipe all their request logs and deposits. This CANNOT be undone.`
         function renderAnnouncements(items) {
             const tbody = document.getElementById('announcements-table-body');
             if (!items || items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#8189bd;">No announcements yet.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No announcements yet.</td></tr>';
                 return;
             }
-            tbody.innerHTML = items.map(a => `
+            tbody.innerHTML = items.map(a => {
+                const safeId = Number(a.id);
+                const safeTitle = escapeHtml(a.title || '');
+                const safeVersion = escapeHtml(a.version || '—');
+                const isActive = Boolean(a.is_active);
+                return `
                 <tr>
-                    <td><code>#${a.id}</code></td>
-                    <td style="font-weight:600;max-width:260px;">${escapeHtml(a.title)}</td>
-                    <td><code style="color:#9fd8ff;">${a.version || '—'}</code></td>
+                    <td><code>#${safeId}</code></td>
+                    <td style="font-weight:600;max-width:260px;">${safeTitle}</td>
+                    <td><code style="color:var(--text-cyan);">${safeVersion}</code></td>
                     <td>${a.posted_discord ? '<span class="badge-pill badge-green">✅ Posted</span>' : '<span class="badge-pill badge-amber">⏸ Pending</span>'}</td>
-                    <td>${a.is_active ? '<span class="badge-pill badge-green">Active</span>' : '<span style="color:#8189bd;font-size:11px;">Inactive</span>'}</td>
-                    <td style="color:#8189bd;font-size:11px;">${new Date(a.created_at * 1000).toLocaleString()}</td>
+                    <td>${isActive ? '<span class="badge-pill badge-green">Active</span>' : '<span style="color:var(--text-muted);font-size:11px;">Inactive</span>'}</td>
+                    <td style="color:var(--text-muted);font-size:11px;">${new Date((a.created_at || 0) * 1000).toLocaleString()}</td>
                     <td>
-                        <button class="btn-sm-action" onclick="toggleAnnouncement(${a.id}, ${a.is_active ? 0 : 1})">${a.is_active ? 'Deactivate' : 'Activate'}</button>
+                        <button class="btn-sm-action" onclick="toggleAnnouncement(${safeId}, ${isActive ? 0 : 1})">${isActive ? 'Deactivate' : 'Activate'}</button>
                     </td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         async function toggleAnnouncement(id, newActive) {
@@ -711,6 +885,14 @@ This will also wipe all their request logs and deposits. This CANNOT be undone.`
                 .replace(/`/g, '&#96;')
                 .replace(/\//g, '&#x2F;');
         }
+
+        // Keyboard shortcuts for modal dismiss
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCreditModal();
+                closePlanModal();
+            }
+        });
 
         // Auto unlock if key already stored
         window.addEventListener('DOMContentLoaded', () => {

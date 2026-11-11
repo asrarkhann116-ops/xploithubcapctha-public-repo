@@ -9,13 +9,23 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "unblocker.db")
 
 def get_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15.0)
+    conn.execute("PRAGMA journal_mode = WAL;")
+    conn.execute("PRAGMA busy_timeout = 5000;")
+    conn.execute("PRAGMA foreign_keys = ON;")
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_db()
     cur = conn.cursor()
+    
+    # ─── SQLITE CONCURRENCY HARDENING (WAL + BUSY TIMEOUT) ────────
+    cur.execute("PRAGMA journal_mode = WAL;")
+    cur.execute("PRAGMA synchronous = NORMAL;")
+    cur.execute("PRAGMA busy_timeout = 60000;")
+    cur.execute("PRAGMA cache_size = -64000;")
+    cur.execute("PRAGMA temp_store = MEMORY;")
     
     # Users table
     cur.execute('''
@@ -330,14 +340,19 @@ def apply_daily_credits(user_id: int) -> dict:
 
     current_credits = float(user.get('credits', 0) or 0)
 
-    if plan_key == "free" and not bool(user.get('has_deposited', 0)):
-        # Free users: 75 solves/day, resets every UTC midnight, no rollover
-        new_credits = FREE_DAILY_REQUESTS
-        cur.execute(
-            "UPDATE users SET credits = ?, last_daily_credit_at = ? WHERE id = ?",
-            (new_credits, now, user_id)
-        )
-        user['credits'] = new_credits
+    if plan_key == "free":
+        if current_credits < FREE_DAILY_REQUESTS:
+            new_credits = FREE_DAILY_REQUESTS
+            cur.execute(
+                "UPDATE users SET credits = ?, last_daily_credit_at = ? WHERE id = ?",
+                (new_credits, now, user_id)
+            )
+            user['credits'] = new_credits
+        else:
+            cur.execute(
+                "UPDATE users SET last_daily_credit_at = ? WHERE id = ?",
+                (now, user_id)
+            )
     else:
         # Paid subscribers & Pay-as-you-go: maintain rollover, update timestamp
         cur.execute(
@@ -357,10 +372,11 @@ def hash_password(password: str) -> str:
 
 def verify_password(stored_password: str, provided_password: str) -> bool:
     try:
+        import hmac
         salt_hex, key_hex = stored_password.split(":")
         salt = bytes.fromhex(salt_hex)
         key = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'), salt, 100000)
-        return key.hex() == key_hex
+        return hmac.compare_digest(key.hex(), key_hex)
     except Exception:
         return False
 
@@ -587,9 +603,13 @@ def redeem_voucher(code: str, user_id: int, ip: str = "") -> Dict[str, Any]:
     credits_to_add = float(row["credits"])
     now = int(time.time())
     cur.execute(
-        "UPDATE vouchers SET is_used = 1, used_by = ?, used_at = ? WHERE code = ?",
+        "UPDATE vouchers SET is_used = 1, used_by = ?, used_at = ? WHERE code = ? AND is_used = 0",
         (user_id, now, code)
     )
+    if cur.rowcount == 0:
+        conn.close()
+        return {"success": False, "error": "This voucher has already been redeemed!"}
+
     cur.execute("UPDATE users SET credits = credits + ? WHERE id = ?", (credits_to_add, user_id))
     cur.execute("SELECT credits FROM users WHERE id = ?", (user_id,))
     new_credits = cur.fetchone()['credits']
@@ -632,20 +652,29 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
     return dict(row) if row else None
 
 def deduct_credit(user_id: int, amount: float = 1.0) -> bool:
-    if user_id == 0:  # Admin synthetic user — unlimited, no deduction
+    if user_id == 0:
         return True
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT credits FROM users WHERE id = ?", (user_id,))
-    row = cur.fetchone()
-    if not row or row['credits'] < amount:
-        conn.close()
+    if amount < 0:
         return False
-    
-    cur.execute("UPDATE users SET credits = credits - ? WHERE id = ?", (amount, user_id))
-    conn.commit()
-    conn.close()
-    return True
+    if amount == 0:
+        return True
+
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET credits = credits - ? WHERE id = ? AND credits >= ?",
+            (amount, user_id, amount),
+        )
+        conn.commit()
+        success = cur.rowcount > 0
+        return success
+    except sqlite3.Error as e:
+        conn.rollback()
+        print(f"[DB ERROR] deduct_credit failed for user {user_id}: {e}")
+        return False
+    finally:
+        conn.close()
 
 def add_credit(user_id: int, amount: float) -> float:
     conn = get_db()
@@ -814,12 +843,12 @@ def get_admin_overview() -> dict:
     successful_requests = req_row["successful"] or 0
     success_rate = round((successful_requests / total_requests * 100), 1) if total_requests > 0 else 100.0
 
-    # Recent 30 registered users
+    # Recent 50 registered users
     cur.execute('''
-        SELECT id, username, email, discord_id, credits, plan, has_deposited, is_guest, timeout_until, created_at 
+        SELECT id, username, email, discord_id, credits, plan, plan_expires_at, concurrency_limit, has_deposited, is_guest, timeout_until, created_at 
         FROM users 
         ORDER BY id DESC 
-        LIMIT 30
+        LIMIT 50
     ''')
     raw_users = [dict(r) for r in cur.fetchall()]
     users = []
@@ -1041,6 +1070,84 @@ def admin_set_user_credits(user_id: int, credits: float) -> dict:
     conn.commit()
     conn.close()
     return {"success": True, "user_id": user_id, "username": row["username"], "credits": credits}
+
+def admin_set_user_plan(
+    user_id: int,
+    plan: str,
+    duration_days: int = 30,
+    add_credits: bool = True,
+    concurrency_override: Optional[int] = None
+) -> dict:
+    """Admin: Assign or upgrade a user's subscription plan and apply exact quotas."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return {"success": False, "error": f"User #{user_id} not found."}
+
+    user = dict(row)
+    plan_key = plan.lower().strip()
+    if plan_key not in PLANS:
+        conn.close()
+        return {"success": False, "error": f"Invalid plan: {plan}. Available: {list(PLANS.keys())}"}
+
+    meta = PLANS[plan_key]
+    now = int(time.time())
+
+    # Calculate expiration timestamp
+    if plan_key in ("free", "pay_as_you_go") or duration_days <= 0:
+        plan_expires_at = 0
+    else:
+        plan_expires_at = now + (int(duration_days) * 86400)
+
+    # Concurrency limit calculation
+    if concurrency_override is not None and int(concurrency_override) > 0:
+        concurrency_limit = int(concurrency_override)
+    else:
+        concurrency_limit = int(meta.get("concurrency", 3))
+
+    # Mark has_deposited for paid plans
+    has_deposited = 1 if plan_key != "free" else 0
+
+    # Calculate credits
+    current_credits = float(user.get("credits", 0.0) or 0.0)
+    included_credits = float(meta.get("included_credits", 0.0))
+    if add_credits and included_credits > 0:
+        new_credits = current_credits + included_credits
+    elif plan_key == "free" and current_credits < 75.0:
+        new_credits = 75.0
+    else:
+        new_credits = current_credits
+
+    cur.execute('''
+        UPDATE users
+        SET plan = ?,
+            plan_expires_at = ?,
+            concurrency_limit = ?,
+            has_deposited = ?,
+            credits = ?,
+            timeout_until = 0,
+            is_guest = 0
+        WHERE id = ?
+    ''', (plan_key, plan_expires_at, concurrency_limit, has_deposited, new_credits, user_id))
+    conn.commit()
+    conn.close()
+
+    return {
+        "success": True,
+        "user_id": user_id,
+        "username": user.get("username", f"User_{user_id}"),
+        "plan": plan_key,
+        "plan_name": meta.get("name", plan_key),
+        "concurrency_limit": concurrency_limit,
+        "credits": new_credits,
+        "credits_added": included_credits if (add_credits and included_credits > 0) else 0.0,
+        "plan_expires_at": plan_expires_at,
+        "has_deposited": has_deposited,
+        "is_guest": 0
+    }
 
 def admin_toggle_announcement(announcement_id: int, is_active: int):
     """Activate or deactivate an announcement."""

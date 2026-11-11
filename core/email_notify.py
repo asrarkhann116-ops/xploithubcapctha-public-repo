@@ -9,8 +9,11 @@ Triggers:
 """
 
 import os
+import re
+import html
 import logging
 import aiohttp
+from email.utils import parseaddr
 from typing import Optional
 
 log = logging.getLogger("email_notify")
@@ -19,27 +22,56 @@ RESEND_API_KEY      = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM          = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
 EMAIL_FROM_NAME     = os.getenv("EMAIL_FROM_NAME", "Xploit Unblocker")
 BASE_URL            = os.getenv("BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or "https://xploithubcapctha.up.railway.app"
-LOW_CREDITS_THRESHOLD = 50  # warn when credits fall below this
+LOW_CREDITS_THRESHOLD = 50
 
 RESEND_ENDPOINT = "https://api.resend.com/emails"
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+
+
+def sanitize_email_header(val: Optional[str]) -> str:
+    """Strip carriage returns and newlines to prevent header / CRLF injection."""
+    if not val:
+        return ""
+    return str(val).replace("\r", "").replace("\n", "").strip()
+
+
+def is_valid_email(email: Optional[str]) -> bool:
+    """Validate email address format and length; disallow control characters."""
+    if not email or not isinstance(email, str):
+        return False
+    if "\r" in email or "\n" in email:
+        return False
+    clean = email.strip()
+    if len(clean) > 254 or len(clean) < 6:
+        return False
+    _, parsed = parseaddr(clean)
+    if not parsed or parsed != clean:
+        return False
+    return bool(EMAIL_REGEX.match(clean))
 
 
 # ── Internal sender ──────────────────────────────────────────────────────────
 
-async def _send(to: str, subject: str, html: str) -> bool:
-    """Send email via Resend REST API. Returns True on success."""
+async def _send(to: str, subject: str, html_body: str) -> bool:
+    """Send email via Resend REST API after CRLF sanitization and recipient validation."""
     if not RESEND_API_KEY:
         log.warning("[EMAIL] RESEND_API_KEY not set — email skipped.")
         return False
-    if not to or "@" not in to:
-        log.debug("[EMAIL] No valid email address for user — skipping.")
+
+    if not to or "\r" in to or "\n" in to or not is_valid_email(to):
+        log.warning("[EMAIL] Invalid or CRLF-injected recipient address '%s' — email skipped.", to)
         return False
+
+    clean_to = to.strip()
+    clean_subject = sanitize_email_header(subject)
+    if not clean_subject:
+        clean_subject = "Notification"
 
     payload = {
         "from": f"{EMAIL_FROM_NAME} <{EMAIL_FROM}>",
-        "to": [to],
-        "subject": subject,
-        "html": html,
+        "to": [clean_to],
+        "subject": clean_subject,
+        "html": html_body,
     }
     try:
         async with aiohttp.ClientSession() as session:
@@ -50,7 +82,7 @@ async def _send(to: str, subject: str, html: str) -> bool:
                 json=payload,
             ) as r:
                 if r.status in (200, 201):
-                    log.info("[EMAIL] Sent '%s' to %s", subject, to)
+                    log.info("[EMAIL] Sent '%s' to %s", clean_subject, clean_to)
                     return True
                 body = await r.text()
                 log.error("[EMAIL] Resend error %s: %s", r.status, body)
@@ -116,8 +148,10 @@ def _base_html(content: str) -> str:
 
 async def welcome_email(to: str, username: str, api_key: str, credits: float = 75) -> bool:
     """Send welcome email to newly registered user."""
+    safe_username = html.escape(str(username))
+    safe_api_key = html.escape(str(api_key))
     content = f"""
-      <h2 style="margin:0 0 16px;color:#f1f5f9;font-size:20px;">Welcome, {username}! 🎉</h2>
+      <h2 style="margin:0 0 16px;color:#f1f5f9;font-size:20px;">Welcome, {safe_username}! 🎉</h2>
       <p style="margin:0 0 20px;color:#94a3b8;line-height:1.6;">
         Your Xploit Unblocker account is ready. You start with
         <strong style="color:#0d9488;">{credits:.0f} free credits</strong> — no card needed.
@@ -127,7 +161,7 @@ async def welcome_email(to: str, username: str, api_key: str, credits: float = 7
         <tr>
           <td style="background:#0f172a;border-radius:8px;padding:20px;border:1px solid #1e293b;">
             <p style="margin:0 0 8px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Your API Key</p>
-            <code style="font-size:13px;color:#0d9488;word-break:break-all;">{api_key}</code>
+            <code style="font-size:13px;color:#0d9488;word-break:break-all;">{safe_api_key}</code>
             <p style="margin:10px 0 0;font-size:12px;color:#475569;">Keep this private — it authorizes all API requests.</p>
           </td>
         </tr>
@@ -159,10 +193,12 @@ async def deposit_confirmed(
     credits_added: float, new_balance: float, tx_hash: str
 ) -> bool:
     """Send deposit confirmation email."""
+    safe_username = html.escape(str(username))
+    safe_tx_hash = html.escape(str(tx_hash))
     content = f"""
       <h2 style="margin:0 0 16px;color:#f1f5f9;font-size:20px;">Deposit Confirmed ✅</h2>
       <p style="margin:0 0 20px;color:#94a3b8;line-height:1.6;">
-        Hey {username}, your Solana USDT deposit has been verified and credits added instantly.
+        Hey {safe_username}, your Solana USDT deposit has been verified and credits added instantly.
       </p>
 
       <table width="100%" cellpadding="12" cellspacing="0" style="margin:0 0 24px;background:#0f172a;border-radius:8px;border:1px solid #1e293b;">
@@ -180,7 +216,7 @@ async def deposit_confirmed(
         </tr>
         <tr style="border-top:1px solid #1e293b;">
           <td style="color:#64748b;font-size:13px;">TX Hash</td>
-          <td style="text-align:right;"><code style="font-size:11px;color:#475569;">{tx_hash[:24]}...</code></td>
+          <td style="text-align:right;"><code style="font-size:11px;color:#475569;">{safe_tx_hash[:24]}...</code></td>
         </tr>
       </table>
 
@@ -193,10 +229,11 @@ async def deposit_confirmed(
 
 async def low_credits_warning(to: str, username: str, credits_remaining: float) -> bool:
     """Warn user when credits are running low."""
+    safe_username = html.escape(str(username))
     content = f"""
       <h2 style="margin:0 0 16px;color:#f1f5f9;font-size:20px;">⚠️ Low Credits Warning</h2>
       <p style="margin:0 0 20px;color:#94a3b8;line-height:1.6;">
-        Hey {username}, you only have <strong style="color:#f59e0b;">{credits_remaining:.0f} credits</strong> remaining.
+        Hey {safe_username}, you only have <strong style="color:#f59e0b;">{credits_remaining:.0f} credits</strong> remaining.
         Top up now to avoid service interruption.
       </p>
 
@@ -223,16 +260,18 @@ async def plan_activated(
     credits: float, expires_days: int, amount_usdt: float
 ) -> bool:
     """Notify user that a subscription plan was activated."""
+    safe_username = html.escape(str(username))
+    safe_plan_name = html.escape(str(plan_name))
     content = f"""
       <h2 style="margin:0 0 16px;color:#f1f5f9;font-size:20px;">Plan Activated 🚀</h2>
       <p style="margin:0 0 20px;color:#94a3b8;line-height:1.6;">
-        Hey {username}, your <strong style="color:#0d9488;">{plan_name}</strong> plan is now active!
+        Hey {safe_username}, your <strong style="color:#0d9488;">{safe_plan_name}</strong> plan is now active!
       </p>
 
       <table width="100%" cellpadding="12" cellspacing="0" style="margin:0 0 24px;background:#0f172a;border-radius:8px;border:1px solid #1e293b;">
         <tr>
           <td style="color:#64748b;font-size:13px;">Plan</td>
-          <td style="color:#0d9488;font-weight:700;text-align:right;">{plan_name}</td>
+          <td style="color:#0d9488;font-weight:700;text-align:right;">{safe_plan_name}</td>
         </tr>
         <tr style="border-top:1px solid #1e293b;">
           <td style="color:#64748b;font-size:13px;">Credits Included</td>
@@ -252,4 +291,4 @@ async def plan_activated(
         Open Dashboard →
       </a>
     """
-    return await _send(to, f"🚀 {plan_name} Plan Activated — {credits:,.0f} Credits Ready", _base_html(content))
+    return await _send(to, f"🚀 {safe_plan_name} Plan Activated — {credits:,.0f} Credits Ready", _base_html(content))

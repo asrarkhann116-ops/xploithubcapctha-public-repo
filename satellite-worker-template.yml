@@ -1,14 +1,13 @@
 # ═══════════════════════════════════════════════════════════════
-# Xploit Unblocker — Satellite Solver Node (Zero-Maintenance)
+# Xploit Unblocker — Hardened Satellite Solver Node
 #
-# How to use on ANY other GitHub account / repository:
-# 1. Create a repo (public or private).
+# Production Security Guidelines:
+# 1. Never commit plaintext secrets into this file or repository.
 # 2. Add Secrets in Repo Settings -> Secrets & Variables -> Actions:
-#      HUB_URL = https://your-app-name.onrender.com (or your domain)
-#      WORKER_SECRET = <your-worker-secret>
-# 3. Save this file as .github/workflows/worker.yml
-# 4. That's it! It will automatically fetch the latest engine
-#    from the Hub on boot and spin up parallel CDP solvers.
+#      HUB_URL       : Central Hub URL (e.g. https://hub.example.com)
+#      WORKER_SECRET : 32+ char high-entropy token matching Hub config
+# 3. Save this workflow file as .github/workflows/worker.yml
+# 4. Solvers authenticate dynamically via X-Worker-Secret header.
 # ═══════════════════════════════════════════════════════════════
 
 name: Xploit Satellite Fleet
@@ -31,17 +30,44 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        slot: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # 10 Parallel Solvers per repo!
+        slot: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     concurrency:
       group: xploit-sat-slot-${{ matrix.slot }}-${{ github.event.schedule || 'active' }}
       cancel-in-progress: false
 
     steps:
+      - name: Validate Secrets & Pre-Flight Security Check
+        env:
+          HUB_URL: ${{ secrets.HUB_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+        run: |
+          if [ -z "$HUB_URL" ] || [ -z "$WORKER_SECRET" ]; then
+            echo "::error::CRITICAL: HUB_URL and WORKER_SECRET must be configured in repository Actions secrets."
+            exit 1
+          fi
+
+          # Prohibit insecure defaults
+          case "$WORKER_SECRET" in
+            "xpk-worker-default-secret"|"secret"|"password"|"admin"|"123456"|"changeme"|"default")
+              echo "::error::SECURITY VIOLATION: Insecure default WORKER_SECRET detected. Provide a strong random secret."
+              exit 1
+              ;;
+          esac
+
+          if [ ${#WORKER_SECRET} -lt 16 ]; then
+            echo "::error::SECURITY VIOLATION: WORKER_SECRET must be at least 16 characters long."
+            exit 1
+          fi
+
+          echo "::add-mask::$WORKER_SECRET"
+          echo "Worker secret and endpoint validated successfully."
+
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install Google Chrome
         run: |
@@ -54,7 +80,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install --upgrade pip
-          pip install seleniumbase curl_cffi requests
+          pip install --no-cache-dir seleniumbase curl_cffi requests psutil
 
       - name: Launch Dynamic Solver Node
         env:
@@ -63,14 +89,25 @@ jobs:
           WORKER_ID: "sat-${{ github.repository_owner }}-s${{ matrix.slot }}-${{ github.run_id }}"
           DURATION_MINUTES: ${{ github.event.inputs.duration_minutes || '350' }}
           DISPLAY: ":99"
+          STRICT_WORKER_AUTH: "true"
         run: |
-          echo "Connecting Satellite Solver to $HUB_URL as $WORKER_ID..."
-          
-          # Fetch latest engine directly from Railway Hub
-          curl -sSL -f "$HUB_URL/api/worker/engine.py" -o worker.py
-          
-          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "Starting satellite worker slot ${{ matrix.slot }} (ID: $WORKER_ID)..."
+
+          # Secure fetch of latest engine script with authentication
+          curl -sSL -f --proto '=https,http' \
+            -H "X-Worker-Secret: $WORKER_SECRET" \
+            "$HUB_URL/api/worker/engine.py" -o worker.py
+
+          Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
+          XVFB_PID=$!
           sleep 1
 
           python worker.py
 
+      - name: Cleanup Lingering Processes & Temporary Profiles
+        if: always()
+        run: |
+          pkill -f "Xvfb" || true
+          pkill -f "chrome" || true
+          pkill -f "chromedriver" || true
+          rm -rf /tmp/.org.chromium.* /tmp/undetected_chromedriver* /tmp/scoped_dir* /tmp/chrome.deb || true

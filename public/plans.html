@@ -17,7 +17,7 @@
     <meta property="og:description" content="Bill only for successful solves. 75 free solves daily. Pay-as-you-go or scalable monthly plans with on-chain Solana settlement.">
     <meta property="og:url" content="https://xploithubcapctha.up.railway.app/plans/">
     <meta property="og:image" content="https://xploithubcapctha.up.railway.app/static/og-banner.jpg">
-    <meta name="theme-color" content="#ec4899">
+    <meta name="theme-color" content="#14152e">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="https://xploithubcapctha.up.railway.app/static/og-banner.jpg">
 
@@ -26,79 +26,35 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Pixelify+Sans:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ══════════ FLUID ANIMATIONS & TRENDING STYLES ══════════ */
-        @keyframes orbFloat1 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(40px, -30px) scale(1.1); }
-        }
-        @keyframes orbFloat2 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(-35px, 25px) scale(0.95); }
-        }
-        @keyframes neonPulseGlow {
-            0%, 100% {
-                box-shadow: 0 0 25px rgba(246, 184, 200, 0.15), 0 0 50px rgba(159, 216, 255, 0.08), inset 0 0 15px rgba(246, 184, 200, 0.05);
-            }
-            50% {
-                box-shadow: 0 0 35px rgba(246, 184, 200, 0.28), 0 0 70px rgba(159, 216, 255, 0.16), inset 0 0 25px rgba(246, 184, 200, 0.1);
-            }
-        }
-        @keyframes vinceGlow {
-            0%, 100% {
-                box-shadow: 0 0 30px rgba(255, 224, 168, 0.18), 0 0 60px rgba(246, 184, 200, 0.12);
-            }
-            50% {
-                box-shadow: 0 0 45px rgba(255, 224, 168, 0.32), 0 0 90px rgba(246, 184, 200, 0.22);
-            }
-        }
-
-        .ambient-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-        .ambient-orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.35;
-        }
-        .orb-1 {
-            width: 450px;
-            height: 450px;
-            background: radial-gradient(circle, rgba(246, 184, 200, 0.35) 0%, transparent 70%);
-            top: 10%;
-            left: 15%;
-            animation: orbFloat1 18s ease-in-out infinite;
-        }
-        .orb-2 {
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(159, 216, 255, 0.3) 0%, transparent 70%);
-            top: 40%;
-            right: 10%;
-            animation: orbFloat2 22s ease-in-out infinite;
-        }
-        .orb-3 {
-            width: 380px;
-            height: 380px;
-            background: radial-gradient(circle, rgba(255, 224, 168, 0.22) 0%, transparent 70%);
-            bottom: 5%;
-            left: 30%;
-            animation: orbFloat1 25s ease-in-out infinite reverse;
-        }
-
+        /* ══════════ SOVEREIGN SILK & DUSK THEME STYLES ══════════ */
         .plans-wrapper {
             position: relative;
             z-index: 1;
             max-width: 1260px;
             margin: 0 auto;
             padding: 30px 20px 80px 20px;
+            width: 100%;
+        }
+
+        /* Semantic Badges */
+        .badge-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-xs, 3px); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+        .badge-green { background: rgba(143, 227, 192, 0.15); color: var(--text-ok, #8fe3c0); border: 1px solid rgba(143, 227, 192, 0.35); }
+        .badge-amber, .badge-yellow { background: rgba(255, 224, 168, 0.15); color: var(--text-amber, #ffe0a8); border: 1px solid rgba(255, 224, 168, 0.35); }
+        .badge-blue { background: rgba(159, 216, 255, 0.15); color: var(--text-cyan, #9fd8ff); border: 1px solid rgba(159, 216, 255, 0.35); }
+        .badge-pink { background: rgba(246, 184, 200, 0.15); color: var(--text-accent, #f6b8c8); border: 1px solid rgba(246, 184, 200, 0.35); }
+        .badge-danger { background: rgba(255, 138, 138, 0.15); color: var(--text-danger, #ff8a8a); border: 1px solid rgba(255, 138, 138, 0.35); }
+
+        /* Responsive 2-Col Grid for Settlement Wizard */
+        .checkout-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .checkout-grid-2col {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* Hero Header */
@@ -132,10 +88,7 @@
             margin-bottom: 14px;
         }
         .plans-title .gradient-text {
-            background: linear-gradient(135deg, #fff4ec 30%, #f6b8c8 75%, #9fd8ff 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--text-accent);
         }
         .plans-sub {
             max-width: 720px;
@@ -258,34 +211,36 @@
 
         /* Moderato Card Specific (Featured) */
         .card-moderato {
-            background: rgba(14, 23, 40, 0.88);
-            border: 1px solid rgba(246, 184, 200, 0.55);
-            animation: neonPulseGlow 4s ease-in-out infinite;
+            background: var(--bg-panel, #1b1e3e);
+            border: 1px solid var(--border-accent, #f6b8c8);
+            box-shadow: var(--shadow-panel, 4px 4px 0 rgba(8, 9, 24, 0.65));
             transform: scale(1.02);
             z-index: 2;
         }
         .card-moderato::before {
-            background: linear-gradient(90deg, #f6b8c8, #9fd8ff);
-            height: 4px;
+            background: linear-gradient(90deg, var(--border-accent, #f6b8c8), var(--border-cyan, #9fd8ff));
+            height: 3px;
         }
         .card-moderato:hover {
-            transform: translateY(-10px) scale(1.03);
-            border-color: #f6b8c8;
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 6px 6px 0 rgba(8, 9, 24, 0.75);
+            border-color: var(--border-accent, #f6b8c8);
         }
 
         /* Vince Card Specific (Best Value) */
         .card-vince {
-            background: rgba(18, 20, 36, 0.88);
-            border: 1px solid rgba(255, 224, 168, 0.5);
-            animation: vinceGlow 4s ease-in-out infinite;
+            background: var(--bg-panel, #1b1e3e);
+            border: 1px solid var(--text-amber, #ffe0a8);
+            box-shadow: var(--shadow-panel, 4px 4px 0 rgba(8, 9, 24, 0.65));
         }
         .card-vince::before {
-            background: linear-gradient(90deg, #ffe0a8, #f6b8c8);
-            height: 4px;
+            background: linear-gradient(90deg, var(--text-amber, #ffe0a8), var(--border-accent, #f6b8c8));
+            height: 3px;
         }
         .card-vince:hover {
-            transform: translateY(-8px) scale(1.01);
-            border-color: #ffe0a8;
+            transform: translateY(-6px);
+            box-shadow: 6px 6px 0 rgba(8, 9, 24, 0.75);
+            border-color: var(--text-amber, #ffe0a8);
         }
 
         /* Badges */
@@ -320,6 +275,42 @@
             border-radius: var(--radius-pill);
             letter-spacing: 0.6px;
             box-shadow: 0 2px 10px rgba(246, 184, 200, 0.4);
+        }
+
+        /* Active Current Plan Highlighting */
+        .current-plan-card {
+            border: 2px solid #f6b8c8 !important;
+            box-shadow: 0 0 28px rgba(246, 184, 200, 0.3), inset 0 0 16px rgba(246, 184, 200, 0.08) !important;
+            position: relative;
+        }
+        .current-plan-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #f6b8c8, #f472b6);
+            color: #0b0d13;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            padding: 3px 12px;
+            border-radius: var(--radius-pill);
+            box-shadow: 0 2px 10px rgba(246, 184, 200, 0.4);
+            z-index: 10;
+            white-space: nowrap;
+        }
+        .plan-expiry-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #a7f3d0;
+            background: rgba(167, 243, 208, 0.1);
+            border: 1px solid rgba(167, 243, 208, 0.25);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 6px;
         }
 
         .card-title {
@@ -674,12 +665,6 @@
     <link rel="stylesheet" href="/static/fx.css">
 </head>
 <body>
-    <!-- Ambient Canvas -->
-    <div class="ambient-canvas">
-        <div class="ambient-orb orb-1"></div>
-        <div class="ambient-orb orb-2"></div>
-        <div class="ambient-orb orb-3"></div>
-    </div>
 
     <!-- System Telemetry Bar -->
     <div class="system-bar" style="position:relative; z-index:10;">
@@ -736,9 +721,33 @@
                     <span>Docs &amp; Guide</span>
                 </a>
 
-                <a href="/login" class="btn-primary" style="padding:6px 14px; text-decoration:none; font-size:12px;">
-                    <span>Sign In / Register</span>
-                </a>
+                <div class="user-control" id="user-control-block">
+                    <div class="stat-pill" id="nav-credits-wrap" style="display:none;" title="Available API execution credits">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        <span class="stat-val" id="nav-credits" style="color:var(--text-cyan);">0.00</span>
+                        <span class="stat-lbl">Credits</span>
+                    </div>
+
+                    <div class="user-profile-badge" id="user-badge-wrap" style="display:none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span id="nav-username" style="font-weight:600; color:var(--text-primary);">User</span>
+                        <span id="nav-plan-badge" class="badge-pill badge-blue">FREE</span>
+                    </div>
+
+                    <a href="/login" class="btn-primary" id="btn-auth-action" style="padding:6px 14px; text-decoration:none; font-size:12px; display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        <span id="btn-auth-text">Sign In / Register</span>
+                    </a>
+                </div>
             </div>
         </div>
     </header>
@@ -780,7 +789,7 @@
         <div class="cards-grid-main">
 
             <!-- 1. FREE -->
-            <div class="pricing-card card-free">
+            <div class="pricing-card card-free" id="card-plan-free">
                 <div class="card-tag tag-free">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
                     <span>FREE FOREVER</span>
@@ -820,14 +829,14 @@
                     </li>
                 </ul>
 
-                <a href="/login" class="card-btn btn-free-card">
+                <a href="/login" class="card-btn btn-free-card" id="btn-free-cta">
                     <span>Test Integration Free</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </a>
             </div>
 
             <!-- 2. STARTER -->
-            <div class="pricing-card card-starter">
+            <div class="pricing-card card-starter" id="card-plan-starter">
                 <div class="card-tag tag-starter">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
                     <span>HOBBY / STARTER</span>
@@ -878,7 +887,7 @@
             </div>
 
             <!-- 3. MODERATO (MOST POPULAR) -->
-            <div class="pricing-card card-moderato">
+            <div class="pricing-card card-moderato" id="card-plan-moderato">
                 <div class="featured-ribbon">MOST POPULAR • 6x VALUE</div>
                 <div class="card-tag tag-moderato">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -934,7 +943,7 @@
             </div>
 
             <!-- 4. VINCE (BEST VALUE) -->
-            <div class="pricing-card card-vince">
+            <div class="pricing-card card-vince" id="card-plan-vince">
                 <div class="featured-ribbon" style="background:linear-gradient(135deg, #ffe0a8, #b45309); color:#180b02;">BEST VALUE • UNLIMITED</div>
                 <div class="card-tag tag-vince">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
@@ -995,7 +1004,7 @@
         <div class="cards-grid-sub">
 
             <!-- PAY-AS-YOU-GO -->
-            <div class="pricing-card" style="border-color: rgba(246, 184, 200, 0.4);">
+            <div class="pricing-card card-payg-tier" id="card-plan-payg" style="border-color: rgba(246, 184, 200, 0.4);">
                 <div class="card-tag tag-payg">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
                     <span>NO SUBSCRIPTION • PAY AS YOU GO</span>
@@ -1023,7 +1032,7 @@
                         <span>Credits remain indefinitely in your account</span>
                     </li>
                 </ul>
-                <button class="card-btn" style="background:rgba(246,184,200,0.15); border-color:#f6b8c8; color:#f6b8c8;" onclick="scrollToCheckout('Pay-as-you-go', 5)">
+                <button class="card-btn" id="btn-payg-cta" style="background:rgba(246,184,200,0.15); border-color:#f6b8c8; color:#f6b8c8;" onclick="scrollToCheckout('Pay-as-you-go', 5)">
                     <span>Top Up Pay-As-You-Go</span>
                 </button>
             </div>
@@ -1186,6 +1195,15 @@
                 </div>
             </div>
 
+            <!-- Guest Session Warning Banner -->
+            <div id="checkout-guest-warning" style="display:none; margin-bottom:16px; padding:12px 16px; border-radius:8px; background:rgba(251, 191, 36, 0.1); border:1px solid rgba(251, 191, 36, 0.35); color:#fef3c7; font-size:13px; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:16px;">⚠️</span>
+                    <span><strong>Guest Session Active:</strong> Please sign in or register before completing checkout so your plan is permanently attached to your account.</span>
+                </div>
+                <a href="/login" class="btn-primary" style="padding:6px 14px; font-size:12px; text-decoration:none; white-space:nowrap;">Sign In / Register</a>
+            </div>
+
             <!-- Mode Selector Tabs: Subscriptions vs Pay-As-You-Go -->
             <div class="checkout-mode-tabs">
                 <button class="checkout-tab-btn active" id="tab-checkout-subs" onclick="switchCheckoutTab('subs')">
@@ -1198,17 +1216,30 @@
                 </button>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:20px;">
+            <div class="checkout-grid-2col">
                 <div class="info-block">
                     <div class="info-label">Official solana treasury wallet (USDT SPL)</div>
                     <div class="info-content-row">
                         <code id="plans-solana-wallet" style="font-size:12px; color:var(--text-accent);">6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u</code>
-                        <button class="field-btn" onclick="copyText('6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u', 'Solana Wallet Address')" title="Copy Wallet">
+                        <button class="field-btn" onclick="copySolanaWallet()" title="Copy Wallet">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                         </button>
                     </div>
                     <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
                         Token: <strong>USDT (SPL)</strong> on Solana Network only.
+                    </div>
+
+                    <div style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06);">
+                        <div class="info-label">Your unique deposit reference memo</div>
+                        <div class="info-content-row">
+                            <code id="plans-deposit-ref" style="font-size:12px; color:var(--text-accent);">XPK-REF</code>
+                            <button class="field-btn" onclick="copyDepositRef()" title="Copy Reference Memo">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">
+                            Include this memo in your transaction to bind payment to your account.
+                        </div>
                     </div>
                 </div>
 
@@ -1320,6 +1351,18 @@
 
     <script>
         let currentCycle = 'monthly';
+        let currentSolanaWallet = '6p9wToN1W8xQQFASCAjbXX9anvv216S5s5v1GZbi9n3u';
+        let currentUserDepositRef = '';
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         function showToast(msg) {
             const t = document.getElementById('plans-toast');
@@ -1336,6 +1379,18 @@
             }).catch(() => {
                 showToast(`Copied!`);
             });
+        }
+
+        function copySolanaWallet() {
+            copyText(currentSolanaWallet, 'Solana Wallet Address');
+        }
+
+        function copyDepositRef() {
+            if (currentUserDepositRef && currentUserDepositRef !== 'REGISTER_FOR_REF') {
+                copyText(currentUserDepositRef, 'Deposit Reference Memo');
+            } else {
+                showToast('Please register to obtain a deposit reference memo.');
+            }
         }
 
         function switchBillingCycle(cycle) {
@@ -1355,18 +1410,30 @@
                 if (subStarter) subStarter.innerText = '/ year ($7.41/mo)';
                 if (btnStarter) {
                     const span = btnStarter.querySelector('span');
-                    if (span) span.innerText = 'Activate Annual Starter ($89)';
+                    if (span && !span.dataset.isCurrentPlan) span.innerText = 'Activate Annual Starter ($89)';
                 }
 
                 // Update Moderato
-                document.getElementById('price-moderato').innerText = '$279';
-                document.getElementById('sub-moderato').innerText = '/ year ($23.25/mo)';
-                document.getElementById('btn-moderato-cta').innerText = 'Activate Annual Moderato ($279)';
+                const priceModerato = document.getElementById('price-moderato');
+                const subModerato = document.getElementById('sub-moderato');
+                const btnModerato = document.getElementById('btn-moderato-cta');
+                if (priceModerato) priceModerato.innerText = '$279';
+                if (subModerato) subModerato.innerText = '/ year ($23.25/mo)';
+                if (btnModerato) {
+                    const span = btnModerato.querySelector('span');
+                    if (span && !span.dataset.isCurrentPlan) span.innerText = 'Activate Annual Moderato ($279)';
+                }
 
                 // Update Vince
-                document.getElementById('price-vince').innerText = '$949';
-                document.getElementById('sub-vince').innerText = '/ year ($79.08/mo)';
-                document.getElementById('btn-vince-cta').innerText = 'Activate Annual Vince ($949)';
+                const priceVince = document.getElementById('price-vince');
+                const subVince = document.getElementById('sub-vince');
+                const btnVince = document.getElementById('btn-vince-cta');
+                if (priceVince) priceVince.innerText = '$949';
+                if (subVince) subVince.innerText = '/ year ($79.08/mo)';
+                if (btnVince) {
+                    const span = btnVince.querySelector('span');
+                    if (span && !span.dataset.isCurrentPlan) span.innerText = 'Activate Annual Vince ($949)';
+                }
 
                 showToast('Switched to Annual Billing (2 Months Free applied!)');
             } else {
@@ -1381,18 +1448,30 @@
                 if (subStarter) subStarter.innerText = '/ month';
                 if (btnStarter) {
                     const span = btnStarter.querySelector('span');
-                    if (span) span.innerText = 'Get Starter ($9)';
+                    if (span && !span.dataset.isCurrentPlan) span.innerText = 'Get Starter ($9)';
                 }
 
                 // Reset Moderato
-                document.getElementById('price-moderato').innerText = '$29';
-                document.getElementById('sub-moderato').innerText = '/ month';
-                document.getElementById('btn-moderato-cta').innerText = 'Activate Moderato ($29)';
+                const priceModerato = document.getElementById('price-moderato');
+                const subModerato = document.getElementById('sub-moderato');
+                const btnModerato = document.getElementById('btn-moderato-cta');
+                if (priceModerato) priceModerato.innerText = '$29';
+                if (subModerato) subModerato.innerText = '/ month';
+                if (btnModerato) {
+                    const span = btnModerato.querySelector('span');
+                    if (span && !span.dataset.isCurrentPlan) span.innerText = 'Activate Moderato ($29)';
+                }
 
                 // Reset Vince
-                document.getElementById('price-vince').innerText = '$99';
-                document.getElementById('sub-vince').innerText = '/ month';
-                document.getElementById('btn-vince-cta').innerText = 'Activate Vince ($99)';
+                const priceVince = document.getElementById('price-vince');
+                const subVince = document.getElementById('sub-vince');
+                const btnVince = document.getElementById('btn-vince-cta');
+                if (priceVince) priceVince.innerText = '$99';
+                if (subVince) subVince.innerText = '/ month';
+                if (btnVince) {
+                    const span = btnVince.querySelector('span');
+                    if (span && !span.dataset.isCurrentPlan) span.innerText = 'Activate Vince ($99)';
+                }
 
                 showToast('Switched to Monthly Billing');
             }
@@ -1551,6 +1630,230 @@
                 feedback.innerText = `Network error contacting server: ${err.message}`;
             }
         }
+
+        async function syncNavUserState() {
+            try {
+                const res = await fetch('/api/user/me');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data) return;
+
+                const userBadge = document.getElementById('user-badge-wrap');
+                const creditsWrap = document.getElementById('nav-credits-wrap');
+                const usernameEl = document.getElementById('nav-username');
+                const creditsEl = document.getElementById('nav-credits');
+                const planBadge = document.getElementById('nav-plan-badge');
+                const btnAuthAction = document.getElementById('btn-auth-action');
+                const btnAuthText = document.getElementById('btn-auth-text');
+                const guestWarning = document.getElementById('checkout-guest-warning');
+                const depositRefEl = document.getElementById('plans-deposit-ref');
+                const walletEl = document.getElementById('plans-solana-wallet');
+
+                // Dynamic Solana Treasury Wallet Binding
+                if (data.solana_wallet) {
+                    currentSolanaWallet = data.solana_wallet;
+                    if (walletEl) walletEl.innerText = data.solana_wallet;
+                }
+
+                // Reset previous active plan decorations
+                document.querySelectorAll('.current-plan-card').forEach(el => el.classList.remove('current-plan-card'));
+                document.querySelectorAll('.current-plan-badge').forEach(el => el.remove());
+                document.querySelectorAll('.plan-expiry-pill').forEach(el => el.remove());
+
+                ['btn-starter-cta', 'btn-moderato-cta', 'btn-vince-cta', 'btn-payg-cta'].forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) {
+                        const span = btn.querySelector('span');
+                        if (span) delete span.dataset.isCurrentPlan;
+                    }
+                });
+
+                if (data.is_guest) {
+                    // Guest session status in nav and checkout warning
+                    if (userBadge) userBadge.style.display = 'inline-flex';
+                    if (creditsWrap) creditsWrap.style.display = 'inline-flex';
+                    if (usernameEl) usernameEl.innerText = `${data.username || 'Guest'} (Trial)`;
+                    if (creditsEl) creditsEl.innerText = Number(data.credits || 0).toFixed(2);
+                    if (planBadge) {
+                        planBadge.innerText = 'GUEST (5 Solves)';
+                        planBadge.style.background = 'rgba(251, 191, 36, 0.15)';
+                        planBadge.style.color = '#fbbf24';
+                        planBadge.style.borderColor = 'rgba(251, 191, 36, 0.35)';
+                    }
+
+                    if (btnAuthText) btnAuthText.innerText = 'Sign In / Register';
+                    if (btnAuthAction) {
+                        btnAuthAction.href = '/login';
+                        btnAuthAction.onclick = null;
+                        btnAuthAction.style.background = '';
+                        btnAuthAction.style.borderColor = '';
+                        btnAuthAction.style.color = '';
+                    }
+
+                    if (guestWarning) guestWarning.style.display = 'flex';
+                    currentUserDepositRef = 'REGISTER_FOR_REF';
+                    if (depositRefEl) depositRefEl.innerText = 'REGISTER_FOR_REF';
+
+                    const freeBtn = document.getElementById('btn-free-cta');
+                    if (freeBtn) {
+                        freeBtn.href = '/login';
+                        freeBtn.innerHTML = `<span>Test Integration Free</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+                        freeBtn.style.opacity = '1';
+                        freeBtn.style.pointerEvents = 'auto';
+                        freeBtn.style.background = '';
+                        freeBtn.style.borderColor = '';
+                        freeBtn.style.color = '';
+                    }
+                } else {
+                    // Registered user: display identity, credits, and active plan entitlements
+                    if (userBadge) userBadge.style.display = 'inline-flex';
+                    if (creditsWrap) creditsWrap.style.display = 'inline-flex';
+                    if (usernameEl) usernameEl.innerText = data.username || 'User';
+                    if (creditsEl) creditsEl.innerText = Number(data.credits || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                    const userTier = (data.tier || data.plan_name || 'free').toLowerCase();
+
+                    if (planBadge) {
+                        const tierUpper = userTier.toUpperCase();
+                        planBadge.textContent = tierUpper;
+                        planBadge.className = 'badge-pill';
+                        if (tierUpper === 'VINCE') {
+                            planBadge.classList.add('badge-yellow');
+                        } else if (tierUpper === 'MODERATO') {
+                            planBadge.classList.add('badge-pink');
+                        } else if (tierUpper === 'PAY_AS_YOU_GO') {
+                            planBadge.classList.add('badge-pink');
+                        } else if (tierUpper === 'ENTERPRISE') {
+                            planBadge.classList.add('badge-green');
+                        } else {
+                            planBadge.classList.add('badge-blue');
+                        }
+                    }
+
+                    if (btnAuthText) btnAuthText.textContent = 'Sign Out';
+                    if (btnAuthAction) {
+                        btnAuthAction.className = 'btn-sm-action';
+                        btnAuthAction.style.color = 'var(--text-danger)';
+                        btnAuthAction.style.borderColor = 'rgba(255, 138, 138, 0.4)';
+                        btnAuthAction.style.color = '#f87171';
+                        btnAuthAction.href = '#';
+                        btnAuthAction.onclick = async (e) => {
+                            e.preventDefault();
+                            await fetch('/api/auth/logout', { method: 'POST' });
+                            window.location.reload();
+                        };
+                    }
+
+                    if (guestWarning) guestWarning.style.display = 'none';
+
+                    // Deposit memo binding
+                    currentUserDepositRef = data.deposit_ref || 'XPK-REF';
+                    if (depositRefEl) depositRefEl.innerText = currentUserDepositRef;
+
+                    const now = Math.floor(Date.now() / 1000);
+                    const expiresAt = data.plan_expires_at || 0;
+                    const daysLeft = (expiresAt > now) ? Math.ceil((expiresAt - now) / 86400) : 0;
+
+                    function markCardActive(cardEl, daysRemaining) {
+                        if (!cardEl) return;
+                        cardEl.classList.add('current-plan-card');
+                        const badge = document.createElement('div');
+                        badge.className = 'current-plan-badge';
+                        badge.innerText = 'CURRENT ACTIVE PLAN';
+                        cardEl.appendChild(badge);
+
+                        if (daysRemaining > 0) {
+                            const metaEl = cardEl.querySelector('.price-meta');
+                            if (metaEl) {
+                                const pill = document.createElement('div');
+                                pill.className = 'plan-expiry-pill';
+                                pill.innerHTML = `<span>⏳ ${daysRemaining}d remaining</span>`;
+                                metaEl.appendChild(pill);
+                            }
+                        }
+                    }
+
+                    const freeCard = document.getElementById('card-plan-free');
+                    const starterCard = document.getElementById('card-plan-starter');
+                    const moderatoCard = document.getElementById('card-plan-moderato');
+                    const vinceCard = document.getElementById('card-plan-vince');
+                    const paygCard = document.getElementById('card-plan-payg');
+
+                    const freeBtn = document.getElementById('btn-free-cta');
+                    const starterBtn = document.getElementById('btn-starter-cta');
+                    const moderatoBtn = document.getElementById('btn-moderato-cta');
+                    const vinceBtn = document.getElementById('btn-vince-cta');
+                    const paygBtn = document.getElementById('btn-payg-cta');
+
+                    // Free card button adaptation
+                    if (freeBtn) {
+                        if (userTier === 'free') {
+                            freeBtn.href = '/';
+                            freeBtn.innerHTML = `<span>Current Plan (Active)</span>`;
+                            freeBtn.style.background = 'rgba(159, 216, 255, 0.15)';
+                            freeBtn.style.borderColor = 'rgba(159, 216, 255, 0.4)';
+                            freeBtn.style.color = '#9fd8ff';
+                            freeBtn.style.pointerEvents = 'auto';
+                            markCardActive(freeCard, 0);
+                        } else {
+                            freeBtn.href = '/';
+                            freeBtn.innerHTML = `<span>Included in Subscription</span>`;
+                            freeBtn.style.background = 'rgba(255, 255, 255, 0.05)';
+                            freeBtn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                            freeBtn.style.color = 'var(--text-muted)';
+                            freeBtn.style.pointerEvents = 'auto';
+                        }
+                    }
+
+                    // Highlight Active Paid Tier
+                    if (userTier === 'starter') {
+                        markCardActive(starterCard, daysLeft);
+                        if (starterBtn) {
+                            const span = starterBtn.querySelector('span');
+                            if (span) {
+                                span.innerText = 'Active Plan (Renew / Extend)';
+                                span.dataset.isCurrentPlan = 'true';
+                            }
+                        }
+                    } else if (userTier === 'moderato') {
+                        markCardActive(moderatoCard, daysLeft);
+                        if (moderatoBtn) {
+                            const span = moderatoBtn.querySelector('span');
+                            if (span) {
+                                span.innerText = 'Active Plan (Renew / Extend)';
+                                span.dataset.isCurrentPlan = 'true';
+                            }
+                        }
+                    } else if (userTier === 'vince') {
+                        markCardActive(vinceCard, daysLeft);
+                        if (vinceBtn) {
+                            const span = vinceBtn.querySelector('span');
+                            if (span) {
+                                span.innerText = 'Active Plan (Renew / Extend)';
+                                span.dataset.isCurrentPlan = 'true';
+                            }
+                        }
+                    } else if (userTier === 'pay_as_you_go') {
+                        markCardActive(paygCard, 0);
+                        if (paygBtn) {
+                            const span = paygBtn.querySelector('span');
+                            if (span) {
+                                span.innerText = 'Active (Top Up More Credits)';
+                                span.dataset.isCurrentPlan = 'true';
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Nav sync error:', err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', syncNavUserState);
+        window.addEventListener('focus', syncNavUserState);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) syncNavUserState();
+        });
     </script>
     <script src="/static/fx.js" defer></script>
 </body>
