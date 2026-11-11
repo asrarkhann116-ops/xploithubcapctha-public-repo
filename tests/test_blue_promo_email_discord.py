@@ -3,7 +3,7 @@ import asyncio
 import sqlite3
 import time
 import os
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 
 import core.promo as promo_mod
 import core.email_notify as email_mod
@@ -225,7 +225,9 @@ class TestEmailNotifyHardening(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(mock_post.called)
 
 
-class TestDiscordBotHardening(unittest.TestCase):
+class TestDiscordBotHardening(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        init_db()
     def test_sanitize_discord_text_neutralizes_mentions(self):
         """Verify @everyone, @here, and user/role mentions are neutralized."""
         evil_text = "Free nitro! @everyone @here <@&12345678> click now!"
@@ -350,6 +352,50 @@ class TestDiscordBotHardening(unittest.TestCase):
         with open(bot_file, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertNotIn("$0.1", content, "Found stale '$0.1' string in discord_bot.py")
+
+    async def test_credits_and_balance_commands_execute_cleanly(self):
+        """Verify credits_command.callback and balance_command.callback execute cleanly without TypeError."""
+        mock_interaction = MagicMock()
+        mock_interaction.user.id = 123456789
+        mock_interaction.user.name = "testuser"
+        mock_interaction.user.avatar = None
+        mock_interaction.response.send_message = AsyncMock()
+
+        # Test balance_command.callback
+        await bot_mod.balance_command.callback(mock_interaction)
+        self.assertTrue(mock_interaction.response.send_message.called)
+        call_kwargs = mock_interaction.response.send_message.call_args.kwargs
+        embed = call_kwargs.get("embed")
+        self.assertIsNotNone(embed)
+        self.assertIn("Account Balance", embed.title)
+        self.assertTrue(call_kwargs.get("ephemeral"))
+
+        # Test credits_command.callback (delegates to balance_command.callback)
+        mock_interaction.response.send_message.reset_mock()
+        await bot_mod.credits_command.callback(mock_interaction)
+        self.assertTrue(mock_interaction.response.send_message.called)
+        call_kwargs2 = mock_interaction.response.send_message.call_args.kwargs
+        embed2 = call_kwargs2.get("embed")
+        self.assertIsNotNone(embed2)
+        self.assertIn("Account Balance", embed2.title)
+
+    async def test_topup_command_embed_rates_accurate(self):
+        """Verify topup_command advertises 500 solves per 1 USDT and does not advertise stale 1,000 unblock requests."""
+        mock_interaction = MagicMock()
+        mock_interaction.response.send_message = AsyncMock()
+
+        await bot_mod.topup_command.callback(mock_interaction)
+        self.assertTrue(mock_interaction.response.send_message.called)
+        call_kwargs = mock_interaction.response.send_message.call_args.kwargs
+        embed = call_kwargs.get("embed")
+        self.assertIsNotNone(embed)
+
+        rates_field = next((f for f in embed.fields if f.name == "Rates"), None)
+        self.assertIsNotNone(rates_field, "Embed must have a 'Rates' field")
+        self.assertIn("1 USDT = 500 Solves", rates_field.value)
+        self.assertIn("5 USDT = 2,500 Solves", rates_field.value)
+        self.assertIn("$0.002/solve", rates_field.value)
+        self.assertNotIn("1,000 Unblock Requests", rates_field.value)
 
 
 if __name__ == "__main__":
