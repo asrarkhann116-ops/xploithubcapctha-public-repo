@@ -285,7 +285,7 @@ PLANS = {
 
 def get_user_plan_meta(user: dict) -> dict:
     """Return plan details and active configuration for given user."""
-    plan_key = user.get("plan", "free") or "free"
+    plan_key = str(user.get("plan", "free") or "free").lower()
     # Check if subscription has expired
     now = int(time.time())
     expires_at = user.get("plan_expires_at", 0) or 0

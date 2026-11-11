@@ -135,8 +135,8 @@ def format_discord_cost_field(user: dict) -> str:
     Format unambiguous solve cost string bound to active user plan.
     Prevents user confusion between credit counts and USD amounts.
     """
-    if "plan" not in user and "tier" in user:
-        user = dict(user, plan=user["tier"])
+    raw_plan = user.get("plan") or user.get("tier") or "free"
+    user = dict(user, plan=str(raw_plan).lower())
     plan_meta = get_user_plan_meta(user)
     rate = plan_meta.get("overage_rate", 0.0)
     plan_name = plan_meta.get("name", "Free")

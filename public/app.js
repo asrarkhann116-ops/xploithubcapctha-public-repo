@@ -51,7 +51,7 @@ function showToast(message, type = 'info') {
  * Prevents users from confusing 1 solve credit with $1.00 USD.
  */
 function getPlanDebitText(planKey) {
-    const key = (planKey || '').toLowerCase();
+    const key = String(planKey || '').toLowerCase();
     switch (key) {
         case 'moderato':
             return '1 Solve (≈ $0.0012 on Moderato)';

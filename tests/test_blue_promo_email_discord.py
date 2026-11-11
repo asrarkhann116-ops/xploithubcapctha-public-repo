@@ -329,6 +329,20 @@ class TestDiscordBotHardening(unittest.TestCase):
             self.assertIn(exp_substr, formatted_tier, f"Failed for tier key {plan_id}")
             self.assertNotIn("$0.1", formatted_tier)
 
+    def test_format_discord_cost_field_case_normalization(self):
+        """Verify uppercase and mixed-case plan casing formats correctly without Free tier demotion."""
+        user_upper = {"plan": "MODERATO"}
+        cost_upper = bot_mod.format_discord_cost_field(user_upper)
+        self.assertEqual(cost_upper, "1 Solve (≈ $0.0012 on Moderato)")
+
+        user_title = {"plan": "Starter"}
+        cost_title = bot_mod.format_discord_cost_field(user_title)
+        self.assertEqual(cost_title, "1 Solve (≈ $0.0025 on Starter)")
+
+        user_tier_upper = {"tier": "VINCE"}
+        cost_tier_upper = bot_mod.format_discord_cost_field(user_tier_upper)
+        self.assertEqual(cost_tier_upper, "1 Solve (≈ $0.0008 on Vince)")
+
     def test_discord_bot_source_has_zero_ten_cent_strings(self):
         """Enforce zero occurrences of '$0.1' in discord_bot.py."""
         import os
