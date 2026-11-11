@@ -507,7 +507,7 @@ a { color: var(--text-accent); }
 
 .telemetry-strip {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
@@ -1057,7 +1057,7 @@ a { color: var(--text-accent); }
 /* Unified 4-Tab Navigation */
 .payment-tabs-bar {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     background: rgba(17, 18, 39, 0.75);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
@@ -1378,7 +1378,7 @@ a { color: var(--text-accent); }
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: var(--font-pixel, var(--font-sans));
+    font-family: var(--font-sans) !important;
 }
 
 .sovereign-modal-close {
@@ -1495,4 +1495,10 @@ a { color: var(--text-accent); }
         align-items: flex-end;
         padding: 0;
     }
+}
+
+.plan-preset-btn.active {
+    background: rgba(246, 184, 200, 0.2) !important;
+    border-color: var(--border-accent) !important;
+    color: var(--text-accent) !important;
 }

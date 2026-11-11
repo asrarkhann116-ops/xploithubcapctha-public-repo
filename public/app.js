@@ -1,3 +1,43 @@
+
+let currentSidebarPlan = 'moderato';
+let currentSidebarPrice = 29;
+
+function selectSidebarPlan(plan, price, btn) {
+    currentSidebarPlan = plan;
+    currentSidebarPrice = price;
+    document.querySelectorAll('.plan-preset-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const btnText = document.getElementById('btn-sidebar-sellix-text');
+    if (btnText) {
+        if (currentUser && currentUser.is_guest) {
+            btnText.innerText = 'Sign In / Register to Pay with Card';
+        } else {
+            btnText.innerText = `Pay $${price} with Card / Apple Pay`;
+        }
+    }
+}
+
+function triggerSidebarCheckout() {
+    if (!currentUser || currentUser.is_guest || !currentUser.id) {
+        showToast('⚠️ Guest Account: Please register or sign in first so your plan attaches permanently.', 'error');
+        setTimeout(() => {
+            window.location.href = '/login?next=' + encodeURIComponent('/plans/');
+        }, 800);
+        return;
+    }
+    openSellixCheckout(currentSidebarPlan, currentSidebarPrice);
+}
+
+function handleSolanaDepositVerify() {
+    if (!currentUser || currentUser.is_guest || !currentUser.id) {
+        showToast('⚠️ Guest Account: Please sign in or register before verifying Solana deposits.', 'error');
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 800);
+        return;
+    }
+    verifyDeposit();
+}
 // ══════════════════════════════════════════════════════════
 //  XPLOIT UNBLOCKER — DEVELOPER CONSOLE CLIENT CONTROLLER
 //  Aesthetic: Human Developer Standards (Zero Emojis, Pure SVGs)
@@ -103,6 +143,17 @@ async function loadUserProfile() {
         const authBtn = document.getElementById('btn-auth-action');
 
         if (data.is_guest) {
+            const guestLock = document.getElementById('payment-guest-lock');
+            if (guestLock) guestLock.style.display = 'flex';
+            const depositRefEl = document.getElementById('user-deposit-ref');
+            if (depositRefEl) {
+                depositRefEl.innerText = 'Sign in to generate memo';
+                depositRefEl.style.color = 'var(--text-muted)';
+            }
+            const btnSidebarSellixText = document.getElementById('btn-sidebar-sellix-text');
+            if (btnSidebarSellixText) btnSidebarSellixText.innerText = 'Sign In / Register to Pay with Card';
+            const btnVerifyTxText = document.getElementById('btn-verify-tx-text');
+            if (btnVerifyTxText) btnVerifyTxText.innerText = 'Sign In to Verify';
             // Guest tester: hide API key & show sign-up banner
             if (apiKeyEl) {
                 apiKeyEl.type = 'text';
@@ -117,6 +168,17 @@ async function loadUserProfile() {
             if (authBtnText) authBtnText.innerText = 'Sign In / Register';
         } else {
             // Logged-in user: show real API key and allow regeneration
+            const guestLock = document.getElementById('payment-guest-lock');
+            if (guestLock) guestLock.style.display = 'none';
+            const depositRefEl = document.getElementById('user-deposit-ref');
+            if (depositRefEl) {
+                depositRefEl.innerText = data.deposit_ref || 'XPK-REF';
+                depositRefEl.style.color = 'var(--text-accent)';
+            }
+            const btnSidebarSellixText = document.getElementById('btn-sidebar-sellix-text');
+            if (btnSidebarSellixText) btnSidebarSellixText.innerText = `Pay $${currentSidebarPrice} with Card / Apple Pay`;
+            const btnVerifyTxText = document.getElementById('btn-verify-tx-text');
+            if (btnVerifyTxText) btnVerifyTxText.innerText = 'Verify On-Chain';
             if (apiKeyEl) {
                 apiKeyEl.type = 'password';
                 apiKeyEl.value = data.api_key;
@@ -532,7 +594,7 @@ async function pollFleetStatus() {
 //  UNIFIED 4-TAB PAYMENT CONTROLLER (Panel 3 & Modals)
 // ══════════════════════════════════════════════════════════
 function switchDashboardPaymentTab(tab) {
-    const tabs = ['solana', 'onramp', 'sellix', 'voucher'];
+    const tabs = ['sellix', 'solana', 'voucher'];
     tabs.forEach(t => {
         const tabBtn = document.getElementById(`tab-${t}`);
         const viewEl = document.getElementById(`deposit-view-${t}`);
@@ -545,11 +607,6 @@ function switchDashboardPaymentTab(tab) {
             else viewEl.style.display = 'none';
         }
     });
-
-    if (tab === 'onramp') {
-        const amtInput = document.getElementById('onramp-amount-input');
-        updateOnRampCalculation(amtInput ? amtInput.value : 29);
-    }
 }
 
 // Backwards compatibility alias
@@ -934,16 +991,14 @@ function updateOnRampCalculation(amount) {
 }
 
 function openSellixCheckout(planType, price) {
-    if (currentUser && currentUser.is_guest) {
-        showToast('⚠️ Guest Account: Please register or sign in first so Sellix webhook can credit your permanent account ID.', 'error');
-        const warning = document.getElementById('checkout-guest-warning') || document.getElementById('sellix-guest-warning');
-        if (warning) {
-            warning.style.display = 'flex';
-            warning.scrollIntoView({ behavior: 'smooth' });
-        }
+    if (!currentUser || currentUser.is_guest || !currentUser.id) {
+        showToast('⚠️ Guest Account: Please register or sign in first so Sellix can activate your account ID.', 'error');
+        setTimeout(() => {
+            window.location.href = '/login?next=' + encodeURIComponent('/plans/');
+        }, 800);
         return;
     }
-    const userId = (currentUser && currentUser.id) || 0;
+    const userId = currentUser.id;
     const planKey = (planType || 'starter').toLowerCase();
     const sellixUrl = `https://xploit-unblocker.sellix.io/product/${encodeURIComponent(planKey)}?custom-user_id=${encodeURIComponent(userId)}&custom-plan_type=${encodeURIComponent(planKey)}`;
     window.open(sellixUrl, '_blank', 'noopener,noreferrer');
